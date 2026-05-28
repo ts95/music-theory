@@ -121,4 +121,52 @@ describe('generateAllQuestions', () => {
   it('is deterministic across calls', () => {
     expect(generateAllQuestions()).toEqual(generateAllQuestions())
   })
+
+  describe('hover audio', () => {
+    it('attaches playable audio for every choice of scale/chord/progression/relative-minor', () => {
+      const playable = questions.filter((q) =>
+        ['Relative minor', 'Scale spelling', 'Diatonic chord', 'Progression'].includes(
+          q.category
+        )
+      )
+      expect(playable.length).toBeGreaterThan(0)
+      for (const q of playable) {
+        expect(q.audio, q.id).toBeDefined()
+        // Every rendered choice has audio, keyed by its display string.
+        for (const c of q.choices) {
+          expect(q.audio![c], `${q.id} / ${c}`).toBeDefined()
+          expect(q.audio![c].events.length).toBeGreaterThan(0)
+        }
+      }
+    })
+
+    it('attaches no audio to fingering questions', () => {
+      for (const q of questions.filter((x) => x.category === 'Fingering')) {
+        expect(q.audio).toBeUndefined()
+      }
+    })
+
+    it('spot-checks playback data', () => {
+      // C major scale ascends C4..B4.
+      const scale = questions.find((x) => x.id === 'scale-notes:A:natural')
+      expect(scale!.audio!['A – B – C – D – E – F – G'].kind).toBe('scale')
+
+      // Étude 2 "F" major triad.
+      const fMaj = questions.find(
+        (x) => x.prompt === 'In C major, what is the IV chord?'
+      )!
+      expect(fMaj.audio!['F']).toEqual({ kind: 'chord', events: [[65, 69, 72]] })
+
+      // Étude 3 C major I–IV–V progression.
+      const prog = questions.find((x) => x.id === 'prog:C:major:I-IV-V:3')!
+      expect(prog.audio!['C – F – G']).toEqual({
+        kind: 'progression',
+        events: [
+          [60, 64, 67],
+          [65, 69, 72],
+          [67, 71, 74],
+        ],
+      })
+    })
+  })
 })

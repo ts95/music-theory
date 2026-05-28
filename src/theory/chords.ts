@@ -21,6 +21,20 @@ export interface Chord {
   quality: Quality
 }
 
+/** Semitones above the root for each quality's chord tones. */
+export const QUALITY_INTERVALS: Record<Quality, number[]> = {
+  maj: [0, 4, 7],
+  min: [0, 3, 7],
+  dim: [0, 3, 6],
+  aug: [0, 4, 8],
+  maj7: [0, 4, 7, 11],
+  dom7: [0, 4, 7, 10],
+  min7: [0, 3, 7, 10],
+  m7b5: [0, 3, 6, 10],
+  dim7: [0, 3, 6, 9],
+  mMaj7: [0, 3, 7, 11],
+}
+
 const QUALITY_SUFFIX: Record<Quality, string> = {
   maj: '',
   min: 'm',

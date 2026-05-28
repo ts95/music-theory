@@ -1,15 +1,18 @@
-import type { Hand, Note, Question, ScaleType } from '../contracts'
+import type { Hand, Note, Playable, Question, ScaleType } from '../contracts'
 import {
   KEYS,
+  chordEvents,
   chordSymbol,
   diatonicTriads,
   fingering,
   minorScale,
   noteToString,
+  progressionEvents,
   romanLabel,
   romanToChord,
+  scaleEvents,
 } from '../theory'
-import type { Mode } from '../theory'
+import type { Chord, Mode } from '../theory'
 
 const SCALE_TYPES: ScaleType[] = ['natural', 'harmonic', 'melodic']
 const HANDS: Hand[] = ['RH', 'LH']
@@ -53,7 +56,8 @@ function buildQuestion(
   category: string,
   prompt: string,
   correct: string,
-  distractors: string[]
+  distractors: string[],
+  audio?: Record<string, Playable>
 ): Question {
   const picked: string[] = []
   for (const d of distractors) {
@@ -62,7 +66,7 @@ function buildQuestion(
     if (picked.length === 3) break
   }
   const choices = [correct, ...picked].sort((a, b) => a.localeCompare(b))
-  return {
+  const question: Question = {
     id,
     etudeId,
     category,
@@ -70,10 +74,24 @@ function buildQuestion(
     choices,
     answerIndex: choices.indexOf(correct),
   }
+  if (audio) {
+    // Keep only the playback entries for the choices we actually rendered.
+    const kept: Record<string, Playable> = {}
+    for (const c of choices) {
+      if (audio[c]) kept[c] = audio[c]
+    }
+    if (Object.keys(kept).length > 0) question.audio = kept
+  }
+  return question
 }
 
-/** 1. Relative-minor recall: one per key. */
+/** 1. Relative-minor recall: one per key. Each key name plays its tonic minor triad. */
 function relativeMinorQuestions(): Question[] {
+  // Every key name → its tonic minor triad (buildQuestion keeps the rendered ones).
+  const audio: Record<string, Playable> = {}
+  for (const k of KEYS) {
+    audio[k.minorName] = { kind: 'chord', events: chordEvents(k.minorTonic, 'min') }
+  }
   return KEYS.map((key) => {
     const distractors = KEYS.filter((k) => k !== key).map((k) => k.minorName)
     return buildQuestion(
@@ -82,7 +100,8 @@ function relativeMinorQuestions(): Question[] {
       'Relative minor',
       `What is the relative minor of ${key.majorName}?`,
       key.minorName,
-      distractors
+      distractors,
+      audio
     )
   })
 }
@@ -92,15 +111,22 @@ function scaleSpellingQuestions(): Question[] {
   const questions: Question[] = []
   for (const key of KEYS) {
     for (const type of SCALE_TYPES) {
-      const correct = renderScale(minorScale(key.minorTonic, type))
+      const audio: Record<string, Playable> = {}
+      // Render a scale to its string AND register its ascending playback.
+      const reg = (notes: Note[]): string => {
+        const s = renderScale(notes)
+        audio[s] = { kind: 'scale', events: scaleEvents(notes) }
+        return s
+      }
+      const correct = reg(minorScale(key.minorTonic, type))
       // Strongest distractors: the other two forms of the same tonic.
       const distractors = SCALE_TYPES.filter((t) => t !== type).map((t) =>
-        renderScale(minorScale(key.minorTonic, t))
+        reg(minorScale(key.minorTonic, t))
       )
       // Fill any remaining slots with the same type from other keys.
       for (const other of KEYS) {
         if (other === key) continue
-        distractors.push(renderScale(minorScale(other.minorTonic, type)))
+        distractors.push(reg(minorScale(other.minorTonic, type)))
       }
       questions.push(
         buildQuestion(
@@ -109,7 +135,8 @@ function scaleSpellingQuestions(): Question[] {
           'Scale spelling',
           `What are the notes of the ${noteToString(key.minorTonic)} ${TYPE_WORD[type]} scale?`,
           correct,
-          distractors
+          distractors,
+          audio
         )
       )
     }
@@ -183,18 +210,25 @@ function chordDegreeQuestions(): Question[] {
       ]
       for (const { degree, seventh } of specs) {
         const roman = romanLabel(mode, degree, seventh)
-        const correct = chordSymbol(romanToChord(tonic, mode, degree, seventh))
+        const audio: Record<string, Playable> = {}
+        // Render a chord to its symbol AND register its block playback.
+        const reg = (c: Chord): string => {
+          const s = chordSymbol(c)
+          audio[s] = { kind: 'chord', events: chordEvents(c.root, c.quality) }
+          return s
+        }
+        const correct = reg(romanToChord(tonic, mode, degree, seventh))
 
         // Strongest: the same degree in other keys of the same mode.
         const distractors: string[] = []
         for (const other of KEYS) {
           if (other === key) continue
           const ot = keyForMode(other, mode).tonic
-          distractors.push(chordSymbol(romanToChord(ot, mode, degree, seventh)))
+          distractors.push(reg(romanToChord(ot, mode, degree, seventh)))
         }
         // Then the other diatonic chords within this key.
         for (const c of diatonicTriads(tonic, mode)) {
-          distractors.push(chordSymbol(c))
+          distractors.push(reg(c))
         }
 
         questions.push(
@@ -204,7 +238,8 @@ function chordDegreeQuestions(): Question[] {
             'Diatonic chord',
             `In ${name}, what is the ${roman} chord?`,
             correct,
-            distractors
+            distractors,
+            audio
           )
         )
       }
@@ -244,15 +279,22 @@ function progressionLabel(prog: Progression, seventh: boolean): string {
   return prog.degrees.map((d) => romanLabel(prog.mode, d, seventh)).join('–')
 }
 
-/** The concrete chord spelling of a progression, e.g. "Dm – G – C". */
-function progressionSpelling(
+/**
+ * Concrete chord spelling of a progression (e.g. "Dm – G – C"), registering its
+ * block-chords-in-series playback into `audio` under that string.
+ */
+function spellAndRegister(
   tonic: Note,
   prog: Progression,
-  seventh: boolean
+  seventh: boolean,
+  audio: Record<string, Playable>
 ): string {
-  return prog.degrees
-    .map((d) => chordSymbol(romanToChord(tonic, prog.mode, d, seventh)))
-    .join(' – ')
+  const chords = prog.degrees.map((d) =>
+    romanToChord(tonic, prog.mode, d, seventh)
+  )
+  const s = chords.map(chordSymbol).join(' – ')
+  audio[s] = { kind: 'progression', events: progressionEvents(chords) }
+  return s
 }
 
 /**
@@ -271,23 +313,22 @@ function progressionQuestions(): Question[] {
       const label = progressionLabel(prog, seventh)
       const modeKeys = KEYS.map((key) => keyForMode(key, prog.mode))
       for (const { tonic, name } of modeKeys) {
-        const correct = progressionSpelling(tonic, prog, seventh)
+        const audio: Record<string, Playable> = {}
+        const correct = spellAndRegister(tonic, prog, seventh, audio)
 
         // Strong distractors: same progression in other keys of this mode.
         const distractors: string[] = []
         for (const other of modeKeys) {
           if (other.tonic === tonic) continue
-          distractors.push(progressionSpelling(other.tonic, prog, seventh))
+          distractors.push(spellAndRegister(other.tonic, prog, seventh, audio))
         }
         // One-chord-swapped variant within the same key: swap the first chord
         // for the next diatonic degree (deterministic, distinct from correct).
         const swapped: Progression = {
           ...prog,
-          degrees: prog.degrees.map((d, i) =>
-            i === 0 ? (d + 1) % 7 : d
-          ),
+          degrees: prog.degrees.map((d, i) => (i === 0 ? (d + 1) % 7 : d)),
         }
-        distractors.push(progressionSpelling(tonic, swapped, seventh))
+        distractors.push(spellAndRegister(tonic, swapped, seventh, audio))
 
         questions.push(
           buildQuestion(
@@ -296,7 +337,8 @@ function progressionQuestions(): Question[] {
             'Progression',
             `In ${name}, spell the progression ${label}.`,
             correct,
-            distractors
+            distractors,
+            audio
           )
         )
       }

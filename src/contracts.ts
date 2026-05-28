@@ -78,6 +78,17 @@ export interface Etude {
   subtitle: string
 }
 
+/**
+ * Audible playback for a choice. `events` is a series played in order; each
+ * event is the set of MIDI note numbers struck together. A scale is many
+ * single-note events, a chord is one multi-note event, a progression is many
+ * multi-note events. `kind` only drives timing in the player.
+ */
+export interface Playable {
+  kind: 'chord' | 'scale' | 'progression'
+  events: number[][]
+}
+
 /** A single multiple-choice question. */
 export interface Question {
   /**
@@ -96,4 +107,6 @@ export interface Question {
   choices: string[]
   /** Index into `choices` of the correct answer. */
   answerIndex: number
+  /** Optional hover-to-play audio, keyed by choice display string. */
+  audio?: Record<string, Playable>
 }

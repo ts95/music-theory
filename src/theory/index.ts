@@ -9,4 +9,6 @@ export {
   diatonicSevenths,
   romanLabel,
   romanToChord,
+  QUALITY_INTERVALS,
 } from './chords'
+export { noteMidi, scaleEvents, chordEvents, progressionEvents } from './midi'
