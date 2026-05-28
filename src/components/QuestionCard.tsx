@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Question } from '../contracts'
 import { isMuted, play, playEar, stop } from '../audio/player'
 import {
@@ -81,6 +81,12 @@ export default function QuestionCard({
   const answered = selected !== null || timedOut
   const isCorrect = selected === question.answerIndex
 
+  // Keep onTimeout in a ref so an ancestor re-render (e.g. the per-second
+  // practice-time tick) that changes its identity doesn't restart the
+  // countdown effect below — which would reset the deadline forever.
+  const onTimeoutRef = useRef(onTimeout)
+  onTimeoutRef.current = onTimeout
+
   // Countdown timer (only for timed questions). The card remounts per question
   // (keyed by id), so this effect starts fresh each time.
   const [remaining, setRemaining] = useState(timeLimitMs ?? 0)
@@ -92,13 +98,13 @@ export default function QuestionCard({
       if (rem <= 0) {
         clearInterval(id)
         setRemaining(0)
-        onTimeout()
+        onTimeoutRef.current()
       } else {
         setRemaining(rem)
       }
     }, 100)
     return () => clearInterval(id)
-  }, [timeLimitMs, answered, onTimeout])
+  }, [timeLimitMs, answered])
 
   const timed = timeLimitMs !== undefined
   const pct = timed ? Math.max(0, (remaining / timeLimitMs) * 100) : 0
