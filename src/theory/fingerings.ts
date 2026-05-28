@@ -27,8 +27,8 @@ const TABLE: Record<string, Record<Hand, number[]>> = {
   'F♯': { RH: [3, 4, 1, 2, 3, 1, 2, 3], LH: [4, 3, 2, 1, 3, 2, 1, 4] },
   // C# minor (E major)
   'C♯': { RH: [3, 4, 1, 2, 3, 1, 2, 3], LH: [3, 2, 1, 4, 3, 2, 1, 3] },
-  // G# minor (B major)
-  'G♯': { RH: [3, 4, 1, 2, 3, 1, 2, 3], LH: [3, 2, 1, 4, 3, 2, 1, 3] },
+  // G# minor (B major) — LH per pianoscales.org & piano.org; ends 4 on F♯, 3 on octave
+  'G♯': { RH: [3, 4, 1, 2, 3, 1, 2, 3], LH: [3, 2, 1, 3, 2, 1, 4, 3] },
   // D# minor (F# major)
   'D♯': { RH: [3, 1, 2, 3, 4, 1, 2, 3], LH: [2, 1, 4, 3, 2, 1, 3, 2] },
   // D minor (F major)
