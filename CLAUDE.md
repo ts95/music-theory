@@ -115,17 +115,24 @@ src/
 │   ├── notes.ts     # pitch/note model, enharmonics, accidentals
 │   ├── keys.ts      # 12 major keys, key signatures, relative-minor mapping
 │   ├── scales.ts    # compute natural/harmonic/melodic minor note spellings
+│   ├── chords.ts    # diatonic triads/sevenths, chord symbols, Roman-numeral mapping
 │   └── fingerings.ts# static RH/LH piano fingering tables per scale
 ├── srs/             # Spaced-repetition engine — also framework-free
 │   ├── scheduler.ts # SM-2-lite: per-item ease + interval, grade 0–5
 │   └── store.ts     # localStorage load/save + JSON export/import
 ├── questions/
+│   ├── etudes.ts    # ETUDES registry (the selectable exercises)
 │   └── generators.ts# build MC questions from theory/ data; produce distractors
 └── components/      # React UI
+    ├── EtudeMenu.tsx     # table-of-contents home screen; picks an étude
     ├── ReviewSession.tsx  # drives a study session: pick due item → render → grade
     ├── QuestionCard.tsx   # renders one MC question + answer feedback
     └── (later) Keyboard.tsx / Staff.tsx  # Tone.js playback + VexFlow rendering
 ```
+
+**Études:** the app is organised into selectable études (exercises). `ETUDES` (in `questions/etudes.ts`)
+lists them; every `Question` carries an `etudeId`, and the UI scopes a session + its progress to one
+étude. To add an étude: add an `ETUDES` entry, generate questions tagged with its id, done.
 
 **Key rule: `theory/` and `srs/` are pure** — no React, no DOM, no side effects beyond `store.ts`'s
 localStorage access. This keeps the music logic testable and reusable.
@@ -147,6 +154,12 @@ Accuracy matters more than cleverness — a wrong fact teaches the wrong thing.
 - **Fingerings are static data**, not derived (no reliable formula). Keep `fingerings.ts` as a clear
   per-scale table keyed by tonic + scale type + hand (RH/LH). **Verify fingerings against a trusted
   reference** before committing them (the `/deep-research` skill is good for this).
+- **Chords** (compute in `chords.ts`, don't hardcode): build by stacking diatonic thirds on the scale;
+  derive quality from pitch-class intervals. Display as **symbols** — `C`, `Dm`, `B°`, `C+`, `Cmaj7`,
+  `G7` (dom7), `Bø7` (half-dim), `B°7` (dim7). Major-key diatonic chords are unambiguous. **Minor keys
+  use the common-practice set** (`i ii° III iv V VI vii°`): natural minor throughout, except **V** and
+  **vii°** take the harmonic minor's raised leading tone (so V/V7 is dominant, vii°/vii°7 diminished).
+  Spot-check e.g. A minor triads = `Am B° C Dm E F G♯°`. Verify any minor-key chord convention.
 
 ## SRS data model
 

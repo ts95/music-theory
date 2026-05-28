@@ -8,19 +8,24 @@ stored locally and can be exported to a file.
 
 ## Features
 
+Lessons are organised into **selectable études**, each its own spaced-repetition session with its own
+progress, chosen from a table-of-contents home screen.
+
 **Now**
-- 🎹 **Spaced-repetition exercise: keys & relative minors.** Multiple-choice drills that adapt to what
-  you remember:
-  - Relative minors of the major keys ("What is the relative minor of E♭ major?")
-  - Scale spellings — natural, harmonic, and melodic minor ("What are the notes of E♭ harmonic minor?")
-  - Standard **piano** fingerings (RH/LH) for the scales
+- 🎹 **Étude No. 1 — Keys & Relative Minors.** Relative minors of the major keys ("What is the relative
+  minor of E♭ major?"), scale spellings (natural / harmonic / melodic minor), and standard **piano**
+  fingerings (RH/LH). Relative-minor questions are timed (5s sudden-death).
+- 🎶 **Étude No. 2 — Chords by Degree.** Recall the diatonic chord on a scale degree in any key ("In C
+  major, what is the IV chord?" → F), across all 12 major and 12 minor keys — the common triads plus V7.
+- 🔢 **Étude No. 3 — Progressions.** Map a Roman-numeral progression to concrete chords in a given key
+  ("In G major, spell ii–V–I" → Am – D – G), including ii–V–I seventh forms.
 - 💾 **Progress that's yours.** Saved to your browser, with JSON **export/import** to back up or move
   between devices.
 
 **Roadmap (ideas, not commitments)**
-- 🔊 Audio playback of scales/intervals (Tone.js)
+- 🔊 Audio playback of scales/chords/progressions (Tone.js)
 - 🎼 Staff notation for questions and answers (VexFlow)
-- 📚 More topics: intervals, chords, modes, progressions, ear training
+- 📚 More topics: intervals, modes, ear training
 
 ## Tech stack
 

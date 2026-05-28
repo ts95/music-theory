@@ -1,6 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
 import type { Question, SrsData } from '../contracts'
-import { generateAllQuestions } from '../questions'
 import { getState, grade, initialState, isDue, save, setState } from '../srs'
 import QuestionCard from './QuestionCard'
 import Button from './Button'
@@ -13,6 +12,8 @@ const TIMED_CATEGORY = 'Relative minor'
 const TIME_LIMIT_MS = 5000
 
 interface ReviewSessionProps {
+  /** The questions to study this session (already scoped to one étude). */
+  bank: Question[]
   /** The current SRS store, owned by App (so import/export stay in sync). */
   data: SrsData
   /** Persist + lift store changes back to App. */
@@ -53,12 +54,10 @@ function formatRelative(dueAt: number, now: number): string {
 }
 
 export default function ReviewSession({
+  bank,
   data,
   onDataChange,
 }: ReviewSessionProps) {
-  // The question bank is fixed for the app's lifetime.
-  const bank = useMemo(() => generateAllQuestions(), [])
-
   // A "queue token" lets us rebuild the queue on demand (start/restart).
   const [queueToken, setQueueToken] = useState(0)
   // null queue means we're showing the due session built from current `data`.
