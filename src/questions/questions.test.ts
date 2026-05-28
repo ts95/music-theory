@@ -33,7 +33,8 @@ describe('generateAllQuestions', () => {
     // chords: 24 key/mode combos × 7 (trimmed triads + V7) = 168.
     // progressions: 6 major + 5 minor triad progressions × 12 keys = 132,
     // plus 2 idiomatic seventh forms × 12 = 24, total 156.
-    expect(questions.length).toBe(72 + 168 + 156)
+    // ear: 12 intervals + 11 progression types = 23.
+    expect(questions.length).toBe(72 + 168 + 156 + 12 + 11)
   })
 
   it('tags every question with a valid étude id and expected counts', () => {
@@ -45,6 +46,8 @@ describe('generateAllQuestions', () => {
     expect(count('keys')).toBe(72)
     expect(count('chords')).toBe(168)
     expect(count('progressions')).toBe(156)
+    expect(count('intervals-ear')).toBe(12)
+    expect(count('progressions-ear')).toBe(11)
   })
 
   it('has unique ids', () => {
@@ -265,6 +268,35 @@ describe('generateAllQuestions', () => {
     it('fingering tip states the thumb rule', () => {
       const q = questions.find((x) => x.id === 'fingering:A:RH')!
       expect(q.explanation).toMatch(/thumb/)
+    })
+  })
+
+  describe('ear-training questions', () => {
+    const earQ = questions.filter((q) => q.ear)
+
+    it('intervals and progressions carry an ear spec, 4 label choices, and a tip', () => {
+      expect(earQ.length).toBe(12 + 11)
+      for (const q of earQ) {
+        expect(q.ear, q.id).toBeDefined()
+        expect(q.choices.length).toBe(4)
+        expect(new Set(q.choices).size).toBe(4)
+        expect(q.explanation).toBeTruthy()
+        expect(q.audio).toBeUndefined() // no hover audio — the question owns the sound
+      }
+    })
+
+    it('interval questions cover all 12 intervals with correct specs', () => {
+      const intervals = questions.filter((q) => q.ear?.kind === 'interval')
+      expect(intervals).toHaveLength(12)
+      const p5 = questions.find((x) => x.id === 'interval-ear:7')!
+      expect(p5.choices[p5.answerIndex]).toBe('Perfect 5th')
+      expect(p5.ear).toEqual({ kind: 'interval', semitones: 7, letterSteps: 4 })
+    })
+
+    it('progression-by-ear reuses the curated set', () => {
+      const q = questions.find((x) => x.id === 'prog-ear:major:I-IV-V')!
+      expect(q.choices[q.answerIndex]).toBe('I–IV–V')
+      expect(q.ear).toEqual({ kind: 'progression', mode: 'major', degrees: [0, 3, 4] })
     })
   })
 })

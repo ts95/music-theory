@@ -89,6 +89,47 @@ export function chordExplanation(
   return `The ${roman} chord is built on the ${ORDINALS[degree]} degree of ${keyName} (root ${noteToString(chord.root)}). A ${mode} key's diatonic chords run ${TRIAD_PATTERN[mode]}, so ${roman} is ${QUALITY_WORD[chord.quality]} → ${chordSymbol(chord)}.${primary}`
 }
 
+const INTERVAL_MNEMONIC: Record<string, string> = {
+  'Minor 2nd': 'the two-note "Jaws" theme',
+  'Major 2nd': 'the first two notes of "Happy Birthday"',
+  'Minor 3rd': 'the opening of "Greensleeves"',
+  'Major 3rd': '"When the Saints Go Marching In"',
+  'Perfect 4th': '"Here Comes the Bride" / "Amazing Grace"',
+  Tritone: '"Maria" from West Side Story (or The Simpsons)',
+  'Perfect 5th': '"Twinkle, Twinkle" / the Star Wars theme',
+  'Minor 6th': 'the theme from "Love Story"',
+  'Major 6th': '"My Bonnie Lies Over the Ocean"',
+  'Minor 7th': 'the Star Trek theme',
+  'Major 7th': 'the big leap in the chorus of "Take On Me"',
+  Octave: '"Somewhere" Over the Rainbow',
+}
+
+/** Ear-training: identify an interval by sound. */
+export function intervalEarExplanation(name: string, semitones: number): string {
+  const hook = INTERVAL_MNEMONIC[name] ?? 'a familiar tune'
+  return `${name} = ${semitones} semitone${semitones === 1 ? '' : 's'}. To anchor it, hum ${hook} — that ascending leap is a ${name}.`
+}
+
+const PROGRESSION_FEEL: Record<string, string> = {
+  'I-IV-V': 'the three primary chords — the basis of blues and countless folk/rock tunes',
+  'ii-V-I': 'the backbone cadence of jazz; feel the smooth pull home to I',
+  'I-V-vi-IV': 'the "four-chord" pop progression (the Axis of Awesome songs)',
+  'I-vi-IV-V': 'the 1950s doo-wop progression',
+  'vi-IV-I-V': 'a pop progression that opens on the relative minor',
+  'I-IV-vi-V': 'a bright pop turnaround',
+  'i-iv-V': 'the minor cadence; the major V (raised leading tone) pulls hard to i',
+  'iio-V-i': 'the minor ii°–V–i cadence',
+  'i-VI-iv-V': 'a dramatic minor progression',
+  'VI-iv-i-V': 'a minor progression opening on VI',
+  'i-iv-V-i': 'a full minor cadential loop',
+}
+
+/** Ear-training: identify a progression by sound. */
+export function progressionEarExplanation(slug: string, label: string): string {
+  const feel = PROGRESSION_FEEL[slug] ?? 'a common progression'
+  return `That was ${label} — ${feel}. Always hear each chord relative to the tonic played first.`
+}
+
 /** "In G major, spell the progression ii–V–I." */
 export function progressionExplanation(
   keyName: string,

@@ -19,6 +19,8 @@ import type { Chord, Mode } from '../theory'
 import {
   chordExplanation,
   fingeringExplanation,
+  intervalEarExplanation,
+  progressionEarExplanation,
   progressionExplanation,
   relativeMinorExplanation,
   scaleExplanation,
@@ -394,6 +396,77 @@ function progressionQuestions(): Question[] {
   return questions
 }
 
+interface IntervalDef {
+  name: string
+  semitones: number
+  letterSteps: number
+}
+
+/** The 12 intervals within an octave, ascending. */
+const INTERVALS: IntervalDef[] = [
+  { name: 'Minor 2nd', semitones: 1, letterSteps: 1 },
+  { name: 'Major 2nd', semitones: 2, letterSteps: 1 },
+  { name: 'Minor 3rd', semitones: 3, letterSteps: 2 },
+  { name: 'Major 3rd', semitones: 4, letterSteps: 2 },
+  { name: 'Perfect 4th', semitones: 5, letterSteps: 3 },
+  { name: 'Tritone', semitones: 6, letterSteps: 3 },
+  { name: 'Perfect 5th', semitones: 7, letterSteps: 4 },
+  { name: 'Minor 6th', semitones: 8, letterSteps: 5 },
+  { name: 'Major 6th', semitones: 9, letterSteps: 5 },
+  { name: 'Minor 7th', semitones: 10, letterSteps: 6 },
+  { name: 'Major 7th', semitones: 11, letterSteps: 6 },
+  { name: 'Octave', semitones: 12, letterSteps: 7 },
+]
+
+/** 6. Interval ear-training: identify an ascending interval by sound. */
+function intervalEarQuestions(): Question[] {
+  return INTERVALS.map((iv) => {
+    // Distractors: the nearest intervals by semitone (the easiest to confuse).
+    const distractors = INTERVALS.filter((x) => x.name !== iv.name)
+      .sort(
+        (a, b) =>
+          Math.abs(a.semitones - iv.semitones) -
+          Math.abs(b.semitones - iv.semitones)
+      )
+      .map((x) => x.name)
+    const q = buildQuestion(
+      'intervals-ear',
+      `interval-ear:${iv.semitones}`,
+      'Interval',
+      'Identify the interval you hear.',
+      iv.name,
+      distractors,
+      undefined,
+      intervalEarExplanation(iv.name, iv.semitones)
+    )
+    q.ear = { kind: 'interval', semitones: iv.semitones, letterSteps: iv.letterSteps }
+    return q
+  })
+}
+
+/** 7. Progression ear-training: identify a curated progression by sound. */
+function progressionEarQuestions(): Question[] {
+  const labelOf = (p: Progression) =>
+    p.degrees.map((d) => romanLabel(p.mode, d, false)).join('–')
+  return PROGRESSIONS.map((prog) => {
+    const distractors = PROGRESSIONS.filter(
+      (p) => p.mode === prog.mode && p.slug !== prog.slug
+    ).map(labelOf)
+    const q = buildQuestion(
+      'progressions-ear',
+      `prog-ear:${prog.mode}:${prog.slug}`,
+      'Progression by ear',
+      'Identify the progression you hear.',
+      labelOf(prog),
+      distractors,
+      undefined,
+      progressionEarExplanation(prog.slug, labelOf(prog))
+    )
+    q.ear = { kind: 'progression', mode: prog.mode, degrees: prog.degrees }
+    return q
+  })
+}
+
 /** All study questions, deterministic across runs. */
 export function generateAllQuestions(): Question[] {
   return [
@@ -402,5 +475,7 @@ export function generateAllQuestions(): Question[] {
     ...fingeringQuestions(),
     ...chordDegreeQuestions(),
     ...progressionQuestions(),
+    ...intervalEarQuestions(),
+    ...progressionEarQuestions(),
   ]
 }

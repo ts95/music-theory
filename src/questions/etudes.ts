@@ -20,4 +20,16 @@ export const ETUDES: Etude[] = [
     title: 'Progressions',
     subtitle: 'Roman-numeral progressions → concrete chords',
   },
+  {
+    id: 'intervals-ear',
+    number: 4,
+    title: 'Intervals by Ear',
+    subtitle: 'Hear an interval and name it — relative-pitch training',
+  },
+  {
+    id: 'progressions-ear',
+    number: 5,
+    title: 'Progressions by Ear',
+    subtitle: 'Hear a progression over its tonic and name it',
+  },
 ]

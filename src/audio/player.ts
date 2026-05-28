@@ -99,6 +99,48 @@ export function play(p: Playable): void {
   }, 70)
 }
 
+/**
+ * Play an ear-training prompt: an optional reference (block, ~0.9s) then a gap,
+ * then the target. `style` sets target timing — melodic (notes in series) or
+ * block (chords in series). Replaces any current playback; cancelable via stop().
+ */
+export function playEar(
+  reference: number[][],
+  target: number[][],
+  style: 'melodic' | 'block'
+): void {
+  if (muted) return
+  stop()
+  const g = generation
+  debounce = setTimeout(async () => {
+    try {
+      await ensureSynth()
+      if (muted || g !== generation) return
+      scheduleEar(reference, target, style)
+    } catch {
+      /* audio unavailable — ignore */
+    }
+  }, 70)
+}
+
+function scheduleEar(
+  reference: number[][],
+  target: number[][],
+  style: 'melodic' | 'block'
+): void {
+  if (!Tone || !synth) return
+  const fire = (event: number[], hold: number, at: number) => {
+    const freqs = event.map((m) => Tone!.Frequency(m, 'midi').toFrequency())
+    scheduled.push(setTimeout(() => synth?.triggerAttackRelease(freqs, hold), at))
+  }
+  let t = 0
+  reference.forEach((ev, i) => fire(ev, 0.9, i * 640))
+  if (reference.length > 0) t = reference.length * 640 + 700 // gap before target
+  const step = style === 'melodic' ? 460 : 640
+  const hold = style === 'melodic' ? 0.5 : 0.72
+  target.forEach((ev, i) => fire(ev, hold, t + i * step))
+}
+
 /** Stop all playback immediately. */
 export function stop(): void {
   generation++

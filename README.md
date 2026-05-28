@@ -19,6 +19,10 @@ progress, chosen from a table-of-contents home screen.
   major, what is the IV chord?" → F), across all 12 major and 12 minor keys — the common triads plus V7.
 - 🔢 **Étude No. 3 — Progressions.** Map a Roman-numeral progression to concrete chords in a given key
   ("In G major, spell ii–V–I" → Am – D – G), including ii–V–I seventh forms.
+- 👂 **Étude No. 4 — Intervals by Ear.** Hear an interval and name it. The root is randomized each time
+  (relative-pitch training); on reveal you see it written on the staff.
+- 🎧 **Étude No. 5 — Progressions by Ear.** Hear the tonic, then a progression, and name it in Roman
+  numerals. The key is randomized each time; the chords are shown on the staff on reveal.
 - 🔊 **Hover to hear it.** Hover any answer to play it on a synthesized piano — scales arpeggiate,
   chords ring as a block, progressions play chord-by-chord. Turn it off with the **♪ Sound** toggle.
 - 🧠 **Learn from misses.** Get one wrong (or let the timer run out) and a **Remember** note explains the
@@ -27,8 +31,7 @@ progress, chosen from a table-of-contents home screen.
   between devices.
 
 **Roadmap (ideas, not commitments)**
-- 🎼 Staff notation for questions and answers (VexFlow)
-- 📚 More topics: intervals, modes, ear training
+- 📚 More topics: modes, rhythm, melodic dictation
 
 ## Tech stack
 

@@ -89,6 +89,14 @@ export interface Playable {
   events: number[][]
 }
 
+/**
+ * An ear-training prompt. The concrete pitches are realized from a random root
+ * at play time (relative-pitch training), so only the relationship is stored.
+ */
+export type EarSpec =
+  | { kind: 'interval'; semitones: number; letterSteps: number }
+  | { kind: 'progression'; mode: 'major' | 'minor'; degrees: number[] }
+
 /** A single multiple-choice question. */
 export interface Question {
   /**
@@ -111,4 +119,6 @@ export interface Question {
   audio?: Record<string, Playable>
   /** A memory tip (rule + worked example) shown when the answer is missed. */
   explanation?: string
+  /** Present for ear-training questions: what to play (realized from a random root). */
+  ear?: EarSpec
 }

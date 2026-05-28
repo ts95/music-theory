@@ -18,3 +18,10 @@ export {
   QUALITY_INTERVALS,
 } from './chords'
 export { noteMidi, scaleEvents, chordEvents, progressionEvents } from './midi'
+export {
+  realizeEar,
+  voicedMidi,
+  INTERVAL_ROOTS,
+  progressionTonics,
+} from './eartraining'
+export type { Voiced, RealizedEar } from './eartraining'

@@ -117,6 +117,7 @@ src/
 │   ├── scales.ts    # compute natural/harmonic/melodic minor note spellings
 │   ├── chords.ts    # diatonic triads/sevenths, chord symbols, Roman-numeral mapping
 │   ├── midi.ts      # pure note/scale/chord/progression → MIDI events (for playback)
+│   ├── eartraining.ts# realize interval/progression specs → voiced notes (audio + notation)
 │   └── fingerings.ts# static RH/LH piano fingering tables per scale
 ├── srs/             # Spaced-repetition engine — also framework-free
 │   ├── scheduler.ts # SM-2-lite: per-item ease + interval, grade 0–5
@@ -130,7 +131,7 @@ src/
     ├── EtudeMenu.tsx     # table-of-contents home screen; picks an étude
     ├── ReviewSession.tsx  # drives a study session: pick due item → render → grade
     ├── QuestionCard.tsx   # renders one MC question + answer feedback
-    └── (later) Keyboard.tsx / Staff.tsx  # Tone.js playback + VexFlow rendering
+    └── Staff.tsx         # VexFlow staff notation (lazy-loaded; ear-training reveal)
 ```
 
 **Études:** the app is organised into selectable études (exercises). `ETUDES` (in `questions/etudes.ts`)
@@ -141,6 +142,12 @@ lists them; every `Question` carries an `etudeId`, and the UI scopes a session +
 events) computed via `theory/midi.ts` — never parse display strings back into pitches. `audio/player.ts`
 is the only Tone.js consumer (dynamically imported, synthesized PolySynth); QuestionCard calls
 `play`/`stop` on row hover. Keep audio data generated upstream, not derived in the UI.
+
+**Ear-training études** (`ear?: EarSpec` on a Question): the *question* owns the audio (not the choices).
+`theory/eartraining.ts` `realizeEar(spec, root)` turns a relative spec into voiced notes from a root the
+UI picks at random each presentation (relative-pitch training); the same voiced notes drive both
+playback (`playEar`) and the VexFlow `Staff` shown on reveal. No hover audio, no timer, deterministic bank
+(randomness is presentation-only). VexFlow and Tone are both lazy-loaded (code-split).
 
 **Memory tips:** each `Question` carries an `explanation` (rule + worked example) built deterministically
 in `questions/explanations.ts` from the theory data. QuestionCard shows it only when the answer is missed

@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { Question } from '../contracts'
-import { play, stop } from '../audio/player'
+import { isMuted, play, playEar, stop } from '../audio/player'
+import {
+  INTERVAL_ROOTS,
+  progressionTonics,
+  realizeEar,
+  voicedMidi,
+} from '../theory'
+import Staff from './Staff'
 import Button from './Button'
 
 interface QuestionCardProps {
@@ -97,6 +104,41 @@ export default function QuestionCard({
   const pct = timed ? Math.max(0, (remaining / timeLimitMs) * 100) : 0
   const urgent = timed && remaining <= 2000
 
+  // Ear-training: realize the prompt from a random root (stable across replays
+  // within this presentation; a fresh root next time the card mounts).
+  const ear = question.ear
+  const earIsInterval = ear?.kind === 'interval'
+  const [earRoot] = useState(() => {
+    if (!ear) return null
+    const pool =
+      ear.kind === 'interval' ? INTERVAL_ROOTS : progressionTonics(ear.mode)
+    return pool[Math.floor(Math.random() * pool.length)]
+  })
+  const realized = useMemo(
+    () => (ear && earRoot ? realizeEar(ear, earRoot) : null),
+    [ear, earRoot],
+  )
+
+  function playPrompt() {
+    if (!realized) return
+    const reference = earIsInterval
+      ? []
+      : realized.reference.map((ev) => ev.map(voicedMidi))
+    const target = realized.target.map((ev) => ev.map(voicedMidi))
+    playEar(reference, target, realized.style)
+  }
+  function playReference() {
+    if (!realized) return
+    playEar([], realized.reference.map((ev) => ev.map(voicedMidi)), realized.style)
+  }
+
+  // Auto-play once when an ear question mounts (audio is already unlocked by the
+  // click that opened the étude).
+  useEffect(() => {
+    if (realized && !isMuted()) playPrompt()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [realized])
+
   // Keyboard: number keys 1–N select; Enter advances once answered.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -152,6 +194,22 @@ export default function QuestionCard({
       <h2 className="mt-3 font-display text-2xl font-medium leading-snug tracking-[-0.01em] text-ink sm:text-[1.7rem]">
         {question.prompt}
       </h2>
+
+      {ear && (
+        <div className="mt-5 flex flex-wrap items-center gap-4">
+          <Button onClick={playPrompt}>▶ Play</Button>
+          <button
+            type="button"
+            onClick={playReference}
+            className="marking text-ink-3 transition-colors hover:text-ink"
+          >
+            {earIsInterval ? 'hear lower note' : 'hear tonic'}
+          </button>
+          {isMuted() && (
+            <span className="marking text-wrong">♪ Sound is off</span>
+          )}
+        </div>
+      )}
 
       <ul className="mt-7 space-y-2.5">
         {order.map((choiceIndex, pos) => {
@@ -224,6 +282,16 @@ export default function QuestionCard({
               Next
             </Button>
           </div>
+          {ear && realized && (
+            <Staff
+              groups={realized.target}
+              labels={
+                earIsInterval
+                  ? undefined
+                  : question.choices[question.answerIndex].split('–')
+              }
+            />
+          )}
           {!isCorrect && question.explanation && (
             <p className="ink mt-4 rounded-xl border border-rule bg-paper/60 px-4 py-3 text-sm leading-relaxed text-ink-2">
               <span className="marking mr-1.5 text-accent">Remember</span>
