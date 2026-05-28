@@ -8,7 +8,7 @@ const CORRECT_QUALITY = 5
 const INCORRECT_QUALITY = 2
 
 /** Categories with a sudden-death answer timer, and the limit. */
-const TIMED_CATEGORY = 'Relative minor'
+const TIMED_CATEGORIES = new Set(['Relative minor', 'Diatonic chord'])
 const TIME_LIMIT_MS = 5000
 
 interface ReviewSessionProps {
@@ -133,7 +133,9 @@ export default function ReviewSession({
     const q = queue[index]
     const resolved = selected !== null || timedOut
     const progress = total > 0 ? ((index + (resolved ? 1 : 0)) / total) * 100 : 0
-    const timeLimitMs = q.category === TIMED_CATEGORY ? TIME_LIMIT_MS : undefined
+    const timeLimitMs = TIMED_CATEGORIES.has(q.category)
+      ? TIME_LIMIT_MS
+      : undefined
     return (
       <div className="space-y-4">
         <div className="flex items-end justify-between gap-4">
