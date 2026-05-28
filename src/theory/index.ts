@@ -1,6 +1,11 @@
 export { LETTER_PC, pitchClass, noteToString } from './notes'
 export { KEYS } from './keys'
-export { majorScale, minorScale } from './scales'
+export {
+  majorScale,
+  minorScale,
+  dorianScale,
+  phrygianScale,
+} from './scales'
 export { fingering } from './fingerings'
 export type { Mode, Quality, Chord } from './chords'
 export {
@@ -9,6 +14,7 @@ export {
   diatonicSevenths,
   romanLabel,
   romanToChord,
+  alternateQuality,
   QUALITY_INTERVALS,
 } from './chords'
 export { noteMidi, scaleEvents, chordEvents, progressionEvents } from './midi'

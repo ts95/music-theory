@@ -169,4 +169,60 @@ describe('generateAllQuestions', () => {
       })
     })
   })
+
+  describe('harder distractors', () => {
+    const scaleQ = questions.filter((q) => q.category === 'Scale spelling')
+    const chordQ = questions.filter((q) => q.category === 'Diatonic chord')
+    const progQ = questions.filter((q) => q.category === 'Progression')
+
+    it('every scale option starts on the same tonic', () => {
+      for (const q of scaleQ) {
+        const firstNotes = new Set(q.choices.map((c) => c.split(' – ')[0]))
+        expect(firstNotes.size, q.id).toBe(1)
+      }
+    })
+
+    it('scale distractors draw on more than the three minor forms', () => {
+      const all = new Set(scaleQ.flatMap((q) => q.choices))
+      // 12 tonics × 3 minor forms = 36; modes/major push it well past that.
+      expect(all.size).toBeGreaterThan(36)
+    })
+
+    it('chord questions include a same-root, different-quality distractor', () => {
+      const i = questions.find(
+        (x) => x.prompt === 'In C major, what is the I chord?'
+      )!
+      expect(i.choices).toContain('C')
+      expect(i.choices).toContain('Cm') // root no longer uniquely identifies it
+
+      const v = questions.find(
+        (x) => x.prompt === 'In A minor, what is the V chord?'
+      )!
+      expect(v.choices).toContain('E')
+      expect(v.choices).toContain('Em')
+    })
+
+    it('no chord question is the only option on the tonic-of-the-key by root alone', () => {
+      // For each chord question, at least two options share the answer's root
+      // OR at least two share its quality — i.e. neither feature is unique.
+      for (const q of chordQ) {
+        const answer = q.choices[q.answerIndex]
+        const root = (s: string) => s.match(/^[A-G][#♯b♭x𝄪𝄫]*/)?.[0] ?? s
+        const sameRoot = q.choices.filter((c) => root(c) === root(answer))
+        expect(sameRoot.length, q.prompt).toBeGreaterThanOrEqual(2)
+      }
+    })
+
+    it('progressions offer more than one option starting on the same chord', () => {
+      const q = questions.find((x) => x.id === 'prog:C:major:I-IV-V:3')!
+      const firstChords = q.choices.map((c) => c.split(' – ')[0])
+      expect(firstChords.filter((fc) => fc === 'C').length).toBeGreaterThanOrEqual(2)
+    })
+
+    it('keeps the question counts and ids stable', () => {
+      expect(scaleQ).toHaveLength(36)
+      expect(chordQ).toHaveLength(168)
+      expect(progQ).toHaveLength(156)
+    })
+  })
 })

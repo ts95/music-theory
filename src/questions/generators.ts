@@ -1,12 +1,15 @@
 import type { Hand, Note, Playable, Question, ScaleType } from '../contracts'
 import {
   KEYS,
+  alternateQuality,
   chordEvents,
   chordSymbol,
-  diatonicTriads,
+  dorianScale,
   fingering,
+  majorScale,
   minorScale,
   noteToString,
+  phrygianScale,
   progressionEvents,
   romanLabel,
   romanToChord,
@@ -106,11 +109,17 @@ function relativeMinorQuestions(): Question[] {
   })
 }
 
-/** 2. Scale spelling: one per (key, scale type). */
+/**
+ * 2. Scale spelling: one per (key, scale type). All four options start on the
+ * SAME tonic so the first note never gives the answer away. Distractors are
+ * other named scales on that tonic — the sibling minor forms plus the parallel
+ * major, Dorian, and Phrygian — with the mix varied per question.
+ */
 function scaleSpellingQuestions(): Question[] {
   const questions: Question[] = []
-  for (const key of KEYS) {
-    for (const type of SCALE_TYPES) {
+  KEYS.forEach((key, keyIndex) => {
+    SCALE_TYPES.forEach((type, typeIndex) => {
+      const tonic = key.minorTonic
       const audio: Record<string, Playable> = {}
       // Render a scale to its string AND register its ascending playback.
       const reg = (notes: Note[]): string => {
@@ -118,29 +127,39 @@ function scaleSpellingQuestions(): Question[] {
         audio[s] = { kind: 'scale', events: scaleEvents(notes) }
         return s
       }
-      const correct = reg(minorScale(key.minorTonic, type))
-      // Strongest distractors: the other two forms of the same tonic.
-      const distractors = SCALE_TYPES.filter((t) => t !== type).map((t) =>
-        reg(minorScale(key.minorTonic, t))
+      const correct = reg(minorScale(tonic, type))
+
+      // Same-tonic candidates: the two sibling minor forms, and three
+      // distinct scale types (all start on `tonic`, all spelled differently).
+      const siblings = SCALE_TYPES.filter((t) => t !== type).map((t) =>
+        minorScale(tonic, t)
       )
-      // Fill any remaining slots with the same type from other keys.
-      for (const other of KEYS) {
-        if (other === key) continue
-        distractors.push(reg(minorScale(other.minorTonic, type)))
-      }
+      const others = [majorScale(tonic), dorianScale(tonic), phrygianScale(tonic)]
+
+      // Vary the mix deterministically (no RNG, so ids/output stay stable):
+      // alternate between "2 siblings + 1 other" and "1 sibling + 2 others",
+      // rotating which sibling/others appear.
+      const rot = keyIndex + typeIndex
+      const pickOthers = (n: number) =>
+        Array.from({ length: n }, (_, i) => others[(rot + i) % others.length])
+      const distractorNotes =
+        rot % 2 === 0
+          ? [...siblings, pickOthers(1)[0]]
+          : [siblings[rot % siblings.length], ...pickOthers(2)]
+
       questions.push(
         buildQuestion(
           'keys',
-          `scale-notes:${asciiTonicId(key.minorTonic)}:${type}`,
+          `scale-notes:${asciiTonicId(tonic)}:${type}`,
           'Scale spelling',
-          `What are the notes of the ${noteToString(key.minorTonic)} ${TYPE_WORD[type]} scale?`,
+          `What are the notes of the ${noteToString(tonic)} ${TYPE_WORD[type]} scale?`,
           correct,
-          distractors,
+          distractorNotes.map(reg),
           audio
         )
       )
-    }
-  }
+    })
+  })
   return questions
 }
 
@@ -217,18 +236,23 @@ function chordDegreeQuestions(): Question[] {
           audio[s] = { kind: 'chord', events: chordEvents(c.root, c.quality) }
           return s
         }
-        const correct = reg(romanToChord(tonic, mode, degree, seventh))
+        const correctChord = romanToChord(tonic, mode, degree, seventh)
+        const correct = reg(correctChord)
 
-        // Strongest: the same degree in other keys of the same mode.
         const distractors: string[] = []
+        // Same root, different quality (so the root alone never reveals it).
+        distractors.push(
+          reg({
+            root: correctChord.root,
+            quality: alternateQuality(correctChord.quality),
+          })
+        )
+        // Same quality (same degree) in the other keys — varied roots, so the
+        // quality alone never reveals it either.
         for (const other of KEYS) {
           if (other === key) continue
           const ot = keyForMode(other, mode).tonic
           distractors.push(reg(romanToChord(ot, mode, degree, seventh)))
-        }
-        // Then the other diatonic chords within this key.
-        for (const c of diatonicTriads(tonic, mode)) {
-          distractors.push(reg(c))
         }
 
         questions.push(
@@ -312,23 +336,26 @@ function progressionQuestions(): Question[] {
     for (const seventh of sevenths) {
       const label = progressionLabel(prog, seventh)
       const modeKeys = KEYS.map((key) => keyForMode(key, prog.mode))
+      const lastIndex = prog.degrees.length - 1
       for (const { tonic, name } of modeKeys) {
         const audio: Record<string, Playable> = {}
         const correct = spellAndRegister(tonic, prog, seventh, audio)
 
-        // Strong distractors: same progression in other keys of this mode.
         const distractors: string[] = []
+        // Same-key variant that keeps the FIRST chord but alters the last, so
+        // "starts on the tonic chord" is no longer a giveaway.
+        const sameStart: Progression = {
+          ...prog,
+          degrees: prog.degrees.map((d, i) =>
+            i === lastIndex ? (d + 2) % 7 : d
+          ),
+        }
+        distractors.push(spellAndRegister(tonic, sameStart, seventh, audio))
+        // Then the same progression transposed to other keys of this mode.
         for (const other of modeKeys) {
           if (other.tonic === tonic) continue
           distractors.push(spellAndRegister(other.tonic, prog, seventh, audio))
         }
-        // One-chord-swapped variant within the same key: swap the first chord
-        // for the next diatonic degree (deterministic, distinct from correct).
-        const swapped: Progression = {
-          ...prog,
-          degrees: prog.degrees.map((d, i) => (i === 0 ? (d + 1) % 7 : d)),
-        }
-        distractors.push(spellAndRegister(tonic, swapped, seventh, audio))
 
         questions.push(
           buildQuestion(

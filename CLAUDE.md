@@ -142,6 +142,13 @@ events) computed via `theory/midi.ts` — never parse display strings back into 
 is the only Tone.js consumer (dynamically imported, synthesized PolySynth); QuestionCard calls
 `play`/`stop` on row hover. Keep audio data generated upstream, not derived in the UI.
 
+**Distractor design (keep questions hard):** no single surface feature should reveal the answer by
+elimination. Chords: include a same-root/different-quality distractor *and* same-quality/different-root
+distractors (so neither root nor quality is a giveaway). Scales: all options share the same first note
+(tonic) and mix scale types (sibling minor forms + parallel major / Dorian / Phrygian), varied per
+question. Progressions: include a same-key variant that starts on the same first chord. Selection is
+deterministic (no RNG — SRS ids must stay stable); vary the mix with a stable index, not randomness.
+
 **Key rule: `theory/` and `srs/` are pure** — no React, no DOM, no side effects beyond `store.ts`'s
 localStorage access. This keeps the music logic testable and reusable.
 

@@ -43,3 +43,16 @@ export function minorScale(tonic: Note, type: ScaleType): Note[] {
   }
   return scale
 }
+
+const DORIAN_STEPS = [2, 1, 2, 2, 2, 1, 2]
+const PHRYGIAN_STEPS = [1, 2, 2, 2, 1, 2, 2]
+
+/** The Dorian mode (a minor-family mode with a raised 6th). For distractors. */
+export function dorianScale(tonic: Note): Note[] {
+  return spellScale(tonic, DORIAN_STEPS)
+}
+
+/** The Phrygian mode (a minor-family mode with a flat 2nd). For distractors. */
+export function phrygianScale(tonic: Note): Note[] {
+  return spellScale(tonic, PHRYGIAN_STEPS)
+}

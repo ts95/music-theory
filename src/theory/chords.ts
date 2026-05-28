@@ -53,6 +53,28 @@ export function chordSymbol(c: Chord): string {
   return noteToString(c.root) + QUALITY_SUFFIX[c.quality]
 }
 
+const ALTERNATE_QUALITY: Record<Quality, Quality> = {
+  maj: 'min',
+  min: 'maj',
+  dim: 'min',
+  aug: 'maj',
+  maj7: 'dom7',
+  dom7: 'maj7',
+  min7: 'm7b5',
+  m7b5: 'min7',
+  dim7: 'm7b5',
+  mMaj7: 'min7',
+}
+
+/**
+ * A plausible same-root confusion quality — used to build a distractor that
+ * shares the answer's root but differs in quality (e.g. C → Cm), so the root
+ * alone never reveals the answer.
+ */
+export function alternateQuality(q: Quality): Quality {
+  return ALTERNATE_QUALITY[q]
+}
+
 /** Interval (semitones above root, mod 12) from a chord tone. */
 function interval(root: Note, tone: Note): number {
   return (((pitchClass(tone) - pitchClass(root)) % 12) + 12) % 12
