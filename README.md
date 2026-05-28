@@ -21,6 +21,8 @@ progress, chosen from a table-of-contents home screen.
   ("In G major, spell ii–V–I" → Am – D – G), including ii–V–I seventh forms.
 - 🔊 **Hover to hear it.** Hover any answer to play it on a synthesized piano — scales arpeggiate,
   chords ring as a block, progressions play chord-by-chord. Turn it off with the **♪ Sound** toggle.
+- 🧠 **Learn from misses.** Get one wrong (or let the timer run out) and a **Remember** note explains the
+  rule, pattern, or mnemonic — with the worked example — so you nail it next time.
 - 💾 **Progress that's yours.** Saved to your browser, with JSON **export/import** to back up or move
   between devices.
 

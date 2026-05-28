@@ -16,6 +16,13 @@ import {
   scaleEvents,
 } from '../theory'
 import type { Chord, Mode } from '../theory'
+import {
+  chordExplanation,
+  fingeringExplanation,
+  progressionExplanation,
+  relativeMinorExplanation,
+  scaleExplanation,
+} from './explanations'
 
 const SCALE_TYPES: ScaleType[] = ['natural', 'harmonic', 'melodic']
 const HANDS: Hand[] = ['RH', 'LH']
@@ -60,7 +67,8 @@ function buildQuestion(
   prompt: string,
   correct: string,
   distractors: string[],
-  audio?: Record<string, Playable>
+  audio?: Record<string, Playable>,
+  explanation?: string
 ): Question {
   const picked: string[] = []
   for (const d of distractors) {
@@ -85,6 +93,7 @@ function buildQuestion(
     }
     if (Object.keys(kept).length > 0) question.audio = kept
   }
+  if (explanation) question.explanation = explanation
   return question
 }
 
@@ -104,7 +113,8 @@ function relativeMinorQuestions(): Question[] {
       `What is the relative minor of ${key.majorName}?`,
       key.minorName,
       distractors,
-      audio
+      audio,
+      relativeMinorExplanation(key.majorTonic, key.majorName, key.minorName)
     )
   })
 }
@@ -155,7 +165,8 @@ function scaleSpellingQuestions(): Question[] {
           `What are the notes of the ${noteToString(tonic)} ${TYPE_WORD[type]} scale?`,
           correct,
           distractorNotes.map(reg),
-          audio
+          audio,
+          scaleExplanation(tonic, type, key.majorName)
         )
       )
     })
@@ -189,7 +200,9 @@ function fingeringQuestions(): Question[] {
             key.minorTonic
           )} minor scale (one octave, ascending)?`,
           correct,
-          pool
+          pool,
+          undefined,
+          fingeringExplanation(key.minorTonic, hand, f)
         )
       )
     }
@@ -263,7 +276,8 @@ function chordDegreeQuestions(): Question[] {
             `In ${name}, what is the ${roman} chord?`,
             correct,
             distractors,
-            audio
+            audio,
+            chordExplanation(name, mode, degree, seventh, correctChord)
           )
         )
       }
@@ -365,7 +379,13 @@ function progressionQuestions(): Question[] {
             `In ${name}, spell the progression ${label}.`,
             correct,
             distractors,
-            audio
+            audio,
+            progressionExplanation(
+              name,
+              label.split('–'),
+              correct.split(' – '),
+              prog.slug
+            )
           )
         )
       }

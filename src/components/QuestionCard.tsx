@@ -205,23 +205,31 @@ export default function QuestionCard({
       </ul>
 
       {answered ? (
-        <div className="mt-7 flex flex-wrap items-center justify-between gap-4 border-t border-rule pt-5">
-          <p className="font-display text-lg italic">
-            {isCorrect ? (
-              <span className="text-correct">Just so.</span>
-            ) : (
-              <span className="text-wrong">
-                {timedOut ? 'Time’s up — it’s' : 'Not quite — it’s'}{' '}
-                <span className="font-mono not-italic">
-                  {question.choices[question.answerIndex]}
+        <div className="mt-7 border-t border-rule pt-5">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <p className="font-display text-lg italic">
+              {isCorrect ? (
+                <span className="text-correct">Just so.</span>
+              ) : (
+                <span className="text-wrong">
+                  {timedOut ? 'Time’s up — it’s' : 'Not quite — it’s'}{' '}
+                  <span className="font-mono not-italic">
+                    {question.choices[question.answerIndex]}
+                  </span>
+                  .
                 </span>
-                .
-              </span>
-            )}
-          </p>
-          <Button onClick={onNext} autoFocus>
-            Next
-          </Button>
+              )}
+            </p>
+            <Button onClick={onNext} autoFocus>
+              Next
+            </Button>
+          </div>
+          {!isCorrect && question.explanation && (
+            <p className="ink mt-4 rounded-xl border border-rule bg-paper/60 px-4 py-3 text-sm leading-relaxed text-ink-2">
+              <span className="marking mr-1.5 text-accent">Remember</span>
+              {question.explanation}
+            </p>
+          )}
         </div>
       ) : (
         <p className="marking mt-7 text-ink-3">

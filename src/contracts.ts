@@ -109,4 +109,6 @@ export interface Question {
   answerIndex: number
   /** Optional hover-to-play audio, keyed by choice display string. */
   audio?: Record<string, Playable>
+  /** A memory tip (rule + worked example) shown when the answer is missed. */
+  explanation?: string
 }

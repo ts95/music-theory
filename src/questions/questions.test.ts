@@ -225,4 +225,46 @@ describe('generateAllQuestions', () => {
       expect(progQ).toHaveLength(156)
     })
   })
+
+  describe('memory tips (explanations)', () => {
+    it('every question has a non-empty explanation', () => {
+      for (const q of questions) {
+        expect(q.explanation, q.id).toBeTruthy()
+        expect(q.explanation!.length).toBeGreaterThan(10)
+      }
+    })
+
+    const find = (prompt: string) => questions.find((x) => x.prompt === prompt)!
+
+    it('relative-minor tip cites the 6th degree and the answer', () => {
+      const e = find('What is the relative minor of E♭ major?').explanation!
+      expect(e).toMatch(/6th/)
+      expect(e).toContain('C minor')
+    })
+
+    it('harmonic-minor scale tip names the raised 7th', () => {
+      const q = questions.find((x) => x.id === 'scale-notes:C:harmonic')!
+      expect(q.explanation).toMatch(/raised 7th/)
+      expect(q.explanation).toContain('B♭') // the raised note: B♭ → B♮
+    })
+
+    it('chord tip cites the degree and quality', () => {
+      const e = find('In C major, what is the IV chord?').explanation!
+      expect(e).toMatch(/4th degree/)
+      expect(e).toMatch(/major/)
+      expect(e).toContain('→ F')
+    })
+
+    it('progression tip reads out the numerals', () => {
+      const q = questions.find((x) => x.id === 'prog:C:major:ii-V-I:3')!
+      expect(q.explanation).toContain('ii=Dm')
+      expect(q.explanation).toContain('V=G')
+      expect(q.explanation).toContain('I=C')
+    })
+
+    it('fingering tip states the thumb rule', () => {
+      const q = questions.find((x) => x.id === 'fingering:A:RH')!
+      expect(q.explanation).toMatch(/thumb/)
+    })
+  })
 })

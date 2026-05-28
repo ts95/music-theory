@@ -142,6 +142,10 @@ events) computed via `theory/midi.ts` — never parse display strings back into 
 is the only Tone.js consumer (dynamically imported, synthesized PolySynth); QuestionCard calls
 `play`/`stop` on row hover. Keep audio data generated upstream, not derived in the UI.
 
+**Memory tips:** each `Question` carries an `explanation` (rule + worked example) built deterministically
+in `questions/explanations.ts` from the theory data. QuestionCard shows it only when the answer is missed
+(wrong pick or timeout). Keep tips computed upstream and accurate — never hand-wave the music.
+
 **Distractor design (keep questions hard):** no single surface feature should reveal the answer by
 elimination. Chords: include a same-root/different-quality distractor *and* same-quality/different-root
 distractors (so neither root nor quality is a giveaway). Scales: all options share the same first note
