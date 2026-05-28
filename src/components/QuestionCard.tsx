@@ -10,6 +10,8 @@ interface QuestionCardProps {
   onNext: () => void
 }
 
+type ChoiceState = 'idle' | 'correct' | 'wrong' | 'muted'
+
 /** Fisher–Yates shuffle of [0, n). Returns the order of original indices. */
 function shuffledOrder(n: number): number[] {
   const order = Array.from({ length: n }, (_, i) => i)
@@ -20,16 +22,31 @@ function shuffledOrder(n: number): number[] {
   return order
 }
 
-function choiceClasses(state: 'idle' | 'correct' | 'wrong' | 'muted'): string {
+/** Row container styling per state. */
+function rowClasses(state: ChoiceState): string {
   switch (state) {
     case 'correct':
-      return 'bg-emerald-50 ring-2 ring-emerald-500 text-emerald-900'
+      return 'bg-correct/10 ring-2 ring-correct'
     case 'wrong':
-      return 'bg-rose-50 ring-2 ring-rose-500 text-rose-900'
+      return 'bg-wrong/10 ring-2 ring-wrong'
     case 'muted':
-      return 'bg-white ring-1 ring-slate-200 text-slate-500'
+      return 'bg-card/60 ring-1 ring-rule opacity-55'
     default:
-      return 'bg-white ring-1 ring-slate-300 text-slate-800 hover:bg-indigo-50 hover:ring-indigo-400 active:bg-indigo-100'
+      return 'bg-card ring-1 ring-rule hover:ring-ink hover:bg-paper hover:-translate-y-0.5'
+  }
+}
+
+/** The engraved numeral badge styling per state. */
+function badgeClasses(state: ChoiceState): string {
+  switch (state) {
+    case 'correct':
+      return 'bg-correct text-card ring-correct'
+    case 'wrong':
+      return 'bg-wrong text-card ring-wrong'
+    case 'muted':
+      return 'text-ink-3 ring-rule'
+    default:
+      return 'text-ink-2 ring-rule group-hover:bg-ink group-hover:text-paper group-hover:ring-ink'
   }
 }
 
@@ -63,20 +80,29 @@ export default function QuestionCard({
   }, [answered, order, onSelect, onNext])
 
   return (
-    <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 sm:p-8">
-      <p className="text-xs font-semibold uppercase tracking-wide text-indigo-500">
+    <article className="relative overflow-hidden rounded-3xl border border-rule bg-card px-6 py-7 shadow-[0_22px_60px_-32px_rgba(33,28,21,0.5)] sm:px-9 sm:py-9">
+      {/* Faint engraved clef watermark for atmosphere. */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -top-10 -right-2 select-none font-display text-[12rem] leading-none text-ink/[0.04] sm:text-[15rem]"
+      >
+        𝄞
+      </span>
+
+      <p className="marking flex items-center gap-2 text-accent">
+        <span className="h-px w-5 bg-accent/50" />
         {question.category}
       </p>
-      <h2 className="mt-2 text-xl font-semibold text-slate-900">
+      <h2 className="mt-3 font-display text-2xl font-medium leading-snug tracking-[-0.01em] text-ink sm:text-[1.7rem]">
         {question.prompt}
       </h2>
 
-      <ul className="mt-6 space-y-3">
+      <ul className="mt-7 space-y-2.5">
         {order.map((choiceIndex, pos) => {
           const isAnswer = choiceIndex === question.answerIndex
           const isChosen = choiceIndex === selected
 
-          let state: 'idle' | 'correct' | 'wrong' | 'muted' = 'idle'
+          let state: ChoiceState = 'idle'
           if (answered) {
             if (isAnswer) state = 'correct'
             else if (isChosen) state = 'wrong'
@@ -84,37 +110,55 @@ export default function QuestionCard({
           }
 
           return (
-            <li key={choiceIndex}>
+            <li
+              key={choiceIndex}
+              className="ink"
+              style={{ animationDelay: `${pos * 60}ms` }}
+            >
               <button
                 type="button"
                 disabled={answered}
                 onClick={() => onSelect(choiceIndex)}
-                className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-base font-medium transition-colors disabled:cursor-default ${choiceClasses(state)}`}
+                className={`group flex w-full items-center gap-4 rounded-2xl px-4 py-3.5 text-left transition-all duration-200 disabled:cursor-default ${rowClasses(state)}`}
               >
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-slate-100 text-xs font-semibold text-slate-500">
-                  {pos + 1}
+                <span
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-mono text-sm font-medium ring-1 transition-colors duration-200 ${badgeClasses(state)}`}
+                >
+                  {state === 'correct' ? '✓' : state === 'wrong' ? '✕' : pos + 1}
                 </span>
-                <span className="flex-1">{question.choices[choiceIndex]}</span>
+                <span className="flex-1 font-mono text-[1.02rem] text-ink">
+                  {question.choices[choiceIndex]}
+                </span>
               </button>
             </li>
           )
         })}
       </ul>
 
-      {answered && (
-        <div className="mt-6 flex items-center justify-between gap-4">
-          <p
-            className={`text-sm font-semibold ${isCorrect ? 'text-emerald-600' : 'text-rose-600'}`}
-          >
-            {isCorrect
-              ? 'Correct!'
-              : `Not quite — the answer is ${question.choices[question.answerIndex]}.`}
+      {answered ? (
+        <div className="mt-7 flex flex-wrap items-center justify-between gap-4 border-t border-rule pt-5">
+          <p className="font-display text-lg italic">
+            {isCorrect ? (
+              <span className="text-correct">Just so.</span>
+            ) : (
+              <span className="text-wrong">
+                Not quite — it’s{' '}
+                <span className="font-mono not-italic">
+                  {question.choices[question.answerIndex]}
+                </span>
+                .
+              </span>
+            )}
           </p>
           <Button onClick={onNext} autoFocus>
             Next
           </Button>
         </div>
+      ) : (
+        <p className="marking mt-7 text-ink-3">
+          Keys 1–{order.length} to answer · Enter for next
+        </p>
       )}
-    </div>
+    </article>
   )
 }

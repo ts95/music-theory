@@ -3,10 +3,12 @@ import type { ButtonHTMLAttributes } from 'react'
 type Variant = 'primary' | 'secondary'
 
 const VARIANTS: Record<Variant, string> = {
+  // Solid ink — the classic engraved-plate look.
   primary:
-    'bg-indigo-600 text-white hover:bg-indigo-700 active:bg-indigo-800 shadow-sm',
+    'bg-ink text-paper hover:bg-[#34291c] active:translate-y-px shadow-[0_1px_0_rgba(0,0,0,0.25)]',
+  // Hairline ghost on paper.
   secondary:
-    'bg-white text-slate-700 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 active:bg-slate-100',
+    'bg-transparent text-ink-2 ring-1 ring-inset ring-rule hover:ring-ink hover:text-ink hover:bg-card active:translate-y-px',
 }
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -20,7 +22,7 @@ export default function Button({
 }: ButtonProps) {
   return (
     <button
-      className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${VARIANTS[variant]} ${className}`}
+      className={`marking rounded-full px-5 py-2.5 leading-none transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-paper disabled:cursor-not-allowed disabled:opacity-50 ${VARIANTS[variant]} ${className}`}
       {...props}
     />
   )

@@ -116,18 +116,32 @@ export default function ReviewSession({
 
   if (!finished) {
     const q = queue[index]
+    const progress = total > 0 ? ((index + (selected !== null ? 1 : 0)) / total) * 100 : 0
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between text-sm text-slate-500">
-          <span>
-            Question {index + 1} of {total}
-          </span>
-          <span>
-            <span className="font-semibold text-emerald-600">✓ {correct}</span>{' '}
-            / {answered} answered
-          </span>
+        <div className="flex items-end justify-between gap-4">
+          <div className="marking text-ink-2">
+            <span className="font-mono text-sm font-semibold text-ink">
+              {index + 1}
+            </span>
+            <span className="mx-1.5 text-ink-3">/</span>
+            <span className="font-mono text-sm">{total}</span>
+          </div>
+          <div className="marking text-ink-3">
+            <span className="text-correct">✓ {correct}</span>
+            <span className="mx-1.5">·</span>
+            <span className="font-mono">{answered}</span> answered
+          </div>
+        </div>
+        {/* progress hairline */}
+        <div className="h-px w-full bg-rule">
+          <div
+            className="h-px bg-accent transition-all duration-500 ease-out"
+            style={{ width: `${progress}%` }}
+          />
         </div>
         <QuestionCard
+          key={q.id}
           question={q}
           selected={selected}
           onSelect={handleSelect}
@@ -144,26 +158,32 @@ export default function ReviewSession({
   const nextDue = soonestDueAt(bank, data, now)
 
   return (
-    <div className="rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-slate-200 sm:p-8">
-      <p className="text-4xl">🎉</p>
-      <h2 className="mt-3 text-xl font-semibold text-slate-900">
-        {answered > 0 ? 'Session complete' : 'All caught up'}
+    <article className="rise relative overflow-hidden rounded-3xl border border-rule bg-card px-6 py-12 text-center shadow-[0_22px_60px_-32px_rgba(33,28,21,0.5)] sm:px-10 sm:py-14">
+      {/* "Fine." — the marking that closes a score, with a fermata above. */}
+      <p aria-hidden className="font-display text-3xl leading-none text-ink-3">
+        𝄐
+      </p>
+      <h2 className="mt-1 font-display text-5xl italic tracking-[-0.02em] text-ink">
+        {answered > 0 ? 'Fine.' : 'Tacet.'}
       </h2>
 
       {answered > 0 && (
-        <p className="mt-2 text-slate-600">
-          You answered <span className="font-semibold">{answered}</span> question
-          {answered === 1 ? '' : 's'} — {correct} correct ({accuracy}% accuracy).
+        <p className="mt-4 text-ink-2">
+          You answered <span className="font-mono text-ink">{answered}</span>{' '}
+          {answered === 1 ? 'question' : 'questions'} —{' '}
+          <span className="font-mono text-correct">{correct}</span> correct
+          <span className="mx-1 text-ink-3">·</span>
+          <span className="font-mono text-ink">{accuracy}%</span> accuracy.
         </p>
       )}
 
-      <p className="mt-2 text-slate-600">
+      <p className="marking mt-3 text-ink-3">
         {moreDue > 0
-          ? `${moreDue} item${moreDue === 1 ? '' : 's'} still due for review.`
-          : `Next review ${formatRelative(nextDue, now)}.`}
+          ? `${moreDue} item${moreDue === 1 ? '' : 's'} still due`
+          : `Next review ${formatRelative(nextDue, now)}`}
       </p>
 
-      <div className="mt-6 flex flex-wrap justify-center gap-3">
+      <div className="mt-8 flex flex-wrap justify-center gap-3">
         {moreDue > 0 && (
           <Button onClick={() => startSession(false)}>Study again</Button>
         )}
@@ -171,6 +191,6 @@ export default function ReviewSession({
           Practice anyway
         </Button>
       </div>
-    </div>
+    </article>
   )
 }

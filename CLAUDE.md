@@ -157,6 +157,25 @@ Accuracy matters more than cleverness — a wrong fact teaches the wrong thing.
   downloadable JSON file; **Import** reads it back. The JSON schema is **versioned** (a `version` field)
   so older exports can be migrated forward.
 
+## Design system ("Engraved")
+
+The UI follows an antique music-engraving / editorial aesthetic — keep new UI
+consistent with it. Tokens live in `src/index.css` under `@theme` (used as
+Tailwind utilities like `bg-paper`, `text-ink`, `ring-rule`, `text-accent`):
+
+- **Fonts:** `font-display` = Fraunces (wordmark, prompts, flourishes),
+  `font-sans` = Hanken Grotesk (UI/body), `font-mono` = Spline Sans Mono
+  (musical tokens, note names, finger numbers — has tabular figures). Loaded via
+  Google Fonts in `index.html`.
+- **Palette:** warm paper (`paper`/`card`) + warm `ink`; a single **claret**
+  spot accent (`accent`); feedback as **viridian** (`correct`) / **vermilion**
+  (`wrong`) ink. Hairlines/staff lines use `rule`. Don't introduce slate/indigo
+  or new accent hues.
+- **Details:** `.marking` = letterspaced small-caps eyebrow/label; `.staff-rule`
+  = decorative 5-line staff; `.rise` / `.ink` = staggered entrance animations
+  (respect `prefers-reduced-motion`). Completion screen closes on "Fine." (a
+  fermata + the score-ending marking).
+
 ## Conventions
 
 - TypeScript strict; functional components + hooks; Tailwind utility classes.

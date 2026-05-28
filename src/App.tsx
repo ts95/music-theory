@@ -62,13 +62,16 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="mx-auto max-w-2xl px-4 py-10 sm:py-14">
-        <header className="mb-8">
-          <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="min-h-screen">
+      <div className="mx-auto max-w-2xl px-5 py-12 sm:py-16">
+        <header className="mb-9">
+          <div className="rise flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Music Theory</h1>
-              <p className="mt-1 text-slate-500">
+              <p className="marking text-accent">Étude · No. 1</p>
+              <h1 className="mt-2 font-display text-[2.75rem] font-medium leading-[0.95] tracking-[-0.02em] text-ink sm:text-5xl">
+                Music <span className="italic">Theory</span>
+              </h1>
+              <p className="mt-2 text-ink-2">
                 Keys &amp; relative minors — spaced repetition
               </p>
             </div>
@@ -96,20 +99,41 @@ export default function App() {
             </div>
           </div>
 
-          <p className="mt-4 text-sm text-slate-500">
-            <span className="font-semibold text-slate-700">{dueCount}</span> due
-            now · <span className="font-semibold text-slate-700">{bank.length}</span>{' '}
-            total ·{' '}
-            <span className="font-semibold text-slate-700">{studiedCount}</span>{' '}
-            studied
-          </p>
+          {/* Decorative five-line staff. */}
+          <div
+            className="rise staff-rule mt-6"
+            style={{ animationDelay: '80ms' }}
+          />
+
+          <dl
+            className="rise mt-5 flex items-stretch gap-6"
+            style={{ animationDelay: '140ms' }}
+          >
+            {[
+              { n: dueCount, label: 'due now', accent: true },
+              { n: bank.length, label: 'total' },
+              { n: studiedCount, label: 'studied' },
+            ].map((s, i) => (
+              <div key={s.label} className="flex items-stretch gap-6">
+                {i > 0 && <span className="w-px self-stretch bg-rule" />}
+                <div>
+                  <dd
+                    className={`font-display text-2xl leading-none ${s.accent ? 'text-accent' : 'text-ink'}`}
+                  >
+                    {s.n}
+                  </dd>
+                  <dt className="marking mt-1.5 text-ink-3">{s.label}</dt>
+                </div>
+              </div>
+            ))}
+          </dl>
 
           {notice && (
             <p
-              className={`mt-3 rounded-lg px-3 py-2 text-sm ${
+              className={`ink mt-5 rounded-xl px-4 py-2.5 text-sm ring-1 ${
                 notice.kind === 'ok'
-                  ? 'bg-emerald-50 text-emerald-700'
-                  : 'bg-rose-50 text-rose-700'
+                  ? 'bg-correct/10 text-correct ring-correct/30'
+                  : 'bg-wrong/10 text-wrong ring-wrong/30'
               }`}
             >
               {notice.text}
@@ -117,13 +141,16 @@ export default function App() {
           )}
         </header>
 
-        <main>
-          <ReviewSession
-            key={sessionKey}
-            data={data}
-            onDataChange={setData}
-          />
+        <main
+          className="rise"
+          style={{ animationDelay: '200ms' }}
+        >
+          <ReviewSession key={sessionKey} data={data} onDataChange={setData} />
         </main>
+
+        <footer className="marking mt-10 text-center text-ink-3">
+          ♪ practice daily · progress saved on this device
+        </footer>
       </div>
     </div>
   )

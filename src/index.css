@@ -1,1 +1,129 @@
 @import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   "Engraved" — an antique music-engraving / editorial conservatory aesthetic.
+   Warm engraver's paper, ink, a single claret spot accent, and feedback that
+   reads like green/red ink annotations on a study score.
+--------------------------------------------------------------------------- */
+@theme {
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  --font-sans: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Spline Sans Mono", ui-monospace, monospace;
+
+  --color-paper: #f2ecde; /* page */
+  --color-card: #fbf7ee; /* raised surface */
+  --color-ink: #211c15; /* warm near-black */
+  --color-ink-2: #5a5142; /* secondary text */
+  --color-ink-3: #8a8070; /* faint text */
+  --color-rule: #d9cdb5; /* hairlines / staff lines */
+  --color-accent: #7a2540; /* claret — the red pencil */
+  --color-correct: #2f6b4e; /* viridian ink */
+  --color-wrong: #bb4430; /* vermilion ink */
+  --color-gold: #b08d57; /* fine metallic detail */
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    /* Layered atmosphere: soft warm light + a faint engraved paper grain. */
+    background-image:
+      radial-gradient(
+        120% 80% at 50% -10%,
+        rgba(255, 251, 240, 0.9),
+        transparent 60%
+      ),
+      radial-gradient(
+        90% 70% at 100% 0%,
+        rgba(176, 141, 87, 0.07),
+        transparent 55%
+      ),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+    background-attachment: fixed, fixed, fixed;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-accent) 22%, transparent);
+    color: var(--color-ink);
+  }
+
+  /* Tabular, even figures for musical tokens and finger numbers. */
+  .font-mono {
+    font-feature-settings: "tnum" 1, "zero" 1;
+  }
+}
+
+@layer components {
+  /* Decorative five-line staff rule. */
+  .staff-rule {
+    height: 11px;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      var(--color-rule) 0,
+      var(--color-rule) 1px,
+      transparent 1px,
+      transparent 4px
+    );
+    /* fade the staff out toward the right edge */
+    -webkit-mask-image: linear-gradient(
+      to right,
+      black,
+      black 55%,
+      transparent
+    );
+    mask-image: linear-gradient(to right, black, black 55%, transparent);
+  }
+
+  /* Letterspaced small-caps "movement marking" used for eyebrows/labels. */
+  .marking {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 0.66rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+}
+
+/* ---- Motion ---------------------------------------------------------------
+   One orchestrated entrance: staggered rise-in. Respects reduced-motion. */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ink-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.rise {
+  animation: rise-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.ink {
+  animation: ink-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise,
+  .ink {
+    animation: none;
+  }
+}
