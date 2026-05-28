@@ -143,6 +143,12 @@ events) computed via `theory/midi.ts` — never parse display strings back into 
 is the only Tone.js consumer (dynamically imported, synthesized PolySynth); QuestionCard calls
 `play`/`stop` on row hover. Keep audio data generated upstream, not derived in the UI.
 
+**Practice time** (`src/time.ts` + `src/useEtudeTimer.ts`): per-étude seconds for *today only*, in
+localStorage. Reset at local midnight is **lazy** — any read/write whose stored date ≠ today starts fresh
+(no background timer). `useEtudeTimer(etudeId)` accrues active time (tab visible + interaction within ~60s)
+while an étude screen is open and returns today's live seconds; shown on the menu rows and the étude
+header. Keep it presence-based and independent of SRS/grading.
+
 **Ear-training études** (`ear?: EarSpec` on a Question): the *question* owns the audio (not the choices).
 `theory/eartraining.ts` `realizeEar(spec, root)` turns a relative spec into voiced notes from a root the
 UI picks at random each presentation (relative-pitch training); the same voiced notes drive both

@@ -27,6 +27,8 @@ progress, chosen from a table-of-contents home screen.
   chords ring as a block, progressions play chord-by-chord. Turn it off with the **♪ Sound** toggle.
 - 🧠 **Learn from misses.** Get one wrong (or let the timer run out) and a **Remember** note explains the
   rule, pattern, or mnemonic — with the worked example — so you nail it next time.
+- ⏱️ **Daily practice time.** Each étude tracks how many minutes you've practiced it **today** (active
+  time only — it pauses when you switch away), resetting at midnight.
 - 💾 **Progress that's yours.** Saved to your browser, with JSON **export/import** to back up or move
   between devices.
 

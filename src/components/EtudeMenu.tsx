@@ -1,11 +1,14 @@
 import type { Etude, Question, SrsData } from '../contracts'
 import { getState, initialState, isDue } from '../srs'
+import { formatMinutes } from '../time'
 
 interface EtudeMenuProps {
   etudes: Etude[]
   /** The full question bank; filtered per étude by etudeId. */
   allQuestions: Question[]
   data: SrsData
+  /** Seconds practiced today, keyed by étude id. */
+  practiceSeconds: Record<string, number>
   onSelect: (etudeId: string) => void
 }
 
@@ -14,6 +17,7 @@ export default function EtudeMenu({
   etudes,
   allQuestions,
   data,
+  practiceSeconds,
   onSelect,
 }: EtudeMenuProps) {
   const now = Date.now()
@@ -67,6 +71,12 @@ export default function EtudeMenu({
                     {studied}/{total}
                   </span>{' '}
                   studied
+                </span>
+                <span className="marking mt-1 block text-ink-3">
+                  <span className="font-mono text-ink-2">
+                    {formatMinutes(practiceSeconds[e.id] ?? 0)}
+                  </span>{' '}
+                  today
                 </span>
                 {/* progress hairline (studied / total) */}
                 <span className="mt-2 block h-px w-24 bg-rule">

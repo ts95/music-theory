@@ -14,6 +14,8 @@ import ReviewSession from './components/ReviewSession'
 import EtudeMenu from './components/EtudeMenu'
 import Button from './components/Button'
 import { isMuted, setMuted } from './audio/player'
+import { formatMinutes, getTodaySeconds } from './time'
+import { useEtudeTimer } from './useEtudeTimer'
 
 export default function App() {
   const allQuestions = useMemo(() => generateAllQuestions(), [])
@@ -147,6 +149,7 @@ export default function App() {
                 etudes={ETUDES}
                 allQuestions={allQuestions}
                 data={data}
+                practiceSeconds={getTodaySeconds()}
                 onSelect={setSelectedEtudeId}
               />
             </main>
@@ -206,6 +209,7 @@ function EtudeScreen({
   const studiedCount = bank.filter(
     (q) => (getState(data, q.id)?.reps ?? 0) > 0,
   ).length
+  const practiceSeconds = useEtudeTimer(etude.id)
 
   return (
     <>
@@ -243,6 +247,7 @@ function EtudeScreen({
             { n: dueCount, label: 'due now', accent: true },
             { n: bank.length, label: 'total' },
             { n: studiedCount, label: 'studied' },
+            { n: formatMinutes(practiceSeconds), label: 'today' },
           ].map((s, i) => (
             <div key={s.label} className="flex items-stretch gap-6">
               {i > 0 && <span className="w-px self-stretch bg-rule" />}
