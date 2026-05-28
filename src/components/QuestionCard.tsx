@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { Question } from '../contracts'
+import { play, stop } from '../audio/player'
 import Button from './Button'
 
 interface QuestionCardProps {
@@ -110,6 +111,9 @@ export default function QuestionCard({
     return () => window.removeEventListener('keydown', onKey)
   }, [answered, order, onSelect, onNext])
 
+  // Stop any lingering audio when this card unmounts (e.g. advancing).
+  useEffect(() => () => stop(), [])
+
   return (
     <article className="relative overflow-hidden rounded-3xl border border-rule bg-card px-6 py-7 shadow-[0_22px_60px_-32px_rgba(33,28,21,0.5)] sm:px-9 sm:py-9">
       {/* Depleting countdown bar pinned to the top edge — a burning fuse. */}
@@ -161,11 +165,16 @@ export default function QuestionCard({
             else state = 'muted'
           }
 
+          const choiceText = question.choices[choiceIndex]
+          const playable = question.audio?.[choiceText]
+
           return (
             <li
               key={choiceIndex}
               className="ink"
               style={{ animationDelay: `${pos * 60}ms` }}
+              onPointerEnter={playable ? () => play(playable) : undefined}
+              onPointerLeave={playable ? () => stop() : undefined}
             >
               <button
                 type="button"
@@ -179,8 +188,16 @@ export default function QuestionCard({
                   {state === 'correct' ? '✓' : state === 'wrong' ? '✕' : pos + 1}
                 </span>
                 <span className="flex-1 font-mono text-[1.02rem] text-ink">
-                  {question.choices[choiceIndex]}
+                  {choiceText}
                 </span>
+                {playable && (
+                  <span
+                    aria-hidden
+                    className="shrink-0 text-ink-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+                  >
+                    ♪
+                  </span>
+                )}
               </button>
             </li>
           )

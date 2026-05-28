@@ -19,11 +19,12 @@ progress, chosen from a table-of-contents home screen.
   major, what is the IV chord?" → F), across all 12 major and 12 minor keys — the common triads plus V7.
 - 🔢 **Étude No. 3 — Progressions.** Map a Roman-numeral progression to concrete chords in a given key
   ("In G major, spell ii–V–I" → Am – D – G), including ii–V–I seventh forms.
+- 🔊 **Hover to hear it.** Hover any answer to play it on a synthesized piano — scales arpeggiate,
+  chords ring as a block, progressions play chord-by-chord. Turn it off with the **♪ Sound** toggle.
 - 💾 **Progress that's yours.** Saved to your browser, with JSON **export/import** to back up or move
   between devices.
 
 **Roadmap (ideas, not commitments)**
-- 🔊 Audio playback of scales/chords/progressions (Tone.js)
 - 🎼 Staff notation for questions and answers (VexFlow)
 - 📚 More topics: intervals, modes, ear training
 

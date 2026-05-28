@@ -13,11 +13,13 @@ import {
 import ReviewSession from './components/ReviewSession'
 import EtudeMenu from './components/EtudeMenu'
 import Button from './components/Button'
+import { isMuted, setMuted } from './audio/player'
 
 export default function App() {
   const allQuestions = useMemo(() => generateAllQuestions(), [])
   const [data, setData] = useState<SrsData>(() => load())
   const [selectedEtudeId, setSelectedEtudeId] = useState<string | null>(null)
+  const [soundOn, setSoundOn] = useState(() => !isMuted())
   // Bumped on import so the session restarts against the new data.
   const [sessionKey, setSessionKey] = useState(0)
   const [notice, setNotice] = useState<{
@@ -25,6 +27,12 @@ export default function App() {
     text: string
   } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  function toggleSound() {
+    const next = !soundOn
+    setSoundOn(next)
+    setMuted(!next)
+  }
 
   function handleExport() {
     const json = exportJson(load())
@@ -57,6 +65,14 @@ export default function App() {
 
   const ioButtons = (
     <div className="flex gap-2">
+      <Button
+        variant="secondary"
+        onClick={toggleSound}
+        aria-pressed={soundOn}
+        title={soundOn ? 'Sound on (hover a choice to hear it)' : 'Sound off'}
+      >
+        {soundOn ? '♪ Sound' : '♪̶ Muted'}
+      </Button>
       <Button variant="secondary" onClick={handleExport}>
         Export
       </Button>

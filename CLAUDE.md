@@ -116,10 +116,13 @@ src/
 │   ├── keys.ts      # 12 major keys, key signatures, relative-minor mapping
 │   ├── scales.ts    # compute natural/harmonic/melodic minor note spellings
 │   ├── chords.ts    # diatonic triads/sevenths, chord symbols, Roman-numeral mapping
+│   ├── midi.ts      # pure note/scale/chord/progression → MIDI events (for playback)
 │   └── fingerings.ts# static RH/LH piano fingering tables per scale
 ├── srs/             # Spaced-repetition engine — also framework-free
 │   ├── scheduler.ts # SM-2-lite: per-item ease + interval, grade 0–5
 │   └── store.ts     # localStorage load/save + JSON export/import
+├── audio/
+│   └── player.ts    # the ONLY Tone.js consumer — hover-to-play (lazy-loaded)
 ├── questions/
 │   ├── etudes.ts    # ETUDES registry (the selectable exercises)
 │   └── generators.ts# build MC questions from theory/ data; produce distractors
@@ -133,6 +136,11 @@ src/
 **Études:** the app is organised into selectable études (exercises). `ETUDES` (in `questions/etudes.ts`)
 lists them; every `Question` carries an `etudeId`, and the UI scopes a session + its progress to one
 étude. To add an étude: add an `ETUDES` entry, generate questions tagged with its id, done.
+
+**Hover-to-play audio:** generators attach a `Question.audio` map (choice string → `Playable` of MIDI
+events) computed via `theory/midi.ts` — never parse display strings back into pitches. `audio/player.ts`
+is the only Tone.js consumer (dynamically imported, synthesized PolySynth); QuestionCard calls
+`play`/`stop` on row hover. Keep audio data generated upstream, not derived in the UI.
 
 **Key rule: `theory/` and `srs/` are pure** — no React, no DOM, no side effects beyond `store.ts`'s
 localStorage access. This keeps the music logic testable and reusable.
