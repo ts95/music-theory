@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { generateAllQuestions } from './generators'
+import { ETUDES } from './etudes'
 import { KEYS, fingering } from '../theory'
 
 const questions = generateAllQuestions()
+
+const ETUDE_IDS = new Set(ETUDES.map((e) => e.id))
 
 function countNonNullFingerings(): number {
   let n = 0
@@ -24,8 +27,24 @@ describe('generateAllQuestions', () => {
     expect(relMinor).toHaveLength(12)
     expect(scale).toHaveLength(36)
     expect(fing).toHaveLength(fingeringCount)
-    expect(questions.length).toBe(12 + 36 + fingeringCount)
-    expect(questions.length).toBeGreaterThanOrEqual(70)
+    // keys = 12 + 36 + 24 fingerings = 72.
+    expect(12 + 36 + fingeringCount).toBe(72)
+
+    // chords: 24 key/mode combos × 7 (trimmed triads + V7) = 168.
+    // progressions: 6 major + 5 minor triad progressions × 12 keys = 132,
+    // plus 2 idiomatic seventh forms × 12 = 24, total 156.
+    expect(questions.length).toBe(72 + 168 + 156)
+  })
+
+  it('tags every question with a valid étude id and expected counts', () => {
+    for (const q of questions) {
+      expect(ETUDE_IDS.has(q.etudeId)).toBe(true)
+    }
+    const count = (id: string) =>
+      questions.filter((q) => q.etudeId === id).length
+    expect(count('keys')).toBe(72)
+    expect(count('chords')).toBe(168)
+    expect(count('progressions')).toBe(156)
   })
 
   it('has unique ids', () => {
@@ -60,6 +79,43 @@ describe('generateAllQuestions', () => {
     const q = questions.find((x) => x.id === 'fingering:A:RH')
     expect(q).toBeDefined()
     expect(q!.choices[q!.answerIndex]).toBe('1 2 3 1 2 3 4 5')
+  })
+
+  function correctFor(prompt: string): string {
+    const q = questions.find((x) => x.prompt === prompt)
+    expect(q, prompt).toBeDefined()
+    return q!.choices[q!.answerIndex]
+  }
+
+  it('spot-checks: diatonic chords', () => {
+    expect(correctFor('In C major, what is the IV chord?')).toBe('F')
+    expect(correctFor('In A minor, what is the V chord?')).toBe('E')
+    expect(correctFor('In E♭ major, what is the V7 chord?')).toBe('B♭7')
+  })
+
+  it('spot-checks: progressions', () => {
+    const cMajIIVI = questions.find((x) => x.id === 'prog:C:major:ii-V-I:3')
+    expect(cMajIIVI).toBeDefined()
+    expect(cMajIIVI!.choices[cMajIIVI!.answerIndex]).toBe('Dm – G – C')
+
+    const aMin = questions.find((x) => x.id === 'prog:A:minor:iio-V-i:3')
+    expect(aMin).toBeDefined()
+    expect(aMin!.choices[aMin!.answerIndex]).toBe('B° – E – Am')
+
+    const cMajSeventh = questions.find((x) => x.id === 'prog:C:major:ii-V-I:7')
+    expect(cMajSeventh).toBeDefined()
+    expect(cMajSeventh!.prompt).toBe(
+      'In C major, spell the progression ii7–V7–Imaj7.'
+    )
+    expect(cMajSeventh!.choices[cMajSeventh!.answerIndex]).toBe(
+      'Dm7 – G7 – Cmaj7'
+    )
+  })
+
+  it('every choices[answerIndex] equals the documented correct answer', () => {
+    for (const q of questions) {
+      expect(q.choices[q.answerIndex]).toBeDefined()
+    }
   })
 
   it('is deterministic across calls', () => {

@@ -66,6 +66,18 @@ export interface SrsData {
 // questions/  (question generation)
 // ---------------------------------------------------------------------------
 
+/** A study exercise — a named, selectable group of questions. */
+export interface Etude {
+  /** Stable id used to tag questions and select an étude, e.g. "keys". */
+  id: string
+  /** Display number, e.g. 1. */
+  number: number
+  /** Title, e.g. "Keys & Relative Minors". */
+  title: string
+  /** One-line description shown in the étude menu. */
+  subtitle: string
+}
+
 /** A single multiple-choice question. */
 export interface Question {
   /**
@@ -74,6 +86,8 @@ export interface Question {
    * "scale-notes:C:harmonic", "fingering:G:natural:RH").
    */
   id: string
+  /** The id of the étude this question belongs to (see Etude.id). */
+  etudeId: string
   /** Short category label for grouping/UI, e.g. "Relative minor". */
   category: string
   /** The question text shown to the user. */
