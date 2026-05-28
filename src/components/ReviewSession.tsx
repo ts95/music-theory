@@ -8,6 +8,10 @@ import Button from './Button'
 const CORRECT_QUALITY = 5
 const INCORRECT_QUALITY = 2
 
+/** Categories with a sudden-death answer timer, and the limit. */
+const TIMED_CATEGORY = 'Relative minor'
+const TIME_LIMIT_MS = 5000
+
 interface ReviewSessionProps {
   /** The current SRS store, owned by App (so import/export stay in sync). */
   data: SrsData
@@ -71,6 +75,8 @@ export default function ReviewSession({
 
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
+  // True when the current question's timer expired before an answer.
+  const [timedOut, setTimedOut] = useState(false)
   const [answered, setAnswered] = useState(0)
   const [correct, setCorrect] = useState(0)
 
@@ -83,31 +89,41 @@ export default function ReviewSession({
     setQueueToken((t) => t + 1)
     setIndex(0)
     setSelected(null)
+    setTimedOut(false)
     setAnswered(0)
     setCorrect(0)
   }
 
-  function handleSelect(choiceIndex: number) {
-    if (selected !== null) return
-    const q = queue[index]
-    const wasCorrect = choiceIndex === q.answerIndex
-    setSelected(choiceIndex)
-    setAnswered((n) => n + 1)
-    if (wasCorrect) setCorrect((n) => n + 1)
-
+  /** Grade the current question and persist. `quality` per SM-2. */
+  function resolve(q: Question, quality: number) {
     const current = getState(dataRef.current, q.id) ?? initialState(Date.now())
-    const next = grade(
-      current,
-      wasCorrect ? CORRECT_QUALITY : INCORRECT_QUALITY,
-      Date.now(),
-    )
+    const next = grade(current, quality, Date.now())
     const updated = setState(dataRef.current, q.id, next)
     save(updated)
     onDataChange(updated)
   }
 
+  function handleSelect(choiceIndex: number) {
+    if (selected !== null || timedOut) return
+    const q = queue[index]
+    const wasCorrect = choiceIndex === q.answerIndex
+    setSelected(choiceIndex)
+    setAnswered((n) => n + 1)
+    if (wasCorrect) setCorrect((n) => n + 1)
+    resolve(q, wasCorrect ? CORRECT_QUALITY : INCORRECT_QUALITY)
+  }
+
+  /** Timer expired with no answer → counts as incorrect (an SRS lapse). */
+  function handleTimeout() {
+    if (selected !== null || timedOut) return
+    setTimedOut(true)
+    setAnswered((n) => n + 1)
+    resolve(queue[index], INCORRECT_QUALITY)
+  }
+
   function handleNext() {
     setSelected(null)
+    setTimedOut(false)
     setIndex((i) => i + 1)
   }
 
@@ -116,7 +132,9 @@ export default function ReviewSession({
 
   if (!finished) {
     const q = queue[index]
-    const progress = total > 0 ? ((index + (selected !== null ? 1 : 0)) / total) * 100 : 0
+    const resolved = selected !== null || timedOut
+    const progress = total > 0 ? ((index + (resolved ? 1 : 0)) / total) * 100 : 0
+    const timeLimitMs = q.category === TIMED_CATEGORY ? TIME_LIMIT_MS : undefined
     return (
       <div className="space-y-4">
         <div className="flex items-end justify-between gap-4">
@@ -144,8 +162,11 @@ export default function ReviewSession({
           key={q.id}
           question={q}
           selected={selected}
+          timedOut={timedOut}
+          timeLimitMs={timeLimitMs}
           onSelect={handleSelect}
           onNext={handleNext}
+          onTimeout={handleTimeout}
         />
       </div>
     )

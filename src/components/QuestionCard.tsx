@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { Question } from '../contracts'
 import Button from './Button'
 
@@ -6,8 +6,13 @@ interface QuestionCardProps {
   question: Question
   /** The choice index the user has selected, or null if unanswered. */
   selected: number | null
+  /** True when the answer timer expired before a choice was made. */
+  timedOut?: boolean
+  /** If set, the question must be answered within this many ms. */
+  timeLimitMs?: number
   onSelect: (choiceIndex: number) => void
   onNext: () => void
+  onTimeout: () => void
 }
 
 type ChoiceState = 'idle' | 'correct' | 'wrong' | 'muted'
@@ -53,8 +58,11 @@ function badgeClasses(state: ChoiceState): string {
 export default function QuestionCard({
   question,
   selected,
+  timedOut = false,
+  timeLimitMs,
   onSelect,
   onNext,
+  onTimeout,
 }: QuestionCardProps) {
   // Shuffle once per presentation of a question, keyed to its id.
   const order = useMemo(
@@ -62,8 +70,31 @@ export default function QuestionCard({
     [question.id],
   )
 
-  const answered = selected !== null
+  const answered = selected !== null || timedOut
   const isCorrect = selected === question.answerIndex
+
+  // Countdown timer (only for timed questions). The card remounts per question
+  // (keyed by id), so this effect starts fresh each time.
+  const [remaining, setRemaining] = useState(timeLimitMs ?? 0)
+  useEffect(() => {
+    if (timeLimitMs === undefined || answered) return
+    const deadline = Date.now() + timeLimitMs
+    const id = setInterval(() => {
+      const rem = deadline - Date.now()
+      if (rem <= 0) {
+        clearInterval(id)
+        setRemaining(0)
+        onTimeout()
+      } else {
+        setRemaining(rem)
+      }
+    }, 100)
+    return () => clearInterval(id)
+  }, [timeLimitMs, answered, onTimeout])
+
+  const timed = timeLimitMs !== undefined
+  const pct = timed ? Math.max(0, (remaining / timeLimitMs) * 100) : 0
+  const urgent = timed && remaining <= 2000
 
   // Keyboard: number keys 1–N select; Enter advances once answered.
   useEffect(() => {
@@ -81,6 +112,19 @@ export default function QuestionCard({
 
   return (
     <article className="relative overflow-hidden rounded-3xl border border-rule bg-card px-6 py-7 shadow-[0_22px_60px_-32px_rgba(33,28,21,0.5)] sm:px-9 sm:py-9">
+      {/* Depleting countdown bar pinned to the top edge — a burning fuse. */}
+      {timed && !answered && (
+        <div
+          aria-hidden
+          className="absolute inset-x-0 top-0 h-1 bg-rule/40"
+        >
+          <div
+            className={`h-full transition-[width] duration-100 ease-linear ${urgent ? 'bg-wrong' : 'bg-accent'}`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      )}
+
       {/* Faint engraved clef watermark for atmosphere. */}
       <span
         aria-hidden
@@ -92,6 +136,14 @@ export default function QuestionCard({
       <p className="marking flex items-center gap-2 text-accent">
         <span className="h-px w-5 bg-accent/50" />
         {question.category}
+        {timed && !answered && (
+          <span
+            className={`ml-auto font-mono text-sm font-semibold tabular-nums transition-colors ${urgent ? 'text-wrong' : 'text-ink-2'}`}
+            aria-label="seconds remaining"
+          >
+            {Math.ceil(remaining / 1000)}s
+          </span>
+        )}
       </p>
       <h2 className="mt-3 font-display text-2xl font-medium leading-snug tracking-[-0.01em] text-ink sm:text-[1.7rem]">
         {question.prompt}
@@ -142,7 +194,7 @@ export default function QuestionCard({
               <span className="text-correct">Just so.</span>
             ) : (
               <span className="text-wrong">
-                Not quite — it’s{' '}
+                {timedOut ? 'Time’s up — it’s' : 'Not quite — it’s'}{' '}
                 <span className="font-mono not-italic">
                   {question.choices[question.answerIndex]}
                 </span>

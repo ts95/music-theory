@@ -48,6 +48,10 @@ The exercise uses **spaced repetition** (an SM-2-style scheduler): each fact you
 relationship, a scale's notes, a fingering — is tracked individually. Answer well and you'll see it less
 often; struggle and it comes back sooner.
 
+**Timed recall:** relative-minor questions are sudden-death — you have **5 seconds** to answer. Let the
+timer run out and it counts as incorrect, so the scheduler brings that key back sooner. (Other question
+types are untimed.)
+
 **Backup & sync:** your progress lives in the browser's `localStorage`. Use **Export** to download a
 JSON snapshot, and **Import** to restore it (handy for a new browser or device). Export files are
 versioned so they keep working as the app evolves.
