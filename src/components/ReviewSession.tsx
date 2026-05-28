@@ -1,0 +1,176 @@
+import { useMemo, useRef, useState } from 'react'
+import type { Question, SrsData } from '../contracts'
+import { generateAllQuestions } from '../questions'
+import { getState, grade, initialState, isDue, save, setState } from '../srs'
+import QuestionCard from './QuestionCard'
+import Button from './Button'
+
+const CORRECT_QUALITY = 5
+const INCORRECT_QUALITY = 2
+
+interface ReviewSessionProps {
+  /** The current SRS store, owned by App (so import/export stay in sync). */
+  data: SrsData
+  /** Persist + lift store changes back to App. */
+  onDataChange: (data: SrsData) => void
+}
+
+/** Build the due queue: due questions sorted by dueAt ascending. */
+function dueQueue(bank: Question[], data: SrsData, now: number): Question[] {
+  return bank
+    .filter((q) => isDue(getState(data, q.id) ?? initialState(now), now))
+    .sort((a, b) => {
+      const da = (getState(data, a.id) ?? initialState(now)).dueAt
+      const db = (getState(data, b.id) ?? initialState(now)).dueAt
+      return da - db
+    })
+}
+
+/** The soonest dueAt across all items (for the "next review" hint). */
+function soonestDueAt(bank: Question[], data: SrsData, now: number): number {
+  return Math.min(
+    ...bank.map((q) => (getState(data, q.id) ?? initialState(now)).dueAt),
+  )
+}
+
+/** Human-readable "in about ..." from now to a future epoch ms. */
+function formatRelative(dueAt: number, now: number): string {
+  const ms = dueAt - now
+  if (ms <= 0) return 'now'
+  const hours = ms / 3_600_000
+  if (hours < 1) return 'in less than an hour'
+  if (hours < 24) {
+    const h = Math.round(hours)
+    return `in about ${h} hour${h === 1 ? '' : 's'}`
+  }
+  const days = Math.round(hours / 24)
+  if (days === 1) return 'tomorrow'
+  return `in about ${days} days`
+}
+
+export default function ReviewSession({
+  data,
+  onDataChange,
+}: ReviewSessionProps) {
+  // The question bank is fixed for the app's lifetime.
+  const bank = useMemo(() => generateAllQuestions(), [])
+
+  // A "queue token" lets us rebuild the queue on demand (start/restart).
+  const [queueToken, setQueueToken] = useState(0)
+  // null queue means we're showing the due session built from current `data`.
+  // A non-null override is an explicit "practice anyway" set.
+  const [practiceAll, setPracticeAll] = useState(false)
+
+  // Build the queue once per (re)start, snapshotting due items at that moment.
+  const queue = useMemo(() => {
+    const now = Date.now()
+    return practiceAll ? [...bank] : dueQueue(bank, data, now)
+    // queueToken forces a rebuild when the user restarts a session.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bank, queueToken, practiceAll])
+
+  const [index, setIndex] = useState(0)
+  const [selected, setSelected] = useState<number | null>(null)
+  const [answered, setAnswered] = useState(0)
+  const [correct, setCorrect] = useState(0)
+
+  // Grading must always use the CURRENT stored state, not a stale snapshot.
+  const dataRef = useRef(data)
+  dataRef.current = data
+
+  function startSession(all: boolean) {
+    setPracticeAll(all)
+    setQueueToken((t) => t + 1)
+    setIndex(0)
+    setSelected(null)
+    setAnswered(0)
+    setCorrect(0)
+  }
+
+  function handleSelect(choiceIndex: number) {
+    if (selected !== null) return
+    const q = queue[index]
+    const wasCorrect = choiceIndex === q.answerIndex
+    setSelected(choiceIndex)
+    setAnswered((n) => n + 1)
+    if (wasCorrect) setCorrect((n) => n + 1)
+
+    const current = getState(dataRef.current, q.id) ?? initialState(Date.now())
+    const next = grade(
+      current,
+      wasCorrect ? CORRECT_QUALITY : INCORRECT_QUALITY,
+      Date.now(),
+    )
+    const updated = setState(dataRef.current, q.id, next)
+    save(updated)
+    onDataChange(updated)
+  }
+
+  function handleNext() {
+    setSelected(null)
+    setIndex((i) => i + 1)
+  }
+
+  const total = queue.length
+  const finished = index >= total
+
+  if (!finished) {
+    const q = queue[index]
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between text-sm text-slate-500">
+          <span>
+            Question {index + 1} of {total}
+          </span>
+          <span>
+            <span className="font-semibold text-emerald-600">✓ {correct}</span>{' '}
+            / {answered} answered
+          </span>
+        </div>
+        <QuestionCard
+          question={q}
+          selected={selected}
+          onSelect={handleSelect}
+          onNext={handleNext}
+        />
+      </div>
+    )
+  }
+
+  // ---- Session summary / caught-up state -------------------------------
+  const accuracy = answered > 0 ? Math.round((correct / answered) * 100) : 0
+  const now = Date.now()
+  const moreDue = dueQueue(bank, data, now).length
+  const nextDue = soonestDueAt(bank, data, now)
+
+  return (
+    <div className="rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-slate-200 sm:p-8">
+      <p className="text-4xl">🎉</p>
+      <h2 className="mt-3 text-xl font-semibold text-slate-900">
+        {answered > 0 ? 'Session complete' : 'All caught up'}
+      </h2>
+
+      {answered > 0 && (
+        <p className="mt-2 text-slate-600">
+          You answered <span className="font-semibold">{answered}</span> question
+          {answered === 1 ? '' : 's'} — {correct} correct ({accuracy}% accuracy).
+        </p>
+      )}
+
+      <p className="mt-2 text-slate-600">
+        {moreDue > 0
+          ? `${moreDue} item${moreDue === 1 ? '' : 's'} still due for review.`
+          : `Next review ${formatRelative(nextDue, now)}.`}
+      </p>
+
+      <div className="mt-6 flex flex-wrap justify-center gap-3">
+        {moreDue > 0 && (
+          <Button onClick={() => startSession(false)}>Study again</Button>
+        )}
+        <Button variant="secondary" onClick={() => startSession(true)}>
+          Practice anyway
+        </Button>
+      </div>
+    </div>
+  )
+}
