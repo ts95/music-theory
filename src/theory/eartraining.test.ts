@@ -56,10 +56,22 @@ describe('realizeEar — progressions', () => {
 
   it('A minor i–iv–V uses a major V (raised leading tone G♯)', () => {
     const r = realizeEar(prog('minor', [0, 3, 4]), root('A'))
+    // Chord roots sit in the one-octave band at/above the A4 tonic, so iv (D)
+    // and V (E) ride up an octave rather than dropping below it.
     expect(midi(r.target)).toEqual([
       [69, 72, 76], // Am
-      [62, 65, 69], // Dm
-      [64, 68, 71], // E major — G♯ (68), not G♮
+      [74, 77, 81], // Dm (D5, up an octave to stay above the tonic)
+      [76, 80, 83], // E major — G♯ (80), not G♮
     ])
+  })
+
+  it('keeps every chord root within one octave above the tonic', () => {
+    const r = realizeEar(prog('major', [0, 4, 5, 3]), root('F')) // F: I–V–vi–IV
+    const tonicMidi = voicedMidi(root('F'))
+    for (const chord of r.target) {
+      const rootMidi = voicedMidi(chord[0])
+      expect(rootMidi).toBeGreaterThanOrEqual(tonicMidi)
+      expect(rootMidi).toBeLessThan(tonicMidi + 12)
+    }
   })
 })

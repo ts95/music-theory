@@ -10,11 +10,16 @@ const G: Note = { letter: 'G', accidental: 0 }
 const A: Note = { letter: 'A', accidental: 0 }
 
 describe('noteMidi', () => {
-  it('maps C4 to 60 and uses pitch class', () => {
+  it('maps C4 to 60 and shifts by accidental', () => {
     expect(noteMidi(C)).toBe(60)
     expect(noteMidi({ letter: 'E', accidental: -1 })).toBe(63) // Eb4
     expect(noteMidi({ letter: 'F', accidental: 1 })).toBe(66) // F#4
     expect(noteMidi(C, 5)).toBe(72)
+  })
+
+  it('keeps the octave for boundary accidentals (no pitch-class wrap)', () => {
+    expect(noteMidi({ letter: 'C', accidental: -1 })).toBe(59) // Cb4 = B3
+    expect(noteMidi({ letter: 'B', accidental: 1 })).toBe(72) // B#4 = C5
   })
 })
 

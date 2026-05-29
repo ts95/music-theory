@@ -1,13 +1,16 @@
 import type { Note } from '../contracts'
-import { pitchClass } from './notes'
+import { LETTER_PC } from './notes'
 import { QUALITY_INTERVALS, type Chord, type Quality } from './chords'
 
 /**
- * MIDI note number for a spelled note at a given octave (C4 = 60).
- * Enharmonics/double accidentals collapse to pitch class — fine for playback.
+ * MIDI note number for a spelled note at a given octave (C4 = 60). The
+ * accidental shifts from the letter's natural pitch *without* wrapping the
+ * octave, so boundary spellings stay in the right register: C♭4 = B3 (59),
+ * B♯4 = C5 (72). (Using a wrapped pitch class here would mis-octave them and
+ * make spellAbove derive nonsense accidentals.)
  */
 export function noteMidi(note: Note, octave = 4): number {
-  return 12 * (octave + 1) + pitchClass(note)
+  return 12 * (octave + 1) + LETTER_PC[note.letter] + note.accidental
 }
 
 /**

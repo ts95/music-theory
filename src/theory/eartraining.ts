@@ -42,9 +42,17 @@ function spellAbove(root: Voiced, letterSteps: number, semitones: number): Voice
 
 const CHORD_TONE_STEPS = [0, 2, 4, 6]
 
-/** Voice a chord upward from its root at `octave`: root, 3rd, 5th, (7th). */
-function voiceChord(chord: Chord, octave: number): Voiced[] {
-  const root: Voiced = { note: chord.root, octave }
+/**
+ * Voice a chord upward from its root: root, 3rd, 5th, (7th). The root is placed
+ * in the one-octave band at/above `tonic`, so successive chords in a progression
+ * stay in a tidy register instead of leaping (and diving below the staff) by
+ * where their root letter happens to fall.
+ */
+function voiceChord(chord: Chord, tonic: Voiced): Voiced[] {
+  let root: Voiced = { note: chord.root, octave: tonic.octave }
+  if (voicedMidi(root) < voicedMidi(tonic)) {
+    root = { ...root, octave: root.octave + 1 }
+  }
   return QUALITY_INTERVALS[chord.quality].map((semitones, i) =>
     i === 0 ? root : spellAbove(root, CHORD_TONE_STEPS[i], semitones)
   )
@@ -65,9 +73,9 @@ export function realizeEar(spec: EarSpec, root: Voiced): RealizedEar {
     return { reference: [[root]], target: [[root], [upper]], style: 'melodic' }
   }
   const tonic = root.note
-  const reference = [voiceChord(diatonicTriads(tonic, spec.mode)[0], root.octave)]
+  const reference = [voiceChord(diatonicTriads(tonic, spec.mode)[0], root)]
   const target = spec.degrees.map((d) =>
-    voiceChord(romanToChord(tonic, spec.mode, d, false), root.octave)
+    voiceChord(romanToChord(tonic, spec.mode, d, false), root)
   )
   return { reference, target, style: 'block' }
 }
