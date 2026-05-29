@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Music Theory</title>
+    <script>
+      // SPA fallback for GitHub Pages (which has no server-side rewrites):
+      // rewrite /music-theory/<route> to /music-theory/?/<route> and bounce to
+      // index.html, whose inline script decodes it back into a clean path.
+      // Keep 1 leading path segment (the repo name) before the encoded route.
+      var segments = 1
+      var l = window.location
+      l.replace(
+        l.protocol +
+          '//' +
+          l.host +
+          l.pathname.split('/').slice(0, 1 + segments).join('/') +
+          '/?/' +
+          l.pathname
+            .slice(1)
+            .split('/')
+            .slice(segments)
+            .join('/')
+            .replace(/&/g, '~and~') +
+          (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+          l.hash,
+      )
+    </script>
+  </head>
+  <body></body>
+</html>
