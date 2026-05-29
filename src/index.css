@@ -53,6 +53,15 @@
     color: var(--color-ink);
   }
 
+  /* Clickable elements signal it (Tailwind's reset leaves buttons as default). */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  label[for],
+  summary,
+  a[href] {
+    cursor: pointer;
+  }
+
   /* Tabular, even figures for musical tokens and finger numbers. */
   .font-mono {
     font-feature-settings: "tnum" 1, "zero" 1;
