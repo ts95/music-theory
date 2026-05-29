@@ -16,6 +16,7 @@ import {
   scaleEvents,
   voiceChordRootPosition,
   voiceScaleAscending,
+  voicedMidi,
 } from '../theory'
 import type { Chord, Mode } from '../theory'
 import {
@@ -175,8 +176,17 @@ function scaleSpellingQuestions(): Question[] {
         audio,
         scaleExplanation(tonic, type, key.majorName)
       )
-      // Reveal shows the answer scale, one note per stave note.
-      q.staff = { groups: voiceScaleAscending(correctNotes).map((v) => [v]) }
+      // Reveal lights up the answer scale on the keyboard, each key labelled
+      // with both fingerings (RH over LH). Fingering is shared across the three
+      // minor forms, so the same finger sequence applies to every scale type.
+      const rh = fingering(tonic, 'natural', 'RH')
+      const lh = fingering(tonic, 'natural', 'LH')
+      q.keyboard = {
+        marks: voiceScaleAscending(correctNotes).map((v, i) => ({
+          midi: voicedMidi(v),
+          ...(rh && lh ? { label: String(rh[i]), sublabel: String(lh[i]) } : {}),
+        })),
+      }
       questions.push(q)
     })
   })
@@ -206,19 +216,21 @@ function fingeringQuestions(): Question[] {
         'Fingering',
         `What is the standard ${HAND_WORD[hand]} fingering for the ${noteToString(
           key.minorTonic
-        )} minor scale (one octave, ascending)?`,
+        )} minor scale (two octaves, ascending)?`,
         correct,
         pool,
         undefined,
         fingeringExplanation(key.minorTonic, hand, f)
       )
-      // Reveal shows the natural-minor scale across the octave (tonic..tonic),
-      // with the finger numbers labelled under each note.
+      // Reveal lights up two octaves of the natural-minor scale (tonic..tonic..
+      // tonic), each key labelled with its finger number.
       const natural = minorScale(key.minorTonic, 'natural')
-      const octaveScale = [...natural, natural[0]]
-      q.staff = {
-        groups: voiceScaleAscending(octaveScale).map((v) => [v]),
-        labels: f.map(String),
+      const twoOctaves = [...natural, ...natural, natural[0]]
+      q.keyboard = {
+        marks: voiceScaleAscending(twoOctaves).map((v, i) => ({
+          midi: voicedMidi(v),
+          label: String(f[i]),
+        })),
       }
       questions.push(q)
     }
@@ -294,8 +306,12 @@ function chordDegreeQuestions(): Question[] {
           audio,
           chordExplanation(name, mode, degree, seventh, correctChord)
         )
-        // Reveal shows the answer chord as one block (root-position) stave note.
-        q.staff = { groups: [voiceChordRootPosition(correctChord)] }
+        // Reveal lights up the answer chord (root position) on the keyboard.
+        q.keyboard = {
+          marks: voiceChordRootPosition(correctChord).map((v) => ({
+            midi: voicedMidi(v),
+          })),
+        }
         questions.push(q)
       }
     }

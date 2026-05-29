@@ -81,7 +81,7 @@ describe('generateAllQuestions', () => {
   it('spot-checks: A minor right-hand fingering', () => {
     const q = questions.find((x) => x.id === 'fingering:A:RH')
     expect(q).toBeDefined()
-    expect(q!.choices[q!.answerIndex]).toBe('1 2 3 1 2 3 4 5')
+    expect(q!.choices[q!.answerIndex]).toBe('1 2 3 1 2 3 4 1 2 3 1 2 3 4 5')
   })
 
   function correctFor(prompt: string): string {
@@ -300,65 +300,67 @@ describe('generateAllQuestions', () => {
     })
   })
 
-  describe('staff & circle notation (études 1 & 2)', () => {
-    it('scale-spelling questions carry a 7-note staff matching the answer', () => {
+  describe('keyboard & circle notation (études 1 & 2)', () => {
+    it('scale-spelling questions light up the 7 scale keys, labelled RH/LH', () => {
       for (const q of questions.filter((x) => x.category === 'Scale spelling')) {
-        expect(q.staff, q.id).toBeDefined()
-        expect(q.staff!.groups).toHaveLength(7) // one note per group
-        expect(q.staff!.groups.every((g) => g.length === 1)).toBe(true)
-        expect(q.staff!.labels).toBeUndefined()
+        expect(q.keyboard, q.id).toBeDefined()
+        expect(q.keyboard!.marks).toHaveLength(7)
+        // Every key carries both fingerings (RH = label, LH = sublabel).
+        expect(
+          q.keyboard!.marks.every((m) => m.label !== undefined && m.sublabel !== undefined),
+          q.id
+        ).toBe(true)
       }
-      // A natural minor: A B C D E F G, ascending into the next octave.
+      // A natural minor: A4 B4 C5 D5 E5 F5 G5 (C wraps up an octave).
       const a = questions.find((x) => x.id === 'scale-notes:A:natural')!
-      expect(a.staff!.groups.map((g) => g[0].note.letter)).toEqual([
-        'A', 'B', 'C', 'D', 'E', 'F', 'G',
-      ])
-      expect(a.staff!.groups[0][0].octave).toBe(4)
-      expect(a.staff!.groups[2][0].octave).toBe(5) // C wraps up
+      expect(a.keyboard!.marks.map((m) => m.midi)).toEqual([69, 71, 72, 74, 76, 77, 79])
+      expect(a.keyboard!.marks.map((m) => m.label)).toEqual(['1', '2', '3', '1', '2', '3', '4'])
+      expect(a.keyboard!.marks.map((m) => m.sublabel)).toEqual(['5', '4', '3', '2', '1', '3', '2'])
     })
 
-    it('fingering questions carry an 8-note staff labelled with the finger numbers', () => {
+    it('fingering questions light up two octaves, each key labelled with its finger', () => {
       for (const q of questions.filter((x) => x.category === 'Fingering')) {
-        expect(q.staff, q.id).toBeDefined()
-        expect(q.staff!.groups).toHaveLength(8) // tonic..octave tonic
-        expect(q.staff!.labels).toHaveLength(8)
+        expect(q.keyboard, q.id).toBeDefined()
+        expect(q.keyboard!.marks).toHaveLength(15) // tonic..tonic..tonic
+        expect(q.keyboard!.marks.every((m) => m.label !== undefined), q.id).toBe(true)
       }
       const rh = questions.find((x) => x.id === 'fingering:A:RH')!
-      expect(rh.staff!.labels).toEqual(['1', '2', '3', '1', '2', '3', '4', '5'])
-      // First and last notes are the tonic an octave apart.
-      const g = rh.staff!.groups
-      expect(g[0][0].note.letter).toBe('A')
-      expect(g[7][0].note.letter).toBe('A')
-      expect(g[7][0].octave).toBe(g[0][0].octave + 1)
+      expect(rh.keyboard!.marks.map((m) => m.label)).toEqual([
+        '1', '2', '3', '1', '2', '3', '4', '1', '2', '3', '1', '2', '3', '4', '5',
+      ])
+      // First and last keys are the tonic two octaves apart (A4 → A6).
+      const m = rh.keyboard!.marks
+      expect(m[0].midi).toBe(69)
+      expect(m[14].midi).toBe(69 + 24)
     })
 
-    it('chord questions carry a single block-chord staff', () => {
+    it('chord questions light up the chord keys', () => {
       for (const q of questions.filter((x) => x.category === 'Diatonic chord')) {
-        expect(q.staff, q.id).toBeDefined()
-        expect(q.staff!.groups).toHaveLength(1)
+        expect(q.keyboard, q.id).toBeDefined()
       }
+      // F major triad in root position from octave 4: F4 A4 C5.
       const iv = questions.find(
         (x) => x.prompt === 'In C major, what is the IV chord?'
       )!
-      expect(iv.staff!.groups[0].map((v) => v.note.letter)).toEqual(['F', 'A', 'C'])
+      expect(iv.keyboard!.marks.map((m) => m.midi)).toEqual([65, 69, 72])
       const v7 = questions.find((x) => x.id === 'chord-deg:C:major:4:7')!
-      expect(v7.staff!.groups[0]).toHaveLength(4) // V7 is a four-note chord
+      expect(v7.keyboard!.marks).toHaveLength(4) // V7 is a four-note chord
     })
 
-    it('relative-minor questions carry a circle highlight, not a staff', () => {
+    it('relative-minor questions carry a circle highlight, not a keyboard', () => {
       for (const q of questions.filter((x) => x.category === 'Relative minor')) {
         expect(q.circle, q.id).toBeDefined()
-        expect(q.staff).toBeUndefined()
+        expect(q.keyboard).toBeUndefined()
       }
       const eb = questions.find((x) => x.id === 'rel-minor:Eb')!
       expect(eb.circle).toEqual({ major: 'E♭ major' })
     })
 
-    it('progression and ear questions get neither a staff nor a circle', () => {
+    it('progression and ear questions get neither a keyboard nor a circle', () => {
       for (const q of questions.filter(
         (x) => x.category === 'Progression' || x.ear
       )) {
-        expect(q.staff, q.id).toBeUndefined()
+        expect(q.keyboard, q.id).toBeUndefined()
         expect(q.circle, q.id).toBeUndefined()
       }
     })

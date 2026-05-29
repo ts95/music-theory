@@ -3,11 +3,13 @@ import type { Question } from '../contracts'
 import { isMuted, play, playEar, stop } from '../audio/player'
 import {
   INTERVAL_ROOTS,
+  noteToString,
   progressionTonics,
   realizeEar,
   voicedMidi,
 } from '../theory'
 import Staff from './Staff'
+import PianoKeyboard from './PianoKeyboard'
 import CircleOfFifths from './CircleOfFifths'
 import Button from './Button'
 
@@ -138,6 +140,12 @@ export default function QuestionCard({
     if (!realized) return
     playEar([], realized.reference.map((ev) => ev.map(voicedMidi)), realized.style)
   }
+  // Intervals only: sound both notes at once (one block event).
+  function playHarmonic() {
+    if (!realized) return
+    const both = realized.target.flat().map(voicedMidi)
+    playEar([], [both], 'block')
+  }
 
   // Auto-play once when an ear question mounts (audio is already unlocked by the
   // click that opened the étude).
@@ -203,19 +211,36 @@ export default function QuestionCard({
       </h2>
 
       {ear && (
-        <div className="mt-5 flex flex-wrap items-center gap-4">
-          <Button onClick={playPrompt}>▶ Play</Button>
-          <button
-            type="button"
-            onClick={playReference}
-            className="marking text-ink-3 transition-colors hover:text-ink"
-          >
-            {earIsInterval ? 'hear lower note' : 'hear tonic'}
-          </button>
-          {isMuted() && (
-            <span className="marking text-wrong">♪ Sound is off</span>
+        <>
+          <div className="mt-5 flex flex-wrap items-center gap-4">
+            {earIsInterval ? (
+              <>
+                <Button onClick={playPrompt}>▶ Arpeggiated</Button>
+                <Button variant="secondary" onClick={playHarmonic}>
+                  ▶ Together
+                </Button>
+              </>
+            ) : (
+              <Button onClick={playPrompt}>▶ Play</Button>
+            )}
+            <button
+              type="button"
+              onClick={playReference}
+              className="marking text-ink-3 transition-colors hover:text-ink"
+            >
+              {earIsInterval ? 'hear lower note' : 'hear tonic'}
+            </button>
+            {isMuted() && (
+              <span className="marking text-wrong">♪ Sound is off</span>
+            )}
+          </div>
+          {earIsInterval && earRoot && (
+            <p className="mt-3 text-ink-2">
+              The lower note is{' '}
+              <span className="font-mono text-ink">{noteToString(earRoot.note)}</span>.
+            </p>
           )}
-        </div>
+        </>
       )}
 
       <ul className="mt-7 space-y-2.5">
@@ -299,8 +324,8 @@ export default function QuestionCard({
               }
             />
           )}
-          {!ear && question.staff && (
-            <Staff groups={question.staff.groups} labels={question.staff.labels} />
+          {!ear && question.keyboard && (
+            <PianoKeyboard marks={question.keyboard.marks} />
           )}
           {!ear && question.circle && <CircleOfFifths major={question.circle.major} />}
           {!isCorrect && question.explanation && (

@@ -6,6 +6,7 @@ import {
   majorScale,
   minorScale,
   fingering,
+  pitchClass,
 } from './index'
 
 const nat = (letter: Note['letter']): Note => ({ letter, accidental: 0 })
@@ -81,9 +82,13 @@ describe('KEYS', () => {
 })
 
 describe('fingering', () => {
-  it('A minor RH/LH', () => {
-    expect(fingering(nat('A'), 'natural', 'RH')).toEqual([1, 2, 3, 1, 2, 3, 4, 5])
-    expect(fingering(nat('A'), 'natural', 'LH')).toEqual([5, 4, 3, 2, 1, 3, 2, 1])
+  it('A minor RH/LH (two octaves)', () => {
+    expect(fingering(nat('A'), 'natural', 'RH')).toEqual(
+      [1, 2, 3, 1, 2, 3, 4, 1, 2, 3, 1, 2, 3, 4, 5]
+    )
+    expect(fingering(nat('A'), 'natural', 'LH')).toEqual(
+      [5, 4, 3, 2, 1, 3, 2, 1, 4, 3, 2, 1, 3, 2, 1]
+    )
   })
   it('shares fingering across the three forms', () => {
     expect(fingering(sharp('F'), 'natural', 'RH')).toEqual(
@@ -93,12 +98,25 @@ describe('fingering', () => {
       fingering(sharp('F'), 'natural', 'LH')
     )
   })
-  it('all 12 minor tonics resolve, each 8 numbers', () => {
+  it('all 12 minor tonics resolve, each 15 numbers (two octaves)', () => {
+    const BLACK = new Set([1, 3, 6, 8, 10]) // black-key pitch classes
     for (const k of KEYS) {
+      // The two-octave note line each fingering is assigned against.
+      const nat = minorScale(k.minorTonic, 'natural')
+      const notes = [...nat, ...nat, nat[0]]
       for (const hand of ['RH', 'LH'] as const) {
         const f = fingering(k.minorTonic, 'harmonic', hand)
         expect(f, `${k.minorName} ${hand}`).not.toBeNull()
-        expect(f!).toHaveLength(8)
+        expect(f!, `${k.minorName} ${hand}`).toHaveLength(15)
+        // The cardinal rule: the thumb (1) never lands on a black key.
+        f!.forEach((finger, i) => {
+          if (finger === 1) {
+            expect(
+              BLACK.has(pitchClass(notes[i])),
+              `${k.minorName} ${hand}: thumb on ${noteToString(notes[i])}`
+            ).toBe(false)
+          }
+        })
       }
     }
   })

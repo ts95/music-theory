@@ -72,7 +72,7 @@ export function fingeringExplanation(
     hand === 'RH'
       ? 'the thumb tucks under after the 3rd finger'
       : 'the 3rd finger crosses over the thumb'
-  return `Standard ${handWord}-hand fingering for ${noteToString(tonic)} minor (one octave): ${fingers.join(' ')}. Key rule: the thumb (1) never plays a black key — that fixes where ${cross}. Drill hands separately until the crossing is automatic.`
+  return `Standard ${handWord}-hand fingering for ${noteToString(tonic)} minor (two octaves): ${fingers.join(' ')}. Key rule: the thumb (1) never plays a black key — that fixes where ${cross}. Drill hands separately until the crossing is automatic.`
 }
 
 /** "In C major, what is the IV chord?" */

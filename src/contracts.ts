@@ -103,6 +103,16 @@ export type EarSpec =
   | { kind: 'interval'; semitones: number; letterSteps: number }
   | { kind: 'progression'; mode: 'major' | 'minor'; degrees: number[] }
 
+/** A highlighted key on the reveal piano keyboard. */
+export interface KeyMark {
+  /** MIDI number of the physical key to light up (C4 = 60). */
+  midi: number
+  /** Optional text on the key — a finger number (the top number when paired). */
+  label?: string
+  /** Optional second finger number, drawn below `label` (e.g. LH under RH). */
+  sublabel?: string
+}
+
 /** A single multiple-choice question. */
 export interface Question {
   /**
@@ -128,11 +138,11 @@ export interface Question {
   /** Present for ear-training questions: what to play (realized from a random root). */
   ear?: EarSpec
   /**
-   * Precomputed staff notation shown on reveal (the scale/fingering/chord
-   * études). One group per stave note: a single note, or several for a chord.
-   * Optional labels (e.g. finger numbers) appear under each group.
+   * Precomputed piano-keyboard highlight shown on reveal (the scale/fingering/
+   * chord études): which physical keys to light up, with optional per-key labels
+   * (finger numbers, for fingering questions).
    */
-  staff?: { groups: Voiced[][]; labels?: string[] }
+  keyboard?: { marks: KeyMark[] }
   /**
    * Circle-of-fifths highlight shown on reveal (relative-minor recall): the
    * major key (by display name) to highlight on the wheel, alongside its
