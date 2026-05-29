@@ -5,6 +5,7 @@ import type {
   Question,
   RhythmEvent,
   ScaleType,
+  TimeSig,
 } from '../contracts'
 import {
   KEYS,
@@ -727,65 +728,109 @@ const S: RhythmEvent = { dur: '16' }
 const QR: RhythmEvent = { dur: 'q', rest: true }
 const ER: RhythmEvent = { dur: '8', rest: true }
 const QD: RhythmEvent = { dur: 'q', dots: 1 }
+const T: RhythmEvent = { dur: '8', triplet: true } // eighth-note triplet member
 
-const RHYTHM_PATTERNS: RhythmEvent[][] = [
-  [Q, Q, Q, Q],
-  [E, E, Q, Q, Q],
-  [Q, E, E, Q, Q],
-  [E, E, E, E, Q, Q],
-  [H, Q, Q],
-  [Q, Q, H],
-  [QD, E, Q, Q],
-  [Q, QD, E, Q],
-  [S, S, S, S, Q, Q, Q],
-  [E, E, S, S, S, S, Q, Q],
-  [QR, Q, Q, Q],
-  [Q, QR, Q, Q],
-  [H, E, E, Q],
-  [E, E, Q, E, E, Q],
-  [QD, E, E, E, Q],
-  [S, S, E, Q, Q, Q],
-  [Q, E, E, H],
-  [ER, E, Q, Q, Q],
-]
+// One-bar pattern pools per metre (each pattern sums to the metre's beats:
+// 4/4 = 4, 3/4 = 3, 6/8 = 6 eighths = 3). 6/8 patterns group into two beats of
+// three eighths {EEE | QD | QE}.
+const RHYTHM_POOLS: Record<TimeSig, RhythmEvent[][]> = {
+  '4/4': [
+    [Q, Q, Q, Q],
+    [E, E, Q, Q, Q],
+    [Q, E, E, Q, Q],
+    [E, E, E, E, Q, Q],
+    [H, Q, Q],
+    [Q, Q, H],
+    [QD, E, Q, Q],
+    [Q, QD, E, Q],
+    [S, S, S, S, Q, Q, Q],
+    [E, E, S, S, S, S, Q, Q],
+    [QR, Q, Q, Q],
+    [Q, QR, Q, Q],
+    [H, E, E, Q],
+    [E, E, Q, E, E, Q],
+    [QD, E, E, E, Q],
+    [S, S, E, Q, Q, Q],
+    [Q, E, E, H],
+    [ER, E, Q, Q, Q],
+    // Eighth-note triplets (each T,T,T run = one beat).
+    [Q, Q, T, T, T, Q],
+    [T, T, T, Q, Q, Q],
+    [Q, T, T, T, H],
+    [T, T, T, T, T, T, Q, Q],
+  ],
+  '3/4': [
+    [Q, Q, Q],
+    [H, Q],
+    [Q, H],
+    [Q, Q, E, E],
+    [E, E, Q, Q],
+    [Q, E, E, Q],
+    [QD, E, Q],
+    [E, E, E, E, Q],
+    [S, S, S, S, Q, Q],
+    [Q, T, T, T, Q],
+    [H, E, E],
+  ],
+  '6/8': [
+    [QD, QD],
+    [E, E, E, E, E, E],
+    [QD, E, E, E],
+    [E, E, E, QD],
+    [Q, E, QD],
+    [QD, Q, E],
+    [Q, E, Q, E],
+    [E, E, E, Q, E],
+    [Q, E, E, E, E],
+  ],
+}
 
-/** Stable serialization of a rhythm pattern, e.g. "q. 8 q q" — used as the choice id. */
+/** Stable serialization of a rhythm pattern, e.g. "q. 8 q q" / "t8 t8 t8 q" — the choice id. */
 const rhythmKey = (p: RhythmEvent[]): string =>
-  p.map((e) => `${e.rest ? 'r' : ''}${e.dur}${'.'.repeat(e.dots ?? 0)}`).join(' ')
+  p
+    .map(
+      (e) =>
+        `${e.rest ? 'r' : ''}${e.triplet ? 't' : ''}${e.dur}${'.'.repeat(e.dots ?? 0)}`
+    )
+    .join(' ')
 
 const onsetCount = (p: RhythmEvent[]): number => p.filter((e) => !e.rest).length
 
-/** 9. Rhythm dictation: hear a one-bar 4/4 rhythm; pick the matching notation. */
+/** 9. Rhythm dictation: hear a one-bar rhythm in 4/4, 3/4, or 6/8; pick the notation. */
 function rhythmDictationQuestions(): Question[] {
-  const byKey: Record<string, RhythmEvent[]> = {}
-  for (const p of RHYTHM_PATTERNS) byKey[rhythmKey(p)] = p
-
-  return RHYTHM_PATTERNS.map((pattern) => {
-    const correct = rhythmKey(pattern)
-    // Distractors: other pool patterns with the closest onset count (confusable),
-    // deterministic via stable sort.
-    const distractors = RHYTHM_PATTERNS.filter((p) => rhythmKey(p) !== correct)
-      .sort(
-        (a, b) =>
-          Math.abs(onsetCount(a) - onsetCount(pattern)) -
-          Math.abs(onsetCount(b) - onsetCount(pattern))
+  const questions: Question[] = []
+  for (const meter of Object.keys(RHYTHM_POOLS) as TimeSig[]) {
+    const pool = RHYTHM_POOLS[meter]
+    const byKey: Record<string, RhythmEvent[]> = {}
+    for (const p of pool) byKey[rhythmKey(p)] = p
+    for (const pattern of pool) {
+      const correct = rhythmKey(pattern)
+      // Distractors: other patterns in the SAME metre, closest onset count first.
+      const distractors = pool
+        .filter((p) => rhythmKey(p) !== correct)
+        .sort(
+          (a, b) =>
+            Math.abs(onsetCount(a) - onsetCount(pattern)) -
+            Math.abs(onsetCount(b) - onsetCount(pattern))
+        )
+        .map(rhythmKey)
+      const q = buildQuestion(
+        'rhythm-dictation',
+        `rhythm:${meter.replace('/', '-')}:${correct.replace(/[\s.]/g, '_')}`,
+        'Rhythm dictation',
+        `Identify the rhythm you hear (${meter}).`,
+        correct,
+        distractors,
+        undefined,
+        rhythmDictationExplanation(pattern, meter)
       )
-      .map(rhythmKey)
-    const q = buildQuestion(
-      'rhythm-dictation',
-      `rhythm:${correct.replace(/[\s.]/g, '_')}`,
-      'Rhythm dictation',
-      'Identify the rhythm you hear.',
-      correct,
-      distractors,
-      undefined,
-      rhythmDictationExplanation(pattern)
-    )
-    q.ear = { kind: 'rhythm', pattern }
-    // Align a pattern to each final (sorted) choice so they render as notation.
-    q.rhythmChoices = q.choices.map((k) => byKey[k])
-    return q
-  })
+      q.ear = { kind: 'rhythm', meter, pattern }
+      // Align a pattern to each final (sorted) choice so they render as notation.
+      q.rhythmChoices = q.choices.map((k) => byKey[k])
+      questions.push(q)
+    }
+  }
+  return questions
 }
 
 /** All study questions, deterministic across runs. */

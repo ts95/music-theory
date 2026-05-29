@@ -1,4 +1,5 @@
-import type { Playable, RhythmEvent } from '../contracts'
+import type { Playable, RhythmEvent, TimeSig } from '../contracts'
+import { METERS } from '../rhythm'
 
 /**
  * Hover-to-play audio. The only Tone.js consumer. Tone is dynamically imported
@@ -11,6 +12,9 @@ type ToneModule = typeof import('tone')
 
 let Tone: ToneModule | null = null
 let synth: InstanceType<ToneModule['PolySynth']> | null = null
+// A separate, percussive "tick" for the rhythm-dictation count-in, so it reads
+// as a metronome rather than part of the rhythm being dictated.
+let clickSynth: InstanceType<ToneModule['MembraneSynth']> | null = null
 let initPromise: Promise<void> | null = null
 
 // setTimeout ids for scheduled note events + the leading debounce.
@@ -54,6 +58,13 @@ async function ensureSynth(): Promise<void> {
         oscillator: { type: 'triangle' },
         envelope: { attack: 0.005, decay: 0.3, sustain: 0.18, release: 1.1 },
         volume: -8,
+      }).toDestination()
+      // Dry, percussive woodblock "tick" — deliberately unlike the pitched notes.
+      clickSynth = new T.MembraneSynth({
+        pitchDecay: 0.006,
+        octaves: 2,
+        envelope: { attack: 0.001, decay: 0.14, sustain: 0, release: 0.02 },
+        volume: -4,
       }).toDestination()
       Tone = T
     })()
@@ -149,18 +160,25 @@ const BASE_BEATS: Record<RhythmEvent['dur'], number> = {
 }
 /** Duration of a rhythm event in beats (dots add half, then a quarter, …). */
 function eventBeats(e: RhythmEvent): number {
+  // A triplet eighth is ⅔ of a normal eighth (three fill one beat).
+  if (e.triplet) return BASE_BEATS[e.dur] * (2 / 3)
   return BASE_BEATS[e.dur] * (2 - 1 / 2 ** (e.dots ?? 0))
 }
 
-const RHYTHM_PITCH = 72 // C5 — the rhythm notes
-const COUNT_PITCH = 79 // G5 — the count-in clicks
+const RHYTHM_PITCH = 72 // C5 — the rhythm notes (pitched, triangle)
+const COUNT_PITCH = 'C6' // the count-in tick (percussive woodblock)
 
 /**
- * Play a one-bar rhythm: a 4-beat count-in, then the pattern at `tempo` BPM on a
- * single fixed pitch (rests are silent). Metrically continuous — the bar lands on
- * count 4+1. Replaces any current playback; cancelable via stop().
+ * Play a one-bar rhythm in `meter`: a one-bar count-in on the metre's felt beats
+ * (4/4 → 4 quarters, 3/4 → 3 quarters, 6/8 → 2 dotted quarters), then the pattern
+ * at `tempo` BPM on a single fixed pitch (rests silent). Metrically continuous.
+ * Replaces any current playback; cancelable via stop().
  */
-export function playRhythm(pattern: RhythmEvent[], tempo = 92): void {
+export function playRhythm(
+  pattern: RhythmEvent[],
+  meter: TimeSig,
+  tempo = 92
+): void {
   if (muted) return
   stop()
   const g = generation
@@ -168,25 +186,29 @@ export function playRhythm(pattern: RhythmEvent[], tempo = 92): void {
     try {
       await ensureSynth()
       if (muted || g !== generation) return
-      scheduleRhythm(pattern, tempo)
+      scheduleRhythm(pattern, meter, tempo)
     } catch {
       /* audio unavailable — ignore */
     }
   }, 70)
 }
 
-function scheduleRhythm(pattern: RhythmEvent[], tempo: number): void {
+function scheduleRhythm(pattern: RhythmEvent[], meter: TimeSig, tempo: number): void {
   if (!Tone || !synth) return
   const beatMs = 60000 / tempo
-  const fire = (pitch: number, holdSec: number, atMs: number) => {
-    const freq = Tone!.Frequency(pitch, 'midi').toFrequency()
+  const { countIn, totalBeats } = METERS[meter]
+  const fireNote = (holdSec: number, atMs: number) => {
+    const freq = Tone!.Frequency(RHYTHM_PITCH, 'midi').toFrequency()
     scheduled.push(setTimeout(() => synth?.triggerAttackRelease(freq, holdSec), atMs))
   }
-  for (let i = 0; i < 4; i++) fire(COUNT_PITCH, 0.08, i * beatMs) // count-in
-  let t = 4 * beatMs
+  const fireClick = (atMs: number) => {
+    scheduled.push(setTimeout(() => clickSynth?.triggerAttackRelease(COUNT_PITCH, 0.05), atMs))
+  }
+  countIn.forEach((beat) => fireClick(beat * beatMs)) // count-in (distinct tick)
+  let t = totalBeats * beatMs // the bar starts after one count-in bar
   for (const e of pattern) {
     const beats = eventBeats(e)
-    if (!e.rest) fire(RHYTHM_PITCH, Math.max(0.12, (beats * beatMs * 0.8) / 1000), t)
+    if (!e.rest) fireNote(Math.max(0.12, (beats * beatMs * 0.8) / 1000), t)
     t += beats * beatMs
   }
 }

@@ -119,6 +119,7 @@ export default function QuestionCard({
   const ear = question.ear
   const earIsInterval = ear?.kind === 'interval'
   const earIsRhythm = ear?.kind === 'rhythm'
+  const rhythmMeter = ear?.kind === 'rhythm' ? ear.meter : '4/4'
   // Rhythm prompts are pitch-agnostic, so they pick no tonic and aren't realized.
   const [earRoot] = useState(() => {
     if (!ear || ear.kind === 'rhythm') return null
@@ -134,7 +135,7 @@ export default function QuestionCard({
 
   function playPrompt() {
     if (ear?.kind === 'rhythm') {
-      playRhythm(ear.pattern)
+      playRhythm(ear.pattern, ear.meter)
       return
     }
     if (!realized) return
@@ -258,6 +259,12 @@ export default function QuestionCard({
               <span className="font-mono text-ink">{noteToString(earRoot.note)}</span>.
             </p>
           )}
+          {earIsRhythm && (
+            <p className="mt-3 text-ink-2">
+              The clicks before the bar are a count-in — they set the tempo and
+              the metre before the rhythm plays.
+            </p>
+          )}
         </>
       )}
 
@@ -297,7 +304,10 @@ export default function QuestionCard({
                 </span>
                 {question.rhythmChoices ? (
                   <span className="flex-1">
-                    <RhythmStaff pattern={question.rhythmChoices[choiceIndex]} />
+                    <RhythmStaff
+                      pattern={question.rhythmChoices[choiceIndex]}
+                      meter={rhythmMeter}
+                    />
                   </span>
                 ) : (
                   <span className="flex-1 font-mono text-[1.02rem] text-ink">

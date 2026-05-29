@@ -1,4 +1,4 @@
-import type { Hand, Note, RhythmEvent, ScaleType } from '../contracts'
+import type { Hand, Note, RhythmEvent, ScaleType, TimeSig } from '../contracts'
 import type { Chord, Mode, Quality } from '../theory'
 import { chordSymbol, majorScale, minorScale, noteToString, romanLabel } from '../theory'
 
@@ -166,14 +166,24 @@ const NOTE_NAME: Record<RhythmEvent['dur'], string> = {
 }
 
 /** Ear-training: identify a one-bar rhythm by sound. */
-export function rhythmDictationExplanation(pattern: RhythmEvent[]): string {
-  const words = pattern
-    .map((e) => {
-      const dotted = e.dots ? 'dotted ' : ''
-      return e.rest ? REST_NAME[e.dur] : `${dotted}${NOTE_NAME[e.dur]}`
-    })
-    .join(', ')
-  return `Count in 16ths and group by the beat. The bar is: ${words}. Tap the pulse and slot each onset against it.`
+export function rhythmDictationExplanation(
+  pattern: RhythmEvent[],
+  meter: TimeSig
+): string {
+  const words: string[] = []
+  for (let i = 0; i < pattern.length; i++) {
+    const e = pattern[i]
+    if (e.triplet) {
+      words.push('eighth-note triplet')
+      i += 2 // collapse the run of three
+      continue
+    }
+    const dotted = e.dots ? 'dotted ' : ''
+    words.push(e.rest ? REST_NAME[e.dur] : `${dotted}${NOTE_NAME[e.dur]}`)
+  }
+  const feel =
+    meter === '6/8' ? 'two dotted-quarter beats' : `${meter.split('/')[0]} beats`
+  return `In ${meter} (${feel}), group by the beat. The bar is: ${words.join(', ')}. Tap the pulse and slot each onset against it.`
 }
 
 /** "In G major, spell the progression ii–V–I." */

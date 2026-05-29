@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { generateAllQuestions } from './generators'
 import { ETUDES } from './etudes'
 import { KEYS, fingering } from '../theory'
+import { METERS } from '../rhythm'
 
 const questions = generateAllQuestions()
 
@@ -34,9 +35,9 @@ describe('generateAllQuestions', () => {
     // progressions: 6 major + 5 minor triad progressions × 12 keys = 132,
     // plus 2 idiomatic seventh forms × 12 = 24, total 156.
     // ear: 12 intervals + 11 progression types + 24 melodic (12 motifs × 2 modes)
-    //   + 18 rhythm patterns.
+    //   + 42 rhythm (22 in 4/4, 11 in 3/4, 9 in 6/8).
     expect(questions.length).toBe(
-      12 + 36 + fingeringCount + 168 + 308 + 156 + 12 + 11 + 24 + 18
+      12 + 36 + fingeringCount + 168 + 308 + 156 + 12 + 11 + 24 + 42
     )
   })
 
@@ -55,7 +56,7 @@ describe('generateAllQuestions', () => {
     expect(count('intervals-ear')).toBe(12)
     expect(count('progressions-ear')).toBe(11)
     expect(count('melodic-dictation')).toBe(24)
-    expect(count('rhythm-dictation')).toBe(18)
+    expect(count('rhythm-dictation')).toBe(42) // 22 (4/4) + 11 (3/4) + 9 (6/8)
   })
 
   it('has unique ids', () => {
@@ -287,8 +288,8 @@ describe('generateAllQuestions', () => {
     const earQ = questions.filter((q) => q.ear)
 
     it('every ear question carries an ear spec, 4 choices, and a tip', () => {
-      // 12 intervals + 11 progressions + 24 melodic + 18 rhythm.
-      expect(earQ.length).toBe(12 + 11 + 24 + 18)
+      // 12 intervals + 11 progressions + 24 melodic + 42 rhythm.
+      expect(earQ.length).toBe(12 + 11 + 24 + 42)
       for (const q of earQ) {
         expect(q.ear, q.id).toBeDefined()
         expect(q.choices.length).toBe(4)
@@ -472,21 +473,46 @@ describe('generateAllQuestions', () => {
     const rhythm = questions.filter((x) => x.category === 'Rhythm dictation')
     const BEATS = { h: 2, q: 1, '8': 0.5, '16': 0.25 } as const
 
-    it('every choice is a valid one-bar 4/4 pattern, aligned to choices', () => {
-      expect(rhythm).toHaveLength(18)
+    const beatsOf = (e: { dur: 'h' | 'q' | '8' | '16'; dots?: number; triplet?: boolean }) =>
+      e.triplet ? BEATS[e.dur] * (2 / 3) : BEATS[e.dur] * (2 - 1 / 2 ** (e.dots ?? 0))
+
+    const meterOf = (q: (typeof rhythm)[number]) =>
+      (q.ear as { kind: 'rhythm'; meter: keyof typeof METERS }).meter
+
+    it('every choice is a valid one-bar pattern in its metre, aligned to choices', () => {
+      expect(rhythm).toHaveLength(42) // 22 (4/4) + 11 (3/4) + 9 (6/8)
       for (const q of rhythm) {
         expect(q.ear?.kind).toBe('rhythm')
+        const total = METERS[meterOf(q)].totalBeats
         expect(q.rhythmChoices, q.id).toBeDefined()
         expect(q.rhythmChoices!).toHaveLength(q.choices.length)
         for (const pattern of q.rhythmChoices!) {
-          const beats = pattern.reduce(
-            (s, e) => s + BEATS[e.dur] * (2 - 1 / 2 ** (e.dots ?? 0)),
-            0
-          )
-          expect(beats, q.id).toBeCloseTo(4, 5)
+          const beats = pattern.reduce((s, e) => s + beatsOf(e), 0)
+          expect(beats, q.id).toBeCloseTo(total, 5)
         }
         expect(q.explanation).toBeTruthy()
       }
+    })
+
+    it('covers all three metres', () => {
+      const metres = new Set(rhythm.map(meterOf))
+      expect([...metres].sort()).toEqual(['3/4', '4/4', '6/8'])
+    })
+
+    it('includes eighth-note triplets (runs of three triplet eighths)', () => {
+      const hasTripletRun = (p: { triplet?: boolean }[]) => {
+        let run = 0
+        for (const e of p) {
+          run = e.triplet ? run + 1 : 0
+          if (run === 3) return true
+        }
+        return false
+      }
+      const withTriplets = rhythm.filter((q) =>
+        (q.ear as { kind: 'rhythm'; pattern: { triplet?: boolean }[] }).pattern &&
+        hasTripletRun((q.ear as { kind: 'rhythm'; pattern: { triplet?: boolean }[] }).pattern)
+      )
+      expect(withTriplets.length).toBeGreaterThanOrEqual(4)
     })
   })
 })

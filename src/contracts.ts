@@ -111,7 +111,10 @@ export type EarSpec =
   | { kind: 'interval'; semitones: number; letterSteps: number }
   | { kind: 'progression'; mode: 'major' | 'minor'; degrees: number[] }
   | { kind: 'melody'; mode: 'major' | 'minor'; degrees: number[] }
-  | { kind: 'rhythm'; pattern: RhythmEvent[] }
+  | { kind: 'rhythm'; meter: TimeSig; pattern: RhythmEvent[] }
+
+/** Supported time signatures for the rhythm-dictation étude. */
+export type TimeSig = '4/4' | '3/4' | '6/8'
 
 /** One event in a rhythm pattern (a note or a rest), in 4/4. */
 export interface RhythmEvent {
@@ -121,6 +124,11 @@ export interface RhythmEvent {
   dots?: number
   /** True for a rest. */
   rest?: boolean
+  /**
+   * Member of an eighth-note triplet: three consecutive `triplet` eighths fill
+   * one beat (so each is ⅓ beat instead of ½), drawn beamed with a "3" bracket.
+   */
+  triplet?: boolean
 }
 
 /** A highlighted key on the reveal piano keyboard. */
