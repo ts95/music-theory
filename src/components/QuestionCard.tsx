@@ -8,6 +8,7 @@ import {
   voicedMidi,
 } from '../theory'
 import Staff from './Staff'
+import CircleOfFifths from './CircleOfFifths'
 import Button from './Button'
 
 interface QuestionCardProps {
@@ -298,6 +299,10 @@ export default function QuestionCard({
               }
             />
           )}
+          {!ear && question.staff && (
+            <Staff groups={question.staff.groups} labels={question.staff.labels} />
+          )}
+          {!ear && question.circle && <CircleOfFifths major={question.circle.major} />}
           {!isCorrect && question.explanation && (
             <p className="ink mt-4 rounded-xl border border-rule bg-paper/60 px-4 py-3 text-sm leading-relaxed text-ink-2">
               <span className="marking mr-1.5 text-accent">Remember</span>
