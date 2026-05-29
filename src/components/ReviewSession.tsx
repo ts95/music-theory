@@ -20,15 +20,23 @@ interface ReviewSessionProps {
   onDataChange: (data: SrsData) => void
 }
 
-/** Build the due queue: due questions sorted by dueAt ascending. */
+/** The due questions (presentation order is randomized later, see `shuffle`). */
 function dueQueue(bank: Question[], data: SrsData, now: number): Question[] {
-  return bank
-    .filter((q) => isDue(getState(data, q.id) ?? initialState(now), now))
-    .sort((a, b) => {
-      const da = (getState(data, a.id) ?? initialState(now)).dueAt
-      const db = (getState(data, b.id) ?? initialState(now)).dueAt
-      return da - db
-    })
+  return bank.filter((q) => isDue(getState(data, q.id) ?? initialState(now), now))
+}
+
+/**
+ * Fisher–Yates shuffle (returns a new array). The session order is randomized so
+ * it can't be memorized by position — fresh items otherwise tie on dueAt and
+ * fall back to the fixed generation order (by key, scale type, hand…).
+ */
+function shuffle<T>(items: T[]): T[] {
+  const a = [...items]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
 }
 
 /** The soonest dueAt across all items (for the "next review" hint). */
@@ -64,11 +72,12 @@ export default function ReviewSession({
   // A non-null override is an explicit "practice anyway" set.
   const [practiceAll, setPracticeAll] = useState(false)
 
-  // Build the queue once per (re)start, snapshotting due items at that moment.
+  // Build the queue once per (re)start, snapshotting due items at that moment
+  // and shuffling so the order can't be memorized.
   const queue = useMemo(() => {
     const now = Date.now()
-    return practiceAll ? [...bank] : dueQueue(bank, data, now)
-    // queueToken forces a rebuild when the user restarts a session.
+    return shuffle(practiceAll ? bank : dueQueue(bank, data, now))
+    // queueToken forces a rebuild (and reshuffle) when the user restarts a session.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bank, queueToken, practiceAll])
 
