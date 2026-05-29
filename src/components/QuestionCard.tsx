@@ -265,6 +265,12 @@ export default function QuestionCard({
               the metre before the rhythm plays.
             </p>
           )}
+          {ear?.kind === 'progression' && (
+            <p className="mt-3 text-ink-2">
+              The first chord you hear is the tonic — judge each chord relative
+              to it.
+            </p>
+          )}
         </>
       )}
 
