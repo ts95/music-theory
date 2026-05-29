@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import type { EarSpec, Note } from '../contracts'
-import { realizeEar, voicedMidi, type Voiced } from './eartraining'
+import {
+  realizeEar,
+  voicedMidi,
+  voiceScaleAscending,
+  voiceChordRootPosition,
+  type Voiced,
+} from './eartraining'
+import { majorScale, minorScale } from './scales'
+import { romanToChord } from './chords'
 
 const root = (letter: Note['letter'], accidental = 0, octave = 4): Voiced => ({
   note: { letter, accidental },
@@ -73,5 +81,32 @@ describe('realizeEar — progressions', () => {
       expect(rootMidi).toBeGreaterThanOrEqual(tonicMidi)
       expect(rootMidi).toBeLessThan(tonicMidi + 12)
     }
+  })
+})
+
+const C: Note = { letter: 'C', accidental: 0 }
+const A: Note = { letter: 'A', accidental: 0 }
+
+describe('voiceScaleAscending', () => {
+  it('keeps C major within one octave (C4..B4)', () => {
+    const v = voiceScaleAscending(majorScale(C))
+    expect(v.map((x) => x.octave)).toEqual([4, 4, 4, 4, 4, 4, 4])
+    expect(v.map(voicedMidi)).toEqual([60, 62, 64, 65, 67, 69, 71])
+  })
+
+  it('bumps the octave when the pitch class wraps (A natural minor)', () => {
+    const v = voiceScaleAscending(minorScale(A, 'natural')) // A B C D E F G
+    const midi = v.map(voicedMidi)
+    for (let i = 1; i < midi.length; i++) expect(midi[i]).toBeGreaterThan(midi[i - 1])
+    expect(v[2].note.letter).toBe('C')
+    expect(v[2].octave).toBe(5) // C rises above B4 into the next octave
+  })
+})
+
+describe('voiceChordRootPosition', () => {
+  it('voices a triad root-position from octave 4', () => {
+    const v = voiceChordRootPosition(romanToChord(C, 'major', 0, false)) // C major
+    expect(v.map((x) => x.note.letter)).toEqual(['C', 'E', 'G'])
+    expect(v.map(voicedMidi)).toEqual([60, 64, 67])
   })
 })
