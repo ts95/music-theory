@@ -21,6 +21,8 @@ export { noteMidi, scaleEvents, chordEvents, progressionEvents } from './midi'
 export {
   realizeEar,
   voicedMidi,
+  voiceScaleAscending,
+  voiceChordRootPosition,
   INTERVAL_ROOTS,
   progressionTonics,
 } from './eartraining'

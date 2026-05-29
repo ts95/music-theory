@@ -23,6 +23,9 @@ interface StaffProps {
 export default function Staff({ groups, labels }: StaffProps) {
   const ref = useRef<HTMLDivElement>(null)
   const [failed, setFailed] = useState(false)
+  // Notehead centre x of each group, captured after layout so labels sit
+  // exactly under their note rather than on a fixed grid that drifts.
+  const [noteXs, setNoteXs] = useState<number[]>([])
   const colWidth = 78
   const width = 70 + groups.length * colWidth
 
@@ -57,6 +60,11 @@ export default function Staff({ groups, labels }: StaffProps) {
         voice.addTickables(notes)
         new Formatter().joinVoices([voice]).format([voice], width - 70)
         voice.draw(ctx, stave)
+        if (!cancelled) {
+          setNoteXs(
+            notes.map((n) => (n.getNoteHeadBeginX() + n.getNoteHeadEndX()) / 2)
+          )
+        }
       } catch {
         if (!cancelled) setFailed(true)
       }
@@ -69,16 +77,18 @@ export default function Staff({ groups, labels }: StaffProps) {
 
   if (failed) return null
 
+  const showLabels = labels && noteXs.length === labels.length
+
   return (
     <div className="mt-3 overflow-x-auto">
       <div ref={ref} />
-      {labels && (
-        <div className="flex pl-[58px]" style={{ width }}>
-          {labels.map((label, i) => (
+      {showLabels && (
+        <div className="relative" style={{ width, height: 20 }}>
+          {labels!.map((label, i) => (
             <span
               key={i}
-              className="font-mono text-sm text-ink-2"
-              style={{ width: colWidth, textAlign: 'center' }}
+              className="absolute font-mono text-sm text-ink-2 -translate-x-1/2"
+              style={{ left: noteXs[i] }}
             >
               {label}
             </span>

@@ -14,6 +14,8 @@ import {
   romanLabel,
   romanToChord,
   scaleEvents,
+  voiceChordRootPosition,
+  voiceScaleAscending,
 } from '../theory'
 import type { Chord, Mode } from '../theory'
 import {
@@ -108,7 +110,7 @@ function relativeMinorQuestions(): Question[] {
   }
   return KEYS.map((key) => {
     const distractors = KEYS.filter((k) => k !== key).map((k) => k.minorName)
-    return buildQuestion(
+    const q = buildQuestion(
       'keys',
       `rel-minor:${asciiTonicId(key.majorTonic)}`,
       'Relative minor',
@@ -118,6 +120,9 @@ function relativeMinorQuestions(): Question[] {
       audio,
       relativeMinorExplanation(key.majorTonic, key.majorName, key.minorName)
     )
+    // Reveal places the pair on the circle of fifths rather than on a staff.
+    q.circle = { major: key.majorName }
+    return q
   })
 }
 
@@ -139,7 +144,8 @@ function scaleSpellingQuestions(): Question[] {
         audio[s] = { kind: 'scale', events: scaleEvents(notes) }
         return s
       }
-      const correct = reg(minorScale(tonic, type))
+      const correctNotes = minorScale(tonic, type)
+      const correct = reg(correctNotes)
 
       // Same-tonic candidates: the two sibling minor forms, and three
       // distinct scale types (all start on `tonic`, all spelled differently).
@@ -159,18 +165,19 @@ function scaleSpellingQuestions(): Question[] {
           ? [...siblings, pickOthers(1)[0]]
           : [siblings[rot % siblings.length], ...pickOthers(2)]
 
-      questions.push(
-        buildQuestion(
-          'keys',
-          `scale-notes:${asciiTonicId(tonic)}:${type}`,
-          'Scale spelling',
-          `What are the notes of the ${noteToString(tonic)} ${TYPE_WORD[type]} scale?`,
-          correct,
-          distractorNotes.map(reg),
-          audio,
-          scaleExplanation(tonic, type, key.majorName)
-        )
+      const q = buildQuestion(
+        'keys',
+        `scale-notes:${asciiTonicId(tonic)}:${type}`,
+        'Scale spelling',
+        `What are the notes of the ${noteToString(tonic)} ${TYPE_WORD[type]} scale?`,
+        correct,
+        distractorNotes.map(reg),
+        audio,
+        scaleExplanation(tonic, type, key.majorName)
       )
+      // Reveal shows the answer scale, one note per stave note.
+      q.staff = { groups: voiceScaleAscending(correctNotes).map((v) => [v]) }
+      questions.push(q)
     })
   })
   return questions
@@ -193,20 +200,27 @@ function fingeringQuestions(): Question[] {
       const f = fingering(key.minorTonic, 'natural', hand)
       if (!f) continue
       const correct = f.join(' ')
-      questions.push(
-        buildQuestion(
-          'keys',
-          `fingering:${asciiTonicId(key.minorTonic)}:${hand}`,
-          'Fingering',
-          `What is the standard ${HAND_WORD[hand]} fingering for the ${noteToString(
-            key.minorTonic
-          )} minor scale (one octave, ascending)?`,
-          correct,
-          pool,
-          undefined,
-          fingeringExplanation(key.minorTonic, hand, f)
-        )
+      const q = buildQuestion(
+        'keys',
+        `fingering:${asciiTonicId(key.minorTonic)}:${hand}`,
+        'Fingering',
+        `What is the standard ${HAND_WORD[hand]} fingering for the ${noteToString(
+          key.minorTonic
+        )} minor scale (one octave, ascending)?`,
+        correct,
+        pool,
+        undefined,
+        fingeringExplanation(key.minorTonic, hand, f)
       )
+      // Reveal shows the natural-minor scale across the octave (tonic..tonic),
+      // with the finger numbers labelled under each note.
+      const natural = minorScale(key.minorTonic, 'natural')
+      const octaveScale = [...natural, natural[0]]
+      q.staff = {
+        groups: voiceScaleAscending(octaveScale).map((v) => [v]),
+        labels: f.map(String),
+      }
+      questions.push(q)
     }
   }
   return questions
@@ -270,18 +284,19 @@ function chordDegreeQuestions(): Question[] {
           distractors.push(reg(romanToChord(ot, mode, degree, seventh)))
         }
 
-        questions.push(
-          buildQuestion(
-            'chords',
-            `chord-deg:${asciiTonicId(tonic)}:${mode}:${degree}${seventh ? ':7' : ''}`,
-            'Diatonic chord',
-            `In ${name}, what is the ${roman} chord?`,
-            correct,
-            distractors,
-            audio,
-            chordExplanation(name, mode, degree, seventh, correctChord)
-          )
+        const q = buildQuestion(
+          'chords',
+          `chord-deg:${asciiTonicId(tonic)}:${mode}:${degree}${seventh ? ':7' : ''}`,
+          'Diatonic chord',
+          `In ${name}, what is the ${roman} chord?`,
+          correct,
+          distractors,
+          audio,
+          chordExplanation(name, mode, degree, seventh, correctChord)
         )
+        // Reveal shows the answer chord as one block (root-position) stave note.
+        q.staff = { groups: [voiceChordRootPosition(correctChord)] }
+        questions.push(q)
       }
     }
   }

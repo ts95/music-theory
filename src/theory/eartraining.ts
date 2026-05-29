@@ -1,4 +1,4 @@
-import type { EarSpec, Letter, Note } from '../contracts'
+import type { EarSpec, Letter, Note, Voiced } from '../contracts'
 import { noteToString } from './notes'
 import { noteMidi } from './midi'
 import {
@@ -7,8 +7,11 @@ import {
   romanToChord,
   type Chord,
   type Mode,
+  type Quality,
 } from './chords'
 import { KEYS } from './keys'
+
+export type { Voiced }
 
 /**
  * Realizes an ear-training spec into concrete pitches from a chosen root, used
@@ -18,12 +21,6 @@ import { KEYS } from './keys'
  */
 
 const LETTERS: Letter[] = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
-
-/** A note placed in a specific octave (C4 = middle C). */
-export interface Voiced {
-  note: Note
-  octave: number
-}
 
 export const voicedMidi = (v: Voiced): number => noteMidi(v.note, v.octave)
 
@@ -42,20 +39,50 @@ function spellAbove(root: Voiced, letterSteps: number, semitones: number): Voice
 
 const CHORD_TONE_STEPS = [0, 2, 4, 6]
 
+/** Spell a chord upward from a voiced root: root, 3rd, 5th, (7th). */
+function spellChordFrom(root: Voiced, quality: Quality): Voiced[] {
+  return QUALITY_INTERVALS[quality].map((semitones, i) =>
+    i === 0 ? root : spellAbove(root, CHORD_TONE_STEPS[i], semitones)
+  )
+}
+
 /**
- * Voice a chord upward from its root: root, 3rd, 5th, (7th). The root is placed
- * in the one-octave band at/above `tonic`, so successive chords in a progression
- * stay in a tidy register instead of leaping (and diving below the staff) by
- * where their root letter happens to fall.
+ * Voice a chord with its root placed in the one-octave band at/above `tonic`, so
+ * successive chords in a progression stay in a tidy register instead of leaping
+ * (and diving below the staff) by where their root letter happens to fall.
  */
 function voiceChord(chord: Chord, tonic: Voiced): Voiced[] {
   let root: Voiced = { note: chord.root, octave: tonic.octave }
   if (voicedMidi(root) < voicedMidi(tonic)) {
     root = { ...root, octave: root.octave + 1 }
   }
-  return QUALITY_INTERVALS[chord.quality].map((semitones, i) =>
-    i === 0 ? root : spellAbove(root, CHORD_TONE_STEPS[i], semitones)
-  )
+  return spellChordFrom(root, chord.quality)
+}
+
+/** Voice a single chord in root position from `octave` (for notation/display). */
+export function voiceChordRootPosition(chord: Chord, octave = 4): Voiced[] {
+  return spellChordFrom({ note: chord.root, octave }, chord.quality)
+}
+
+/**
+ * Voice a scale's notes ascending from `octave`, bumping the octave whenever the
+ * pitch class wraps (so B → C rises, and a repeated tonic lands an octave up),
+ * for notation/display.
+ */
+export function voiceScaleAscending(notes: Note[], octave = 4): Voiced[] {
+  const out: Voiced[] = []
+  let prevMidi = -Infinity
+  let oct = octave
+  for (const note of notes) {
+    let v: Voiced = { note, octave: oct }
+    while (voicedMidi(v) <= prevMidi) {
+      oct += 1
+      v = { note, octave: oct }
+    }
+    out.push(v)
+    prevMidi = voicedMidi(v)
+  }
+  return out
 }
 
 export interface RealizedEar {

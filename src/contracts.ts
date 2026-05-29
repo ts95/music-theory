@@ -27,6 +27,12 @@ export interface Note {
 export type ScaleType = 'natural' | 'harmonic' | 'melodic'
 export type Hand = 'RH' | 'LH'
 
+/** A spelled note placed at a specific octave (C4 = middle C). */
+export interface Voiced {
+  note: Note
+  octave: number
+}
+
 /** One of the 12 practical keys and its relative minor. */
 export interface KeyDef {
   /** Tonic of the major key, e.g. { letter: 'E', accidental: -1 } for Eb. */
@@ -121,4 +127,16 @@ export interface Question {
   explanation?: string
   /** Present for ear-training questions: what to play (realized from a random root). */
   ear?: EarSpec
+  /**
+   * Precomputed staff notation shown on reveal (the scale/fingering/chord
+   * études). One group per stave note: a single note, or several for a chord.
+   * Optional labels (e.g. finger numbers) appear under each group.
+   */
+  staff?: { groups: Voiced[][]; labels?: string[] }
+  /**
+   * Circle-of-fifths highlight shown on reveal (relative-minor recall): the
+   * major key (by display name) to highlight on the wheel, alongside its
+   * relative minor.
+   */
+  circle?: { major: string }
 }
