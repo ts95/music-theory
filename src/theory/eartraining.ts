@@ -9,7 +9,16 @@ import {
   type Mode,
   type Quality,
 } from './chords'
+import { majorScale, minorScale } from './scales'
 import { KEYS } from './keys'
+
+const MAJOR_SOLFEGE = ['do', 're', 'mi', 'fa', 'sol', 'la', 'ti', 'do']
+const MINOR_SOLFEGE = ['do', 're', 'me', 'fa', 'sol', 'le', 'te', 'do']
+
+/** Do-based movable solfège for a scale degree (0 = tonic … 7 = octave). */
+export function solfege(mode: Mode, degree: number): string {
+  return (mode === 'major' ? MAJOR_SOLFEGE : MINOR_SOLFEGE)[degree]
+}
 
 export type { Voiced }
 
@@ -93,14 +102,25 @@ export interface RealizedEar {
   style: 'melodic' | 'block'
 }
 
-/** Realize an ear prompt from a chosen root/tonic. */
+/** Realize a pitched ear prompt from a chosen root/tonic. */
 export function realizeEar(spec: EarSpec, root: Voiced): RealizedEar {
   if (spec.kind === 'interval') {
     const upper = spellAbove(root, spec.letterSteps, spec.semitones)
     return { reference: [[root]], target: [[root], [upper]], style: 'melodic' }
   }
+  if (spec.kind === 'rhythm') {
+    throw new Error('realizeEar: rhythm prompts have no pitch realization')
+  }
+  // melody and progression both build from the tonic's scale.
   const tonic = root.note
   const reference = [voiceChord(diatonicTriads(tonic, spec.mode)[0], root)]
+  if (spec.kind === 'melody') {
+    // One-octave scale (tonic..octave), voiced ascending, indexed by degree.
+    const scale = spec.mode === 'major' ? majorScale(tonic) : minorScale(tonic, 'natural')
+    const scale8 = voiceScaleAscending([...scale, scale[0]], root.octave)
+    const target = spec.degrees.map((d) => [scale8[d]])
+    return { reference, target, style: 'melodic' }
+  }
   const target = spec.degrees.map((d) =>
     voiceChord(romanToChord(tonic, spec.mode, d, false), root)
   )

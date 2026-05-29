@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Question } from '../contracts'
-import { isMuted, play, playEar, stop } from '../audio/player'
+import { isMuted, play, playEar, playRhythm, stop } from '../audio/player'
 import {
   INTERVAL_ROOTS,
   noteToString,
@@ -9,6 +9,7 @@ import {
   voicedMidi,
 } from '../theory'
 import Staff from './Staff'
+import RhythmStaff from './RhythmStaff'
 import PianoKeyboard from './PianoKeyboard'
 import CircleOfFifths from './CircleOfFifths'
 import Button from './Button'
@@ -117,18 +118,25 @@ export default function QuestionCard({
   // within this presentation; a fresh root next time the card mounts).
   const ear = question.ear
   const earIsInterval = ear?.kind === 'interval'
+  const earIsRhythm = ear?.kind === 'rhythm'
+  // Rhythm prompts are pitch-agnostic, so they pick no tonic and aren't realized.
   const [earRoot] = useState(() => {
-    if (!ear) return null
+    if (!ear || ear.kind === 'rhythm') return null
     const pool =
       ear.kind === 'interval' ? INTERVAL_ROOTS : progressionTonics(ear.mode)
     return pool[Math.floor(Math.random() * pool.length)]
   })
   const realized = useMemo(
-    () => (ear && earRoot ? realizeEar(ear, earRoot) : null),
+    () =>
+      ear && ear.kind !== 'rhythm' && earRoot ? realizeEar(ear, earRoot) : null,
     [ear, earRoot],
   )
 
   function playPrompt() {
+    if (ear?.kind === 'rhythm') {
+      playRhythm(ear.pattern)
+      return
+    }
     if (!realized) return
     const reference = earIsInterval
       ? []
@@ -150,7 +158,7 @@ export default function QuestionCard({
   // Auto-play once when an ear question mounts (audio is already unlocked by the
   // click that opened the étude).
   useEffect(() => {
-    if (realized && !isMuted()) playPrompt()
+    if (!isMuted() && (realized || earIsRhythm)) playPrompt()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [realized])
 
@@ -210,6 +218,14 @@ export default function QuestionCard({
         {question.prompt}
       </h2>
 
+      {question.notation && (
+        <Staff
+          groups={question.notation.groups}
+          clef={question.notation.clef}
+          keySignature={question.notation.keySignature}
+        />
+      )}
+
       {ear && (
         <>
           <div className="mt-5 flex flex-wrap items-center gap-4">
@@ -223,13 +239,15 @@ export default function QuestionCard({
             ) : (
               <Button onClick={playPrompt}>▶ Play</Button>
             )}
-            <button
-              type="button"
-              onClick={playReference}
-              className="marking text-ink-3 transition-colors hover:text-ink"
-            >
-              {earIsInterval ? 'hear lower note' : 'hear tonic'}
-            </button>
+            {!earIsRhythm && (
+              <button
+                type="button"
+                onClick={playReference}
+                className="marking text-ink-3 transition-colors hover:text-ink"
+              >
+                {earIsInterval ? 'hear lower note' : 'hear tonic'}
+              </button>
+            )}
             {isMuted() && (
               <span className="marking text-wrong">♪ Sound is off</span>
             )}
@@ -277,9 +295,15 @@ export default function QuestionCard({
                 >
                   {state === 'correct' ? '✓' : state === 'wrong' ? '✕' : pos + 1}
                 </span>
-                <span className="flex-1 font-mono text-[1.02rem] text-ink">
-                  {choiceText}
-                </span>
+                {question.rhythmChoices ? (
+                  <span className="flex-1">
+                    <RhythmStaff pattern={question.rhythmChoices[choiceIndex]} />
+                  </span>
+                ) : (
+                  <span className="flex-1 font-mono text-[1.02rem] text-ink">
+                    {choiceText}
+                  </span>
+                )}
                 {playable && (
                   <span
                     aria-hidden
@@ -300,6 +324,10 @@ export default function QuestionCard({
             <p className="font-display text-lg italic">
               {isCorrect ? (
                 <span className="text-correct">Just so.</span>
+              ) : earIsRhythm ? (
+                <span className="text-wrong">
+                  {timedOut ? 'Time’s up' : 'Not quite'} — it’s the highlighted bar.
+                </span>
               ) : (
                 <span className="text-wrong">
                   {timedOut ? 'Time’s up — it’s' : 'Not quite — it’s'}{' '}

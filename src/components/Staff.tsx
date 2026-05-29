@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Voiced } from '../theory'
+import { ensureMusicFont } from './vexFont'
 
 /**
  * Staff notation via VexFlow, lazy-loaded so it stays out of the initial bundle
@@ -13,44 +14,34 @@ const INK = '#211c15'
 const vexKey = (v: Voiced): string =>
   `${v.note.letter.toLowerCase()}${ACC[v.note.accidental] ?? ''}/${v.octave}`
 
-/**
- * VexFlow 5 paints noteheads/clefs as Bravura font glyphs while positioning
- * stems with Bravura's metrics. If we draw before the (bundled, async-loaded)
- * font is ready, the browser falls back to a default font and the glyphs land
- * at the wrong place — most visibly, a chord's stem detaches from its
- * noteheads. Load the font once and gate every render on it.
- */
-let musicFontReady: Promise<void> | undefined
-function ensureMusicFont(): Promise<void> {
-  musicFontReady ??= (async () => {
-    if (typeof document === 'undefined' || !document.fonts) return
-    try {
-      // Importing vexflow has already registered the bundled Bravura face;
-      // force it to load and wait for the whole set to settle before drawing.
-      await document.fonts.load('30pt "Bravura"')
-    } catch {
-      /* ignore — the ready wait below still gates on in-flight loads */
-    }
-    await document.fonts.ready
-  })()
-  return musicFontReady
-}
-
 interface StaffProps {
   /** Each group is one stave note: 1 note, or several for a chord. */
   groups: Voiced[][]
   /** Optional labels (e.g. Roman numerals) shown under each group. */
   labels?: string[]
+  /** Clef to render in (default treble). */
+  clef?: 'treble' | 'bass'
+  /**
+   * VexFlow key-signature spec (e.g. "Eb", "F#m"). When set, the signature is
+   * drawn and accidentals are computed relative to it (so in-key notes don't
+   * repeat accidentals); when omitted, every altered note prints its accidental.
+   */
+  keySignature?: string
 }
 
-export default function Staff({ groups, labels }: StaffProps) {
+export default function Staff({
+  groups,
+  labels,
+  clef = 'treble',
+  keySignature,
+}: StaffProps) {
   const ref = useRef<HTMLDivElement>(null)
   const [failed, setFailed] = useState(false)
   // Notehead centre x of each group, captured after layout so labels sit
   // exactly under their note rather than on a fixed grid that drifts.
   const [noteXs, setNoteXs] = useState<number[]>([])
   const colWidth = 78
-  const width = 70 + groups.length * colWidth
+  const width = 70 + groups.length * colWidth + (keySignature ? 52 : 0)
 
   useEffect(() => {
     let cancelled = false
@@ -69,20 +60,29 @@ export default function Staff({ groups, labels }: StaffProps) {
         ctx.setFillStyle(INK)
         ctx.setStrokeStyle(INK)
         const stave = new Stave(0, 12, width)
-        stave.addClef('treble')
+        stave.addClef(clef)
+        if (keySignature) stave.addKeySignature(keySignature)
         stave.setContext(ctx).draw()
         const notes = groups.map((group) => {
-          const note = new StaveNote({ keys: group.map(vexKey), duration: 'q' })
-          group.forEach((v, i) => {
-            const acc = ACC[v.note.accidental]
-            if (acc) note.addModifier(new Accidental(acc), i)
-          })
+          const note = new StaveNote({ keys: group.map(vexKey), duration: 'q', clef })
+          // With a key signature, let VexFlow add only the accidentals that
+          // deviate from it; otherwise spell every alteration explicitly.
+          if (!keySignature) {
+            group.forEach((v, i) => {
+              const acc = ACC[v.note.accidental]
+              if (acc) note.addModifier(new Accidental(acc), i)
+            })
+          }
           return note
         })
         const voice = new Voice({ numBeats: notes.length, beatValue: 4 })
         voice.setMode(Voice.Mode.SOFT)
         voice.addTickables(notes)
-        new Formatter().joinVoices([voice]).format([voice], width - 70)
+        if (keySignature) Accidental.applyAccidentals([voice], keySignature)
+        const justify = keySignature
+          ? width - stave.getNoteStartX() - 16
+          : width - 70
+        new Formatter().joinVoices([voice]).format([voice], justify)
         voice.draw(ctx, stave)
         if (!cancelled) {
           setNoteXs(
@@ -97,7 +97,7 @@ export default function Staff({ groups, labels }: StaffProps) {
       cancelled = true
       if (host) host.innerHTML = ''
     }
-  }, [width, JSON.stringify(groups)])
+  }, [width, clef, keySignature, JSON.stringify(groups)])
 
   if (failed) return null
 

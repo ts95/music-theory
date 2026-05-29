@@ -1,4 +1,4 @@
-import type { Hand, Note, ScaleType } from '../contracts'
+import type { Hand, Note, RhythmEvent, ScaleType } from '../contracts'
 import type { Chord, Mode, Quality } from '../theory'
 import { chordSymbol, majorScale, minorScale, noteToString, romanLabel } from '../theory'
 
@@ -89,6 +89,18 @@ export function chordExplanation(
   return `The ${roman} chord is built on the ${ORDINALS[degree]} degree of ${keyName} (root ${noteToString(chord.root)}). A ${mode} key's diatonic chords run ${TRIAD_PATTERN[mode]}, so ${roman} is ${QUALITY_WORD[chord.quality]} → ${chordSymbol(chord)}.${primary}`
 }
 
+/** "Name the chord shown" (chord-recognition étude). */
+export function chordRecognitionExplanation(
+  symbol: string,
+  keyName: string,
+  roman: string,
+  inversionName: string,
+  tones: Note[]
+): string {
+  const spelled = tones.map(noteToString).join('–')
+  return `Re-stack the notes in thirds to find the root, read the 3rd and 5th (plus any 7th/9th) for the quality, and take the lowest note for the inversion. Here it's ${symbol} — the ${roman} of ${keyName}, in ${inversionName}: ${spelled}.`
+}
+
 const INTERVAL_MNEMONIC: Record<string, string> = {
   'Minor 2nd': 'the two-note "Jaws" theme',
   'Major 2nd': 'the first two notes of "Happy Birthday"',
@@ -128,6 +140,40 @@ const PROGRESSION_FEEL: Record<string, string> = {
 export function progressionEarExplanation(slug: string, label: string): string {
   const feel = PROGRESSION_FEEL[slug] ?? 'a common progression'
   return `That was ${label} — ${feel}. Always hear each chord relative to the tonic played first.`
+}
+
+/** Ear-training: identify a short melody by sound (solfège). */
+export function melodicDictationExplanation(
+  mode: Mode,
+  degrees: number[],
+  solfegeStr: string
+): string {
+  const numbers = degrees.map((d) => (d === 7 ? '1' : d + 1)).join('–')
+  return `${solfegeStr} — scale degrees ${numbers} in ${mode}. The tonic chord at the start anchors "do"; hear each note as a distance from it.`
+}
+
+const REST_NAME: Record<RhythmEvent['dur'], string> = {
+  h: 'half rest',
+  q: 'quarter rest',
+  '8': 'eighth rest',
+  '16': 'sixteenth rest',
+}
+const NOTE_NAME: Record<RhythmEvent['dur'], string> = {
+  h: 'half',
+  q: 'quarter',
+  '8': 'eighth',
+  '16': 'sixteenth',
+}
+
+/** Ear-training: identify a one-bar rhythm by sound. */
+export function rhythmDictationExplanation(pattern: RhythmEvent[]): string {
+  const words = pattern
+    .map((e) => {
+      const dotted = e.dots ? 'dotted ' : ''
+      return e.rest ? REST_NAME[e.dur] : `${dotted}${NOTE_NAME[e.dur]}`
+    })
+    .join(', ')
+  return `Count in 16ths and group by the beat. The bar is: ${words}. Tap the pulse and slot each onset against it.`
 }
 
 /** "In G major, spell the progression ii–V–I." */

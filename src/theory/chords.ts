@@ -85,7 +85,7 @@ function interval(root: Note, tone: Note): number {
  * Triads use [third, fifth]; sevenths add [seventh].
  * Throws on any unrecognized interval set so bugs surface loudly.
  */
-function qualityFromIntervals(intervals: number[]): Quality {
+export function qualityFromIntervals(intervals: number[]): Quality {
   const key = intervals.join(',')
   const TRIADS: Record<string, Quality> = {
     '4,7': 'maj',

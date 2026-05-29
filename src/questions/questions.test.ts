@@ -26,15 +26,18 @@ describe('generateAllQuestions', () => {
 
     expect(relMinor).toHaveLength(12)
     expect(scale).toHaveLength(36)
-    expect(fing).toHaveLength(fingeringCount)
-    // keys = 12 + 36 + 24 fingerings = 72.
-    expect(12 + 36 + fingeringCount).toBe(72)
+    expect(fing).toHaveLength(fingeringCount) // 24
 
-    // chords: 24 key/mode combos × 7 (trimmed triads + V7) = 168.
+    // chords by degree: 24 key/mode combos × 7 (trimmed triads + V7) = 168.
+    // chord recognition: 3 levels by key range × 2 modes × 7 degrees
+    //   = (3 + 7 + 12 keys) × 2 × 7 = 42 + 98 + 168 = 308.
     // progressions: 6 major + 5 minor triad progressions × 12 keys = 132,
     // plus 2 idiomatic seventh forms × 12 = 24, total 156.
-    // ear: 12 intervals + 11 progression types = 23.
-    expect(questions.length).toBe(72 + 168 + 156 + 12 + 11)
+    // ear: 12 intervals + 11 progression types + 24 melodic (12 motifs × 2 modes)
+    //   + 18 rhythm patterns.
+    expect(questions.length).toBe(
+      12 + 36 + fingeringCount + 168 + 308 + 156 + 12 + 11 + 24 + 18
+    )
   })
 
   it('tags every question with a valid étude id and expected counts', () => {
@@ -43,11 +46,16 @@ describe('generateAllQuestions', () => {
     }
     const count = (id: string) =>
       questions.filter((q) => q.etudeId === id).length
-    expect(count('keys')).toBe(72)
+    expect(count('relative-minors')).toBe(12)
+    expect(count('scales')).toBe(36)
+    expect(count('fingerings')).toBe(24)
     expect(count('chords')).toBe(168)
+    expect(count('chord-recognition')).toBe(308)
     expect(count('progressions')).toBe(156)
     expect(count('intervals-ear')).toBe(12)
     expect(count('progressions-ear')).toBe(11)
+    expect(count('melodic-dictation')).toBe(24)
+    expect(count('rhythm-dictation')).toBe(18)
   })
 
   it('has unique ids', () => {
@@ -126,11 +134,15 @@ describe('generateAllQuestions', () => {
   })
 
   describe('hover audio', () => {
-    it('attaches playable audio for every choice of scale/chord/progression/relative-minor', () => {
+    it('attaches playable audio for every choice of scale/chord/progression/relative-minor/recognition', () => {
       const playable = questions.filter((q) =>
-        ['Relative minor', 'Scale spelling', 'Diatonic chord', 'Progression'].includes(
-          q.category
-        )
+        [
+          'Relative minor',
+          'Scale spelling',
+          'Diatonic chord',
+          'Progression',
+          'Chord recognition',
+        ].includes(q.category)
       )
       expect(playable.length).toBeGreaterThan(0)
       for (const q of playable) {
@@ -274,8 +286,9 @@ describe('generateAllQuestions', () => {
   describe('ear-training questions', () => {
     const earQ = questions.filter((q) => q.ear)
 
-    it('intervals and progressions carry an ear spec, 4 label choices, and a tip', () => {
-      expect(earQ.length).toBe(12 + 11)
+    it('every ear question carries an ear spec, 4 choices, and a tip', () => {
+      // 12 intervals + 11 progressions + 24 melodic + 18 rhythm.
+      expect(earQ.length).toBe(12 + 11 + 24 + 18)
       for (const q of earQ) {
         expect(q.ear, q.id).toBeDefined()
         expect(q.choices.length).toBe(4)
@@ -334,17 +347,26 @@ describe('generateAllQuestions', () => {
       expect(m[14].midi).toBe(69 + 24)
     })
 
-    it('chord questions light up the chord keys', () => {
+    it('chord questions light up the chord keys, labelled RH/LH', () => {
       for (const q of questions.filter((x) => x.category === 'Diatonic chord')) {
         expect(q.keyboard, q.id).toBeDefined()
+        expect(
+          q.keyboard!.marks.every((m) => m.label !== undefined && m.sublabel !== undefined),
+          q.id
+        ).toBe(true)
       }
-      // F major triad in root position from octave 4: F4 A4 C5.
+      // F major triad in root position from octave 4: F4 A4 C5, fingered 1-3-5 / 5-3-1.
       const iv = questions.find(
         (x) => x.prompt === 'In C major, what is the IV chord?'
       )!
       expect(iv.keyboard!.marks.map((m) => m.midi)).toEqual([65, 69, 72])
+      expect(iv.keyboard!.marks.map((m) => m.label)).toEqual(['1', '3', '5'])
+      expect(iv.keyboard!.marks.map((m) => m.sublabel)).toEqual(['5', '3', '1'])
+      // V7 is a four-note chord, fingered 1-2-3-5 / 5-3-2-1.
       const v7 = questions.find((x) => x.id === 'chord-deg:C:major:4:7')!
-      expect(v7.keyboard!.marks).toHaveLength(4) // V7 is a four-note chord
+      expect(v7.keyboard!.marks).toHaveLength(4)
+      expect(v7.keyboard!.marks.map((m) => m.label)).toEqual(['1', '2', '3', '5'])
+      expect(v7.keyboard!.marks.map((m) => m.sublabel)).toEqual(['5', '3', '2', '1'])
     })
 
     it('relative-minor questions carry a circle highlight, not a keyboard', () => {
@@ -362,6 +384,108 @@ describe('generateAllQuestions', () => {
       )) {
         expect(q.keyboard, q.id).toBeUndefined()
         expect(q.circle, q.id).toBeUndefined()
+      }
+    })
+  })
+
+  describe('chord recognition (étude 5)', () => {
+    const recog = questions.filter((x) => x.category === 'Chord recognition')
+
+    it('renders every chord on a staff under a key signature, with a tip', () => {
+      expect(recog).toHaveLength(308)
+      for (const q of recog) {
+        expect(q.etudeId).toBe('chord-recognition')
+        expect(q.notation, q.id).toBeDefined()
+        expect(q.notation!.groups).toHaveLength(1) // one stave note (the chord)
+        const n = q.notation!.groups[0].length
+        expect(n, q.id).toBeGreaterThanOrEqual(3) // triad … ninth
+        expect(n, q.id).toBeLessThanOrEqual(5)
+        expect(['treble', 'bass']).toContain(q.notation!.clef)
+        expect(q.notation!.keySignature.length, q.id).toBeGreaterThan(0)
+        expect(q.keyboard, q.id).toBeUndefined()
+        expect(q.level, q.id).toBeGreaterThanOrEqual(1)
+        expect(q.level, q.id).toBeLessThanOrEqual(3)
+        expect(q.explanation, q.id).toBeTruthy() // memory tip on a miss
+      }
+    })
+
+    it('uses only root / first / second inversion', () => {
+      for (const q of recog) {
+        const inv = Number(q.id.split(':').pop())
+        expect(inv, q.id).toBeLessThanOrEqual(2)
+      }
+    })
+
+    it('three difficulty levels scale chord complexity and key range', () => {
+      const easy = recog.filter((q) => q.level === 1)
+      const medium = recog.filter((q) => q.level === 2)
+      const hard = recog.filter((q) => q.level === 3)
+      expect(easy).toHaveLength(42) // 3 keys × 2 modes × 7
+      expect(medium).toHaveLength(98) // 7 keys × 2 modes × 7
+      expect(hard).toHaveLength(168) // 12 keys × 2 modes × 7
+
+      // Easy: triads only, root position (no slash chords).
+      for (const q of easy) {
+        expect(q.notation!.groups[0], q.id).toHaveLength(3)
+        expect(q.choices[q.answerIndex], q.id).not.toContain('/')
+      }
+      // Hard alone introduces the 9th extensions.
+      expect(hard.some((q) => q.notation!.groups[0].length === 5)).toBe(true)
+      expect(easy.some((q) => q.notation!.groups[0].length === 5)).toBe(false)
+      expect(medium.some((q) => q.notation!.groups[0].length === 5)).toBe(false)
+    })
+
+    it('covers augmented, dominant, diminished, and 9th chords (with inversions)', () => {
+      const answers = recog.map((q) => q.choices[q.answerIndex])
+      const bases = answers.map((s) => s.split('/')[0])
+      expect(bases.some((s) => s.endsWith('+'))).toBe(true) // augmented (III+)
+      expect(bases.some((s) => s.includes('°'))).toBe(true) // diminished
+      expect(bases.some((s) => /9$/.test(s))).toBe(true) // a ninth (9 / maj9 / m9)
+      expect(bases.some((s) => /^[A-G][♭♯]?7$/.test(s))).toBe(true) // dominant 7th
+      expect(answers.some((s) => s.includes('/'))).toBe(true) // an inversion
+    })
+  })
+
+  describe('melodic dictation (étude 9)', () => {
+    const melody = questions.filter((x) => x.category === 'Melodic dictation')
+
+    it('is a 4-note solfège prompt in both modes', () => {
+      expect(melody).toHaveLength(24)
+      for (const q of melody) {
+        expect(q.ear?.kind).toBe('melody')
+        const spec = q.ear as { kind: 'melody'; mode: string; degrees: number[] }
+        expect(spec.degrees).toHaveLength(4)
+        // Answer is 4 solfège tokens.
+        expect(q.choices[q.answerIndex].split('–')).toHaveLength(4)
+        expect(q.explanation).toBeTruthy()
+      }
+      // do mi sol do in major.
+      const m = melody.find((x) => x.id === 'melody:major:0240')!
+      expect(m.choices[m.answerIndex]).toBe('do–mi–sol–do')
+      // do me sol do in minor (flat-3 = "me").
+      const n = melody.find((x) => x.id === 'melody:minor:0240')!
+      expect(n.choices[n.answerIndex]).toBe('do–me–sol–do')
+    })
+  })
+
+  describe('rhythm dictation (étude 10)', () => {
+    const rhythm = questions.filter((x) => x.category === 'Rhythm dictation')
+    const BEATS = { h: 2, q: 1, '8': 0.5, '16': 0.25 } as const
+
+    it('every choice is a valid one-bar 4/4 pattern, aligned to choices', () => {
+      expect(rhythm).toHaveLength(18)
+      for (const q of rhythm) {
+        expect(q.ear?.kind).toBe('rhythm')
+        expect(q.rhythmChoices, q.id).toBeDefined()
+        expect(q.rhythmChoices!).toHaveLength(q.choices.length)
+        for (const pattern of q.rhythmChoices!) {
+          const beats = pattern.reduce(
+            (s, e) => s + BEATS[e.dur] * (2 - 1 / 2 ** (e.dots ?? 0)),
+            0
+          )
+          expect(beats, q.id).toBeCloseTo(4, 5)
+        }
+        expect(q.explanation).toBeTruthy()
       }
     })
   })

@@ -74,11 +74,19 @@ export interface SrsData {
 
 /** A study exercise — a named, selectable group of questions. */
 export interface Etude {
-  /** Stable id used to tag questions and select an étude, e.g. "keys". */
+  /** Stable id used to tag questions and select an étude, e.g. "scales". */
   id: string
+  /** Section header this étude is grouped under, e.g. "Chords & Harmony". */
+  section: string
+  /**
+   * Difficulty levels, lowest first (e.g. ["Easy","Medium","Hard"]). When set,
+   * the étude screen shows a selector and scopes the session to questions whose
+   * `level` (1-based) matches the chosen level.
+   */
+  levels?: string[]
   /** Display number, e.g. 1. */
   number: number
-  /** Title, e.g. "Keys & Relative Minors". */
+  /** Title, e.g. "Scales & Fingerings". */
   title: string
   /** One-line description shown in the étude menu. */
   subtitle: string
@@ -102,6 +110,18 @@ export interface Playable {
 export type EarSpec =
   | { kind: 'interval'; semitones: number; letterSteps: number }
   | { kind: 'progression'; mode: 'major' | 'minor'; degrees: number[] }
+  | { kind: 'melody'; mode: 'major' | 'minor'; degrees: number[] }
+  | { kind: 'rhythm'; pattern: RhythmEvent[] }
+
+/** One event in a rhythm pattern (a note or a rest), in 4/4. */
+export interface RhythmEvent {
+  /** Base duration: half, quarter, eighth, sixteenth. */
+  dur: 'h' | 'q' | '8' | '16'
+  /** Number of augmentation dots (default 0). */
+  dots?: number
+  /** True for a rest. */
+  rest?: boolean
+}
 
 /** A highlighted key on the reveal piano keyboard. */
 export interface KeyMark {
@@ -143,6 +163,18 @@ export interface Question {
    * (finger numbers, for fingering questions).
    */
   keyboard?: { marks: KeyMark[] }
+  /**
+   * A chord drawn on a staff as the *question* (chord-recognition étude): the
+   * voiced notes, the clef, and the key signature to render them under.
+   */
+  notation?: { groups: Voiced[][]; clef: 'treble' | 'bass'; keySignature: string }
+  /** 1-based difficulty level, for études that define `levels` (else absent). */
+  level?: number
+  /**
+   * One rhythm pattern per choice, aligned to `choices` (rhythm-dictation étude):
+   * the choices are rendered as notation rather than text.
+   */
+  rhythmChoices?: RhythmEvent[][]
   /**
    * Circle-of-fifths highlight shown on reveal (relative-minor recall): the
    * major key (by display name) to highlight on the wheel, alongside its

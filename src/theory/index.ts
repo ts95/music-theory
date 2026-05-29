@@ -6,7 +6,7 @@ export {
   dorianScale,
   phrygianScale,
 } from './scales'
-export { fingering } from './fingerings'
+export { fingering, chordFingering } from './fingerings'
 export type { Mode, Quality, Chord } from './chords'
 export {
   chordSymbol,
@@ -15,11 +15,22 @@ export {
   romanLabel,
   romanToChord,
   alternateQuality,
+  qualityFromIntervals,
   QUALITY_INTERVALS,
 } from './chords'
+export type { ChordSize } from './recognition'
+export {
+  recChordTones,
+  recChordSymbol,
+  isCleanNinth,
+  withInversion,
+  voiceInversion,
+  keySignatureSpec,
+} from './recognition'
 export { noteMidi, scaleEvents, chordEvents, progressionEvents } from './midi'
 export {
   realizeEar,
+  solfege,
   voicedMidi,
   voiceScaleAscending,
   voiceChordRootPosition,

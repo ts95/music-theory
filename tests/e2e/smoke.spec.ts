@@ -18,18 +18,23 @@ test('home menu lists the études', async ({ page }) => {
     page.getByText('Spaced-repetition exercises — choose an étude'),
   ).toBeVisible()
   for (const title of [
-    'Keys & Relative Minors',
+    'Relative Minors',
+    'Scales',
+    'Scale Fingerings',
     'Chords by Degree',
+    'Chord Recognition',
     'Progressions',
     'Intervals by Ear',
     'Progressions by Ear',
+    'Melodic Dictation',
+    'Rhythm Dictation',
   ]) {
     await expect(page.getByText(title, { exact: true })).toBeVisible()
   }
 })
 
 test('answers a full session and reaches the summary', async ({ page }) => {
-  await page.getByRole('button', { name: /Keys & Relative Minors/ }).click()
+  await page.getByRole('button', { name: /Scales/ }).click()
 
   // The session header shows "<index> / <total>" — read total so the loop is
   // exactly bank-sized rather than a guessed cap.

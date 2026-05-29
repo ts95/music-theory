@@ -1,31 +1,51 @@
-import type { Hand, Note, Playable, Question, ScaleType } from '../contracts'
+import type {
+  Hand,
+  Note,
+  Playable,
+  Question,
+  RhythmEvent,
+  ScaleType,
+} from '../contracts'
 import {
   KEYS,
   alternateQuality,
   chordEvents,
+  chordFingering,
   chordSymbol,
   dorianScale,
   fingering,
+  isCleanNinth,
+  keySignatureSpec,
   majorScale,
   minorScale,
   noteToString,
   phrygianScale,
+  pitchClass,
   progressionEvents,
+  qualityFromIntervals,
+  recChordSymbol,
+  recChordTones,
   romanLabel,
   romanToChord,
   scaleEvents,
+  solfege,
   voiceChordRootPosition,
+  voiceInversion,
   voiceScaleAscending,
   voicedMidi,
+  withInversion,
 } from '../theory'
-import type { Chord, Mode } from '../theory'
+import type { Chord, ChordSize, Mode, Voiced } from '../theory'
 import {
   chordExplanation,
+  chordRecognitionExplanation,
   fingeringExplanation,
   intervalEarExplanation,
+  melodicDictationExplanation,
   progressionEarExplanation,
   progressionExplanation,
   relativeMinorExplanation,
+  rhythmDictationExplanation,
   scaleExplanation,
 } from './explanations'
 
@@ -112,7 +132,7 @@ function relativeMinorQuestions(): Question[] {
   return KEYS.map((key) => {
     const distractors = KEYS.filter((k) => k !== key).map((k) => k.minorName)
     const q = buildQuestion(
-      'keys',
+      'relative-minors',
       `rel-minor:${asciiTonicId(key.majorTonic)}`,
       'Relative minor',
       `What is the relative minor of ${key.majorName}?`,
@@ -167,7 +187,7 @@ function scaleSpellingQuestions(): Question[] {
           : [siblings[rot % siblings.length], ...pickOthers(2)]
 
       const q = buildQuestion(
-        'keys',
+        'scales',
         `scale-notes:${asciiTonicId(tonic)}:${type}`,
         'Scale spelling',
         `What are the notes of the ${noteToString(tonic)} ${TYPE_WORD[type]} scale?`,
@@ -211,7 +231,7 @@ function fingeringQuestions(): Question[] {
       if (!f) continue
       const correct = f.join(' ')
       const q = buildQuestion(
-        'keys',
+        'fingerings',
         `fingering:${asciiTonicId(key.minorTonic)}:${hand}`,
         'Fingering',
         `What is the standard ${HAND_WORD[hand]} fingering for the ${noteToString(
@@ -306,10 +326,16 @@ function chordDegreeQuestions(): Question[] {
           audio,
           chordExplanation(name, mode, degree, seventh, correctChord)
         )
-        // Reveal lights up the answer chord (root position) on the keyboard.
+        // Reveal lights up the answer chord (root position) on the keyboard,
+        // each key labelled with both fingerings (RH over LH).
+        const voiced = voiceChordRootPosition(correctChord)
+        const rhFng = chordFingering(voiced.length, 'RH')
+        const lhFng = chordFingering(voiced.length, 'LH')
         q.keyboard = {
-          marks: voiceChordRootPosition(correctChord).map((v) => ({
+          marks: voiced.map((v, i) => ({
             midi: voicedMidi(v),
+            label: String(rhFng[i]),
+            sublabel: String(lhFng[i]),
           })),
         }
         questions.push(q)
@@ -498,6 +524,270 @@ function progressionEarQuestions(): Question[] {
   })
 }
 
+// Only root, first, and second inversion (bass = root / 3rd / 5th) — never the
+// 7th or 9th in the bass. Every chord size has these three, so the cap is fixed.
+const INVERSIONS = 3
+const INVERSION_NAMES = ['root position', 'first inversion', 'second inversion']
+
+/** The three Chord-Recognition difficulty levels (chord complexity + key range). */
+interface RecLevel {
+  n: number
+  sizes: ChordSize[]
+  invert: boolean
+  /** Include keys whose signature has at most this many accidentals. */
+  maxAccidentals: number
+}
+const REC_LEVELS: RecLevel[] = [
+  { n: 1, sizes: ['triad'], invert: false, maxAccidentals: 1 }, // Easy
+  { n: 2, sizes: ['triad', 'seventh'], invert: true, maxAccidentals: 3 }, // Medium
+  { n: 3, sizes: ['triad', 'seventh', 'ninth'], invert: true, maxAccidentals: 12 }, // Hard
+]
+
+/** Semitones (0–11) from `root` up to `tone`. */
+const semis = (root: Note, tone: Note): number =>
+  (((pitchClass(tone) - pitchClass(root)) % 12) + 12) % 12
+
+/** Accidentals in a major key's signature (its relative minor shares it). */
+const accidentalCount = (majorTonic: Note): number => {
+  const fifths = (7 * pitchClass(majorTonic)) % 12
+  return fifths <= 6 ? fifths : 12 - fifths
+}
+
+/**
+ * 6. Chord recognition: read a diatonic chord rendered on a staff (under its key
+ * signature) and name it — chord symbol, with slash notation for inversions.
+ * Three difficulty levels (see REC_LEVELS) scale chord complexity and key range,
+ * each its own SRS set via level-prefixed ids. Size, inversion, and clef are
+ * chosen deterministically from a running index so the bank is stable and
+ * well-mixed. Minor uses harmonic forms at III/V/vii° (so the augmented III+,
+ * dominant V, and diminished vii° all appear).
+ */
+function chordRecognitionQuestions(): Question[] {
+  const modes: Mode[] = ['major', 'minor']
+  const questions: Question[] = []
+  for (const level of REC_LEVELS) {
+    let idx = 0
+    KEYS.forEach((key, keyIndex) => {
+      if (accidentalCount(key.majorTonic) > level.maxAccidentals) return
+      for (const mode of modes) {
+        const { tonic, name } = keyForMode(key, mode)
+        const keySignature = keySignatureSpec(tonic, mode)
+        for (let degree = 0; degree < 7; degree++) {
+          // Deterministic size; demote an exotic ninth to its seventh.
+          let size = level.sizes[idx % level.sizes.length]
+          let tones = recChordTones(tonic, mode, degree, size)
+          if (size === 'ninth' && !isCleanNinth(tones)) {
+            size = 'seventh'
+            tones = recChordTones(tonic, mode, degree, size)
+          }
+          const inversion = level.invert
+            ? Math.floor(idx / level.sizes.length) % INVERSIONS
+            : 0
+          const clef: 'treble' | 'bass' = idx % 2 === 0 ? 'treble' : 'bass'
+          // Octave that centres a stacked chord on each clef's staff.
+          const octave = clef === 'treble' ? 4 : 2
+          idx++
+
+          const baseSymbol = recChordSymbol(tones)
+          const correct = withInversion(baseSymbol, tones, inversion)
+
+          // Hover-to-play: each choice sounds its own chord, as a block, voiced
+          // in a comfortable register (octave 4) regardless of the staff clef.
+          const audio: Record<string, Playable> = {}
+          const offer = (sym: string, voiced: Voiced[]) => {
+            audio[sym] = { kind: 'chord', events: [voiced.map(voicedMidi)] }
+          }
+          offer(correct, voiceInversion(tones, inversion, 4))
+
+          // Different-root distractors: the same degree/size in neighbour keys.
+          const neighbours: string[] = []
+          for (const step of [1, 5, 7, 2, 3, 8, 4]) {
+            const other = keyForMode(KEYS[(keyIndex + step) % KEYS.length], mode).tonic
+            const otherTones = recChordTones(other, mode, degree, size)
+            if (size === 'ninth' && !isCleanNinth(otherTones)) continue
+            const inv = level.invert ? inversion : 0
+            const sym = withInversion(recChordSymbol(otherTones), otherTones, inv)
+            neighbours.push(sym)
+            offer(sym, voiceInversion(otherTones, inv, 4))
+          }
+          const triadQuality = qualityFromIntervals(
+            tones.slice(1, 3).map((t) => semis(tones[0], t))
+          )
+          const altQ = alternateQuality(triadQuality)
+          const altQuality = chordSymbol({ root: tones[0], quality: altQ })
+          audio[altQuality] = { kind: 'chord', events: chordEvents(tones[0], altQ, 4) }
+
+          const invSym1 = withInversion(baseSymbol, tones, (inversion + 1) % INVERSIONS)
+          const invSym2 = withInversion(baseSymbol, tones, (inversion + 2) % INVERSIONS)
+          if (level.invert) {
+            offer(invSym1, voiceInversion(tones, (inversion + 1) % INVERSIONS, 4))
+            offer(invSym2, voiceInversion(tones, (inversion + 2) % INVERSIONS, 4))
+          }
+
+          // Prioritized so the first three vary inversion / root / quality.
+          // Easy has no inversions, so its options stay root-position symbols.
+          const distractors = (
+            level.invert
+              ? [invSym1, neighbours[0], altQuality, invSym2, ...neighbours.slice(1)]
+              : [neighbours[0], altQuality, ...neighbours.slice(1)]
+          ).filter((s): s is string => Boolean(s))
+
+          const seventh = size !== 'triad'
+          const q = buildQuestion(
+            'chord-recognition',
+            `chord-rec:L${level.n}:${asciiTonicId(tonic)}${mode === 'minor' ? 'm' : 'M'}:${degree}:${size}:${inversion}`,
+            'Chord recognition',
+            `In ${name}, name the chord shown.`,
+            correct,
+            distractors,
+            audio,
+            chordRecognitionExplanation(
+              correct,
+              name,
+              romanLabel(mode, degree, seventh),
+              INVERSION_NAMES[inversion],
+              tones
+            )
+          )
+          q.level = level.n
+          q.notation = {
+            groups: [voiceInversion(tones, inversion, octave)],
+            clef,
+            keySignature,
+          }
+          questions.push(q)
+        }
+      }
+    })
+  }
+  return questions
+}
+
+// ── Melodic dictation ───────────────────────────────────────────────────────
+// Curated 4-note diatonic motifs (0-based scale degrees, 0 = tonic … 7 = octave).
+const MELODY_MOTIFS: number[][] = [
+  [0, 2, 4, 0], // do mi sol do
+  [0, 1, 2, 0], // do re mi do
+  [4, 3, 2, 0], // sol fa mi do
+  [0, 4, 2, 0], // do sol mi do
+  [2, 1, 0, 4], // mi re do sol
+  [0, 2, 1, 0], // do mi re do
+  [4, 2, 0, 2], // sol mi do mi
+  [0, 4, 7, 4], // do sol do' sol
+  [0, 1, 0, 4], // do re do sol
+  [7, 4, 2, 0], // do' sol mi do
+  [0, 2, 4, 7], // do mi sol do'
+  [4, 5, 4, 0], // sol la sol do
+]
+
+const clampDeg = (d: number): number => Math.max(0, Math.min(7, d))
+
+const melodyAnswer = (mode: Mode, degrees: number[]): string =>
+  degrees.map((d) => solfege(mode, d)).join('–')
+
+/** 8. Melodic dictation: hear a 4-note motif from a random tonic; name it in solfège. */
+function melodicDictationQuestions(): Question[] {
+  const modes: Mode[] = ['major', 'minor']
+  const questions: Question[] = []
+  for (const mode of modes) {
+    for (const degrees of MELODY_MOTIFS) {
+      const correct = melodyAnswer(mode, degrees)
+      // Distractors: nudge the inner notes by ±1 step, or swap them — confusable
+      // but distinct solfège sequences. buildQuestion keeps the first 3 distinct.
+      const variants: number[][] = [
+        [degrees[0], clampDeg(degrees[1] + 1), degrees[2], degrees[3]],
+        [degrees[0], degrees[1], clampDeg(degrees[2] - 1), degrees[3]],
+        [degrees[0], degrees[2], degrees[1], degrees[3]],
+        [degrees[0], clampDeg(degrees[1] - 1), clampDeg(degrees[2] + 1), degrees[3]],
+        [degrees[0], degrees[1], clampDeg(degrees[2] + 1), degrees[3]],
+      ]
+      const q = buildQuestion(
+        'melodic-dictation',
+        `melody:${mode}:${degrees.join('')}`,
+        'Melodic dictation',
+        'Identify the melody you hear (in solfège).',
+        correct,
+        variants.map((v) => melodyAnswer(mode, v)),
+        undefined,
+        melodicDictationExplanation(mode, degrees, correct)
+      )
+      q.ear = { kind: 'melody', mode, degrees }
+      questions.push(q)
+    }
+  }
+  return questions
+}
+
+// ── Rhythm dictation ─────────────────────────────────────────────────────────
+// Curated one-bar 4/4 patterns (each sums to 4 beats). Shorthands keep them legible.
+const H: RhythmEvent = { dur: 'h' }
+const Q: RhythmEvent = { dur: 'q' }
+const E: RhythmEvent = { dur: '8' }
+const S: RhythmEvent = { dur: '16' }
+const QR: RhythmEvent = { dur: 'q', rest: true }
+const ER: RhythmEvent = { dur: '8', rest: true }
+const QD: RhythmEvent = { dur: 'q', dots: 1 }
+
+const RHYTHM_PATTERNS: RhythmEvent[][] = [
+  [Q, Q, Q, Q],
+  [E, E, Q, Q, Q],
+  [Q, E, E, Q, Q],
+  [E, E, E, E, Q, Q],
+  [H, Q, Q],
+  [Q, Q, H],
+  [QD, E, Q, Q],
+  [Q, QD, E, Q],
+  [S, S, S, S, Q, Q, Q],
+  [E, E, S, S, S, S, Q, Q],
+  [QR, Q, Q, Q],
+  [Q, QR, Q, Q],
+  [H, E, E, Q],
+  [E, E, Q, E, E, Q],
+  [QD, E, E, E, Q],
+  [S, S, E, Q, Q, Q],
+  [Q, E, E, H],
+  [ER, E, Q, Q, Q],
+]
+
+/** Stable serialization of a rhythm pattern, e.g. "q. 8 q q" — used as the choice id. */
+const rhythmKey = (p: RhythmEvent[]): string =>
+  p.map((e) => `${e.rest ? 'r' : ''}${e.dur}${'.'.repeat(e.dots ?? 0)}`).join(' ')
+
+const onsetCount = (p: RhythmEvent[]): number => p.filter((e) => !e.rest).length
+
+/** 9. Rhythm dictation: hear a one-bar 4/4 rhythm; pick the matching notation. */
+function rhythmDictationQuestions(): Question[] {
+  const byKey: Record<string, RhythmEvent[]> = {}
+  for (const p of RHYTHM_PATTERNS) byKey[rhythmKey(p)] = p
+
+  return RHYTHM_PATTERNS.map((pattern) => {
+    const correct = rhythmKey(pattern)
+    // Distractors: other pool patterns with the closest onset count (confusable),
+    // deterministic via stable sort.
+    const distractors = RHYTHM_PATTERNS.filter((p) => rhythmKey(p) !== correct)
+      .sort(
+        (a, b) =>
+          Math.abs(onsetCount(a) - onsetCount(pattern)) -
+          Math.abs(onsetCount(b) - onsetCount(pattern))
+      )
+      .map(rhythmKey)
+    const q = buildQuestion(
+      'rhythm-dictation',
+      `rhythm:${correct.replace(/[\s.]/g, '_')}`,
+      'Rhythm dictation',
+      'Identify the rhythm you hear.',
+      correct,
+      distractors,
+      undefined,
+      rhythmDictationExplanation(pattern)
+    )
+    q.ear = { kind: 'rhythm', pattern }
+    // Align a pattern to each final (sorted) choice so they render as notation.
+    q.rhythmChoices = q.choices.map((k) => byKey[k])
+    return q
+  })
+}
+
 /** All study questions, deterministic across runs. */
 export function generateAllQuestions(): Question[] {
   return [
@@ -505,8 +795,11 @@ export function generateAllQuestions(): Question[] {
     ...scaleSpellingQuestions(),
     ...fingeringQuestions(),
     ...chordDegreeQuestions(),
+    ...chordRecognitionQuestions(),
     ...progressionQuestions(),
     ...intervalEarQuestions(),
     ...progressionEarQuestions(),
+    ...melodicDictationQuestions(),
+    ...rhythmDictationQuestions(),
   ]
 }

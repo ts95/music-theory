@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import type { Etude, Question, SrsData } from '../contracts'
 import { getState, initialState, isDue } from '../srs'
 import { formatMinutes } from '../time'
@@ -35,13 +36,23 @@ export default function EtudeMenu({
         ).length
         const progress = total > 0 ? (studied / total) * 100 : 0
 
+        const showHeader = i === 0 || etudes[i - 1].section !== e.section
         return (
-          <li
-            key={e.id}
-            className="rise"
-            style={{ animationDelay: `${260 + i * 70}ms` }}
-          >
-            <button
+          <Fragment key={e.id}>
+            {showHeader && (
+              <li
+                className="rise flex items-center gap-3 pt-4 first:pt-0"
+                style={{ animationDelay: `${260 + i * 70}ms` }}
+              >
+                <span className="marking text-accent">{e.section}</span>
+                <span className="h-px flex-1 bg-rule/70" />
+              </li>
+            )}
+            <li
+              className="rise"
+              style={{ animationDelay: `${260 + i * 70}ms` }}
+            >
+              <button
               type="button"
               onClick={() => onSelect(e.id)}
               className="group flex w-full items-center gap-5 rounded-2xl border border-rule bg-card px-5 py-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:bg-paper hover:ring-1 hover:ring-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-paper sm:px-7 sm:py-6"
@@ -87,7 +98,8 @@ export default function EtudeMenu({
                 </span>
               </span>
             </button>
-          </li>
+            </li>
+          </Fragment>
         )
       })}
     </ul>

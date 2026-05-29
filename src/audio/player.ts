@@ -1,4 +1,4 @@
-import type { Playable } from '../contracts'
+import type { Playable, RhythmEvent } from '../contracts'
 
 /**
  * Hover-to-play audio. The only Tone.js consumer. Tone is dynamically imported
@@ -139,6 +139,56 @@ function scheduleEar(
   const step = style === 'melodic' ? 460 : 640
   const hold = style === 'melodic' ? 0.5 : 0.72
   target.forEach((ev, i) => fire(ev, hold, t + i * step))
+}
+
+const BASE_BEATS: Record<RhythmEvent['dur'], number> = {
+  h: 2,
+  q: 1,
+  '8': 0.5,
+  '16': 0.25,
+}
+/** Duration of a rhythm event in beats (dots add half, then a quarter, …). */
+function eventBeats(e: RhythmEvent): number {
+  return BASE_BEATS[e.dur] * (2 - 1 / 2 ** (e.dots ?? 0))
+}
+
+const RHYTHM_PITCH = 72 // C5 — the rhythm notes
+const COUNT_PITCH = 79 // G5 — the count-in clicks
+
+/**
+ * Play a one-bar rhythm: a 4-beat count-in, then the pattern at `tempo` BPM on a
+ * single fixed pitch (rests are silent). Metrically continuous — the bar lands on
+ * count 4+1. Replaces any current playback; cancelable via stop().
+ */
+export function playRhythm(pattern: RhythmEvent[], tempo = 92): void {
+  if (muted) return
+  stop()
+  const g = generation
+  debounce = setTimeout(async () => {
+    try {
+      await ensureSynth()
+      if (muted || g !== generation) return
+      scheduleRhythm(pattern, tempo)
+    } catch {
+      /* audio unavailable — ignore */
+    }
+  }, 70)
+}
+
+function scheduleRhythm(pattern: RhythmEvent[], tempo: number): void {
+  if (!Tone || !synth) return
+  const beatMs = 60000 / tempo
+  const fire = (pitch: number, holdSec: number, atMs: number) => {
+    const freq = Tone!.Frequency(pitch, 'midi').toFrequency()
+    scheduled.push(setTimeout(() => synth?.triggerAttackRelease(freq, holdSec), atMs))
+  }
+  for (let i = 0; i < 4; i++) fire(COUNT_PITCH, 0.08, i * beatMs) // count-in
+  let t = 4 * beatMs
+  for (const e of pattern) {
+    const beats = eventBeats(e)
+    if (!e.rest) fire(RHYTHM_PITCH, Math.max(0.12, (beats * beatMs * 0.8) / 1000), t)
+    t += beats * beatMs
+  }
 }
 
 /** Stop all playback immediately. */

@@ -103,3 +103,15 @@ export function fingering(
   const entry = TABLE[noteToString(tonic)]
   return entry ? entry[hand] : null
 }
+
+/**
+ * Standard fingering for a root-position block chord (notes ascending), by note
+ * count: triads use 1-3-5 (RH) / 5-3-1 (LH); sevenths use 1-2-3-5 (RH) /
+ * 5-3-2-1 (LH). These are the close-position chord fingerings taught in method
+ * books — and unlike scales, the thumb may fall on a black key in a chord.
+ * Sources: piano-play-it.com/7th-chords.html, pianoguidelessons.com/fingering-chords-on-piano
+ */
+export function chordFingering(noteCount: number, hand: Hand): number[] {
+  if (noteCount >= 4) return hand === 'RH' ? [1, 2, 3, 5] : [5, 3, 2, 1]
+  return hand === 'RH' ? [1, 3, 5] : [5, 3, 1]
+}

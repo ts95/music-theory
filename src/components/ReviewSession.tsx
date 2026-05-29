@@ -7,9 +7,13 @@ import Button from './Button'
 const CORRECT_QUALITY = 5
 const INCORRECT_QUALITY = 2
 
-/** Categories with a sudden-death answer timer, and the limit. */
-const TIMED_CATEGORIES = new Set(['Relative minor', 'Diatonic chord'])
-const TIME_LIMIT_MS = 5000
+/** Sudden-death answer-timer limit (ms) per category; absent ⇒ untimed. */
+const TIMED_LIMITS: Record<string, number> = {
+  'Relative minor': 5000,
+  'Diatonic chord': 5000,
+  // Reading a staff with inversions/extensions takes longer.
+  'Chord recognition': 10000,
+}
 
 interface ReviewSessionProps {
   /** The questions to study this session (already scoped to one étude). */
@@ -142,9 +146,7 @@ export default function ReviewSession({
     const q = queue[index]
     const resolved = selected !== null || timedOut
     const progress = total > 0 ? ((index + (resolved ? 1 : 0)) / total) * 100 : 0
-    const timeLimitMs = TIMED_CATEGORIES.has(q.category)
-      ? TIME_LIMIT_MS
-      : undefined
+    const timeLimitMs = TIMED_LIMITS[q.category]
     return (
       <div className="space-y-4">
         <div className="flex items-end justify-between gap-4">

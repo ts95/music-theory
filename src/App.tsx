@@ -235,9 +235,15 @@ function EtudeScreen({
   ioButtons,
   noticeBanner,
 }: EtudeScreenProps) {
-  const bank = useMemo(
+  // Difficulty level (for études that define `levels`); 1-based.
+  const [level, setLevel] = useState(1)
+  const fullBank = useMemo(
     () => allQuestions.filter((q) => q.etudeId === etude.id),
     [allQuestions, etude.id],
+  )
+  const bank = useMemo(
+    () => (etude.levels ? fullBank.filter((q) => q.level === level) : fullBank),
+    [fullBank, etude.levels, level],
   )
 
   const now = Date.now()
@@ -277,6 +283,36 @@ function EtudeScreen({
           style={{ animationDelay: '80ms' }}
         />
 
+        {etude.levels && (
+          <div
+            className="rise mt-5 flex items-center gap-3"
+            style={{ animationDelay: '110ms' }}
+          >
+            <span className="marking text-ink-3">Level</span>
+            <div className="inline-flex rounded-full border border-rule bg-card p-0.5">
+              {etude.levels.map((label, i) => {
+                const n = i + 1
+                const active = n === level
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => setLevel(n)}
+                    aria-pressed={active}
+                    className={`rounded-full px-3.5 py-1.5 text-sm transition-colors ${
+                      active
+                        ? 'bg-ink text-paper'
+                        : 'text-ink-2 hover:text-ink'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         <dl
           className="rise mt-5 flex items-stretch gap-6"
           style={{ animationDelay: '140ms' }}
@@ -306,7 +342,7 @@ function EtudeScreen({
 
       <main className="rise" style={{ animationDelay: '200ms' }}>
         <ReviewSession
-          key={`${etude.id}:${sessionKey}`}
+          key={`${etude.id}:${level}:${sessionKey}`}
           bank={bank}
           data={data}
           onDataChange={setData}
