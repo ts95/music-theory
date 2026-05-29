@@ -104,7 +104,9 @@ npm install        # install dependencies
 npm run dev        # start the Vite dev server (local development)
 npm run build      # production build
 npm run preview    # preview the production build
-# npm run lint / npm run test — added once tooling/tests exist
+npm run test       # vitest unit tests (theory/ + srs/)
+npm run test:e2e   # Playwright browser tests (auto-starts the dev server)
+npm run test:e2e:ui# Playwright in headed/inspector mode (debugging)
 ```
 
 ## Project structure
@@ -132,6 +134,8 @@ src/
     ├── ReviewSession.tsx  # drives a study session: pick due item → render → grade
     ├── QuestionCard.tsx   # renders one MC question + answer feedback
     └── Staff.tsx         # VexFlow staff notation (lazy-loaded; ear-training reveal)
+
+tests/e2e/           # Playwright browser tests (smoke.spec.ts). Config: playwright.config.ts (root).
 ```
 
 **Études:** the app is organised into selectable études (exercises). `ETUDES` (in `questions/etudes.ts`)
@@ -225,5 +229,12 @@ Tailwind utilities like `bg-paper`, `text-ink`, `ring-rule`, `text-accent`):
 
 - TypeScript strict; functional components + hooks; Tailwind utility classes.
 - Prefer computing music data over hardcoding it; add unit tests for `theory/` and `srs/` as they grow.
-- **Verify changes by running the app** — use the `/run` skill to launch the dev server and `/verify`
-  to confirm a change behaves correctly (a question renders, grades, and advances).
+- **Verify changes by driving the app with Playwright** (the default for "does it work in the browser?"):
+  - **Regression:** run `npm run test:e2e` — the `tests/e2e/` smoke suite boots the dev server and
+    proves a question renders, grades, and advances. Extend it when you add behavior worth locking in.
+  - **Interactive / ad-hoc:** start `npm run dev`, then drive the running app with the **Playwright MCP**
+    server (navigate to `http://localhost:5173`, snapshot/screenshot, click) to eyeball a change or
+    script a one-off check.
+  - Two gotchas when automating: some question categories are **sudden-death timed**, so answer via the
+    keyboard (number keys `1–N` pick a choice, `Enter` advances) rather than slow clicks; and reset
+    `localStorage` (key `music-theory-srs`) for a deterministic due queue.
