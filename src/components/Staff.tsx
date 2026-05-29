@@ -13,6 +13,29 @@ const INK = '#211c15'
 const vexKey = (v: Voiced): string =>
   `${v.note.letter.toLowerCase()}${ACC[v.note.accidental] ?? ''}/${v.octave}`
 
+/**
+ * VexFlow 5 paints noteheads/clefs as Bravura font glyphs while positioning
+ * stems with Bravura's metrics. If we draw before the (bundled, async-loaded)
+ * font is ready, the browser falls back to a default font and the glyphs land
+ * at the wrong place — most visibly, a chord's stem detaches from its
+ * noteheads. Load the font once and gate every render on it.
+ */
+let musicFontReady: Promise<void> | undefined
+function ensureMusicFont(): Promise<void> {
+  musicFontReady ??= (async () => {
+    if (typeof document === 'undefined' || !document.fonts) return
+    try {
+      // Importing vexflow has already registered the bundled Bravura face;
+      // force it to load and wait for the whole set to settle before drawing.
+      await document.fonts.load('30pt "Bravura"')
+    } catch {
+      /* ignore — the ready wait below still gates on in-flight loads */
+    }
+    await document.fonts.ready
+  })()
+  return musicFontReady
+}
+
 interface StaffProps {
   /** Each group is one stave note: 1 note, or several for a chord. */
   groups: Voiced[][]
@@ -35,9 +58,10 @@ export default function Staff({ groups, labels }: StaffProps) {
     if (!host) return
     void (async () => {
       try {
-        const { Renderer, Stave, StaveNote, Accidental, Voice, Formatter } =
-          await import('vexflow')
+        const vexflow = await import('vexflow')
+        await ensureMusicFont()
         if (cancelled || !ref.current) return
+        const { Renderer, Stave, StaveNote, Accidental, Voice, Formatter } = vexflow
         ref.current.innerHTML = ''
         const renderer = new Renderer(ref.current, Renderer.Backends.SVG)
         renderer.resize(width, 130)
