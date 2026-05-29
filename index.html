@@ -14,6 +14,27 @@
       rel="stylesheet"
     />
     <title>Music Theory</title>
+    <script>
+      // Decode the GitHub Pages SPA fallback (see public/404.html) back into a
+      // clean path before the app reads window.location. No-op in normal loads.
+      ;(function () {
+        var l = window.location
+        if (l.search[1] === '/') {
+          var decoded = l.search
+            .slice(1)
+            .split('&')
+            .map(function (s) {
+              return s.replace(/~and~/g, '&')
+            })
+            .join('?')
+          window.history.replaceState(
+            null,
+            null,
+            l.pathname.slice(0, -1) + decoded + l.hash,
+          )
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

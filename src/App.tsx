@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Etude, Question, SrsData } from './contracts'
 import { ETUDES, generateAllQuestions } from './questions'
 import {
@@ -17,10 +17,28 @@ import { isMuted, setMuted } from './audio/player'
 import { formatMinutes, getTodaySeconds } from './time'
 import { useEtudeTimer } from './useEtudeTimer'
 
+// ---- URL routing: one clean path per étude under the Vite base ------------
+const BASE = import.meta.env.BASE_URL // "/music-theory/" in prod, "/" in dev
+
+/** The étude id encoded in the current URL path, or null for the home screen. */
+function etudeIdFromLocation(): string | null {
+  let rest = window.location.pathname
+  if (rest.startsWith(BASE)) rest = rest.slice(BASE.length)
+  rest = rest.replace(/^\/+|\/+$/g, '')
+  return ETUDES.some((e) => e.id === rest) ? rest : null
+}
+
+/** Absolute path for an étude (or the home screen when id is null). */
+function pathForEtude(id: string | null): string {
+  return id === null ? BASE : `${BASE}${id}`
+}
+
 export default function App() {
   const allQuestions = useMemo(() => generateAllQuestions(), [])
   const [data, setData] = useState<SrsData>(() => load())
-  const [selectedEtudeId, setSelectedEtudeId] = useState<string | null>(null)
+  const [selectedEtudeId, setSelectedEtudeId] = useState<string | null>(() =>
+    etudeIdFromLocation(),
+  )
   const [soundOn, setSoundOn] = useState(() => !isMuted())
   // Bumped on import so the session restarts against the new data.
   const [sessionKey, setSessionKey] = useState(0)
@@ -29,6 +47,26 @@ export default function App() {
     text: string
   } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Sync the screen with the URL on browser back/forward.
+  useEffect(() => {
+    const onPop = () => setSelectedEtudeId(etudeIdFromLocation())
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+
+  // Reflect the current étude in the tab title.
+  useEffect(() => {
+    const etude = ETUDES.find((e) => e.id === selectedEtudeId)
+    document.title = etude ? `${etude.title} · Music Theory` : 'Music Theory'
+  }, [selectedEtudeId])
+
+  /** Navigate to an étude (or home when null), pushing a new history entry. */
+  function navigate(id: string | null) {
+    if (id === selectedEtudeId) return
+    window.history.pushState(null, '', pathForEtude(id))
+    setSelectedEtudeId(id)
+  }
 
   function toggleSound() {
     const next = !soundOn
@@ -150,7 +188,7 @@ export default function App() {
                 allQuestions={allQuestions}
                 data={data}
                 practiceSeconds={getTodaySeconds()}
-                onSelect={setSelectedEtudeId}
+                onSelect={navigate}
               />
             </main>
           </>
@@ -162,7 +200,7 @@ export default function App() {
             data={data}
             setData={setData}
             sessionKey={sessionKey}
-            onBack={() => setSelectedEtudeId(null)}
+            onBack={() => navigate(null)}
             ioButtons={ioButtons}
             noticeBanner={noticeBanner}
           />
