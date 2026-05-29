@@ -23,8 +23,25 @@ export default function EtudeMenu({
 }: EtudeMenuProps) {
   const now = Date.now()
 
+  // Practice-time totals for today — per section, and overall. Minutes are
+  // rounded, and the total is the sum of the rounded sections so they add up.
+  const sectionSeconds = (s: string) =>
+    etudes
+      .filter((e) => e.section === s)
+      .reduce((sum, e) => sum + (practiceSeconds[e.id] ?? 0), 0)
+  const sectionMinutes: { section: string; minutes: number }[] = []
+  for (const e of etudes) {
+    if (sectionMinutes.some((x) => x.section === e.section)) continue
+    sectionMinutes.push({
+      section: e.section,
+      minutes: Math.round(sectionSeconds(e.section) / 60),
+    })
+  }
+  const totalMinutes = sectionMinutes.reduce((sum, x) => sum + x.minutes, 0)
+
   return (
-    <ul className="space-y-3">
+    <>
+      <ul className="space-y-3">
       {etudes.map((e, i) => {
         const questions = allQuestions.filter((q) => q.etudeId === e.id)
         const total = questions.length
@@ -103,5 +120,28 @@ export default function EtudeMenu({
         )
       })}
     </ul>
+
+      <div
+        className="rise mt-8 rounded-2xl border border-rule bg-card px-5 py-4 sm:px-7"
+        style={{ animationDelay: `${260 + etudes.length * 70}ms` }}
+      >
+        <p className="marking text-ink-3">Practice today</p>
+        <dl className="mt-3 space-y-1.5">
+          {sectionMinutes.map(({ section, minutes }) => (
+            <div
+              key={section}
+              className="flex items-baseline justify-between gap-4"
+            >
+              <dt className="text-sm text-ink-2">{section}</dt>
+              <dd className="font-mono text-sm text-ink-2">{minutes} min</dd>
+            </div>
+          ))}
+          <div className="mt-2 flex items-baseline justify-between gap-4 border-t border-rule pt-2">
+            <dt className="marking text-ink">Total</dt>
+            <dd className="font-mono text-base text-accent">{totalMinutes} min</dd>
+          </div>
+        </dl>
+      </div>
+    </>
   )
 }
