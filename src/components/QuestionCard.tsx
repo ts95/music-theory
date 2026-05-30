@@ -23,11 +23,16 @@ interface QuestionCardProps {
   /** If set, the question must be answered within this many ms. */
   timeLimitMs?: number
   onSelect: (choiceIndex: number) => void
+  /** The user gave up — graded as the strongest lapse (resurface soon). */
+  onDontKnow: () => void
   onNext: () => void
   onTimeout: () => void
 }
 
 type ChoiceState = 'idle' | 'correct' | 'wrong' | 'muted'
+
+// `selected` sentinel for "I don't know" (kept in sync with ReviewSession).
+const DONT_KNOW = -1
 
 /** Fisher–Yates shuffle of [0, n). Returns the order of original indices. */
 function shuffledOrder(n: number): number[] {
@@ -73,6 +78,7 @@ export default function QuestionCard({
   timedOut = false,
   timeLimitMs,
   onSelect,
+  onDontKnow,
   onNext,
   onTimeout,
 }: QuestionCardProps) {
@@ -180,19 +186,21 @@ export default function QuestionCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [realized])
 
-  // Keyboard: number keys 1–N select; Enter advances once answered.
+  // Keyboard: number keys 1–N select; 0 = "I don't know"; Enter advances.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (!answered && /^[1-9]$/.test(e.key)) {
         const pos = Number(e.key) - 1
         if (pos < order.length) onSelect(order[pos])
+      } else if (!answered && e.key === '0') {
+        onDontKnow()
       } else if (answered && e.key === 'Enter') {
         onNext()
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [answered, order, onSelect, onNext])
+  }, [answered, order, onSelect, onDontKnow, onNext])
 
   // Stop any lingering audio when this card unmounts (e.g. advancing).
   useEffect(() => () => stop(), [])
@@ -388,6 +396,36 @@ export default function QuestionCard({
         })}
       </ul>
 
+      {/* "I don't know" — an honest miss; reveals the answer and tells the SRS
+          to bring this back soon. Shown until answered, or kept (red) if chosen. */}
+      {(!answered || selected === DONT_KNOW) && (
+        <button
+          type="button"
+          disabled={answered}
+          onClick={onDontKnow}
+          className={`mt-2.5 flex w-full items-center gap-4 rounded-2xl px-4 py-3 text-left transition-all duration-200 disabled:cursor-default ${
+            selected === DONT_KNOW
+              ? 'bg-wrong/10 ring-2 ring-wrong'
+              : 'bg-card/50 ring-1 ring-rule hover:-translate-y-0.5 hover:bg-paper hover:ring-ink'
+          }`}
+        >
+          <span
+            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-mono text-sm font-medium ring-1 transition-colors duration-200 ${
+              selected === DONT_KNOW
+                ? 'bg-wrong text-card ring-wrong'
+                : 'text-ink-3 ring-rule'
+            }`}
+          >
+            {selected === DONT_KNOW ? '✕' : '0'}
+          </span>
+          <span
+            className={`flex-1 ${selected === DONT_KNOW ? 'text-ink' : 'text-ink-2'}`}
+          >
+            I don’t know
+          </span>
+        </button>
+      )}
+
       {answered ? (
         <div className="mt-7 border-t border-rule pt-5">
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -443,7 +481,7 @@ export default function QuestionCard({
         </div>
       ) : (
         <p className="marking mt-7 text-ink-3">
-          Keys 1–{order.length} to answer · Enter for next
+          Keys 1–{order.length} to answer · 0 = don’t know · Enter for next
         </p>
       )}
     </article>

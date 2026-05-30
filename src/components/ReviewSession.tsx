@@ -7,6 +7,11 @@ import Button from './Button'
 
 const CORRECT_QUALITY = 5
 const INCORRECT_QUALITY = 2
+// An explicit "I don't know" is a stronger lapse than a wrong guess — grade 0
+// drops the ease the most, so the item resurfaces sooner and for longer.
+const DONT_KNOW_QUALITY = 0
+// Sentinel `selected` value meaning the user pressed "I don't know".
+const DONT_KNOW = -1
 
 /** Sudden-death answer-timer limit (ms) per category; absent ⇒ untimed. */
 const TIMED_LIMITS: Record<string, number> = {
@@ -133,6 +138,14 @@ export default function ReviewSession({
     resolve(q, wasCorrect ? CORRECT_QUALITY : INCORRECT_QUALITY)
   }
 
+  /** "I don't know" → a lapse with the strongest resurfacing signal. */
+  function handleDontKnow() {
+    if (selected !== null || timedOut) return
+    setSelected(DONT_KNOW)
+    setAnswered((n) => n + 1)
+    resolve(queue[index], DONT_KNOW_QUALITY)
+  }
+
   /** Timer expired with no answer → counts as incorrect (an SRS lapse). */
   function handleTimeout() {
     if (selected !== null || timedOut) return
@@ -185,6 +198,7 @@ export default function ReviewSession({
           timedOut={timedOut}
           timeLimitMs={timeLimitMs}
           onSelect={handleSelect}
+          onDontKnow={handleDontKnow}
           onNext={handleNext}
           onTimeout={handleTimeout}
         />
