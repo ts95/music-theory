@@ -13,6 +13,8 @@ export interface EtudeReference {
   title: string
   body: ReactNode
   defaultOpen?: boolean
+  /** Optional link to a related reference page (navigated by route). */
+  link?: { label: string; route: string }
 }
 
 // ── shared bits ──────────────────────────────────────────────────────────────
@@ -219,6 +221,7 @@ const REFERENCES: Record<string, EtudeReference> = {
         </p>
       </div>
     ),
+    link: { label: 'Songs to hear each interval →', route: 'interval-songs' },
   },
   'progressions-ear': {
     title: 'Roman numerals',

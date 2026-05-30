@@ -10,6 +10,7 @@ import { ensureMusicFont } from './vexFont'
 
 const ACC: Record<number, string> = { [-2]: 'bb', [-1]: 'b', 0: '', 1: '#', 2: '##' }
 const INK = '#211c15'
+const ACCENT = '#7a2540' // claret — used to mark highlighted notes
 
 const vexKey = (v: Voiced): string =>
   `${v.note.letter.toLowerCase()}${ACC[v.note.accidental] ?? ''}/${v.octave}`
@@ -27,6 +28,8 @@ interface StaffProps {
    * repeat accidentals); when omitted, every altered note prints its accidental.
    */
   keySignature?: string
+  /** Indices of groups to colour in the claret accent (e.g. an interval leap). */
+  highlight?: number[]
 }
 
 export default function Staff({
@@ -34,6 +37,7 @@ export default function Staff({
   labels,
   clef = 'treble',
   keySignature,
+  highlight,
 }: StaffProps) {
   const ref = useRef<HTMLDivElement>(null)
   const [failed, setFailed] = useState(false)
@@ -63,7 +67,7 @@ export default function Staff({
         stave.addClef(clef)
         if (keySignature) stave.addKeySignature(keySignature)
         stave.setContext(ctx).draw()
-        const notes = groups.map((group) => {
+        const notes = groups.map((group, gi) => {
           const note = new StaveNote({ keys: group.map(vexKey), duration: 'q', clef })
           // With a key signature, let VexFlow add only the accidentals that
           // deviate from it; otherwise spell every alteration explicitly.
@@ -72,6 +76,9 @@ export default function Staff({
               const acc = ACC[v.note.accidental]
               if (acc) note.addModifier(new Accidental(acc), i)
             })
+          }
+          if (highlight?.includes(gi)) {
+            note.setStyle({ fillStyle: ACCENT, strokeStyle: ACCENT })
           }
           return note
         })
@@ -97,7 +104,7 @@ export default function Staff({
       cancelled = true
       if (host) host.innerHTML = ''
     }
-  }, [width, clef, keySignature, JSON.stringify(groups)])
+  }, [width, clef, keySignature, JSON.stringify(groups), JSON.stringify(highlight)])
 
   if (failed) return null
 

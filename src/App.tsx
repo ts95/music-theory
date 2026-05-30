@@ -13,6 +13,8 @@ import {
 import ReviewSession from './components/ReviewSession'
 import EtudeMenu from './components/EtudeMenu'
 import AboutPage from './components/AboutPage'
+import IntervalSongs from './components/IntervalSongs'
+import { intervalSongBySemitones } from './intervalSongs'
 import InfoBox from './components/InfoBox'
 import { etudeReference } from './components/references'
 import Button from './components/Button'
@@ -25,15 +27,25 @@ import { useEtudeTimer } from './useEtudeTimer'
 // ---- URL routing: one clean path per étude (and /about) under the Vite base -
 const BASE = import.meta.env.BASE_URL // "/music-theory/" in prod, "/" in dev
 
-/** Valid route segments: each étude id, plus the About page. */
-const ROUTES = new Set<string>([...ETUDES.map((e) => e.id), 'about'])
+/** Single-segment routes: each étude id, the About page, the song index. */
+const ROUTES = new Set<string>([
+  ...ETUDES.map((e) => e.id),
+  'about',
+  'interval-songs',
+])
 
-/** The route segment in the current URL (étude id or "about"), or null for home. */
+/**
+ * The route in the current URL — an étude id, "about", "interval-songs", or
+ * "interval-songs/<semitones>" — or null for the home screen.
+ */
 function routeFromLocation(): string | null {
   let rest = window.location.pathname
   if (rest.startsWith(BASE)) rest = rest.slice(BASE.length)
   rest = rest.replace(/^\/+|\/+$/g, '')
-  return ROUTES.has(rest) ? rest : null
+  if (ROUTES.has(rest)) return rest
+  const song = /^interval-songs\/(\d+)$/.exec(rest)
+  if (song && intervalSongBySemitones(Number(song[1]))) return rest
+  return null
 }
 
 /** Absolute path for a route (or the home screen when null). */
@@ -68,7 +80,9 @@ export default function App() {
       ? `${etude.title} · Music Theory`
       : route === 'about'
         ? 'About · Music Theory'
-        : 'Music Theory'
+        : route?.startsWith('interval-songs')
+          ? 'Interval songs · Music Theory'
+          : 'Music Theory'
   }, [route])
 
   /** Navigate to a route (étude id or "about"), or home when null. */
@@ -159,6 +173,10 @@ export default function App() {
   )
 
   const selectedEtude = ETUDES.find((e) => e.id === route) ?? null
+  const songRoute = route?.startsWith('interval-songs') ?? false
+  const songSemitones = route?.includes('/')
+    ? Number(route.split('/')[1])
+    : null
 
   return (
     <div className="min-h-screen">
@@ -166,6 +184,9 @@ export default function App() {
         {route === 'about' ? (
           // ---- About page --------------------------------------------------
           <AboutPage onBack={() => navigate(null)} />
+        ) : songRoute ? (
+          // ---- Interval-song reference pages -------------------------------
+          <IntervalSongs semitones={songSemitones} onNavigate={navigate} />
         ) : selectedEtude === null ? (
           // ---- Home screen: table of contents -----------------------------
           <>
@@ -211,6 +232,7 @@ export default function App() {
             setData={setData}
             sessionKey={sessionKey}
             onBack={() => navigate(null)}
+            onNavigate={navigate}
             ioButtons={ioButtons}
             noticeBanner={noticeBanner}
           />
@@ -243,6 +265,7 @@ interface EtudeScreenProps {
   setData: (data: SrsData) => void
   sessionKey: number
   onBack: () => void
+  onNavigate: (route: string | null) => void
   ioButtons: ReactNode
   noticeBanner: ReactNode
 }
@@ -254,6 +277,7 @@ function EtudeScreen({
   setData,
   sessionKey,
   onBack,
+  onNavigate,
   ioButtons,
   noticeBanner,
 }: EtudeScreenProps) {
@@ -381,6 +405,15 @@ function EtudeScreen({
               storageKey={`infobox:${etude.id}`}
             >
               {reference.body}
+              {reference.link && (
+                <button
+                  type="button"
+                  onClick={() => onNavigate(reference.link!.route)}
+                  className="marking mt-3 inline-block text-accent transition-colors hover:text-ink"
+                >
+                  {reference.link.label}
+                </button>
+              )}
             </InfoBox>
           </div>
         )}
