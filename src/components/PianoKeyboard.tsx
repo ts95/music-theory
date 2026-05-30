@@ -20,6 +20,10 @@ interface PianoKeyboardProps {
   from?: number
   /** Override the octave count. Defaults to however many cover the highest mark. */
   octaves?: number
+  /** When set, keys are tappable/clickable and call this with the key's MIDI. */
+  onPress?: (midi: number) => void
+  /** A key (MIDI) to render momentarily "pressed" (struck via tap or MIDI). */
+  pressed?: number | null
 }
 
 const WW = 28 // white-key width
@@ -34,12 +38,21 @@ const HAS_BLACK_AFTER = new Set([0, 2, 5, 7, 9]) // C D F G A → C# D# F# G# A#
 
 const mod = (n: number, m: number) => ((n % m) + m) % m
 
-export default function PianoKeyboard({ marks, from, octaves }: PianoKeyboardProps) {
-  if (marks.length === 0) return null
+export default function PianoKeyboard({
+  marks,
+  from,
+  octaves,
+  onPress,
+  pressed,
+}: PianoKeyboardProps) {
+  // Nothing to draw if there are no marks and no explicit range (read-only use).
+  if (marks.length === 0 && (from === undefined || octaves === undefined)) {
+    return null
+  }
 
   const midis = marks.map((m) => m.midi)
-  const lo = Math.min(...midis)
-  const hi = Math.max(...midis)
+  const lo = midis.length ? Math.min(...midis) : from!
+  const hi = midis.length ? Math.max(...midis) : from! + octaves! * 12
   const start = from ?? lo - mod(lo, 12) // the C at/below the lowest mark
   const top = hi + mod(-hi, 12) // the C at/above the highest mark
   const oct = octaves ?? Math.max(1, (top - start) / 12)
@@ -111,8 +124,10 @@ export default function PianoKeyboard({ marks, from, octaves }: PianoKeyboardPro
             width={WW}
             height={WH}
             rx={4}
-            className="fill-card stroke-rule"
+            className={`fill-card stroke-rule${onPress ? ' cursor-pointer' : ''}`}
             strokeWidth={1}
+            data-midi={w.midi}
+            onPointerDown={onPress ? () => onPress(w.midi) : undefined}
           />
         ))}
         {whites.map((w) =>
@@ -124,7 +139,7 @@ export default function PianoKeyboard({ marks, from, octaves }: PianoKeyboardPro
               width={WW - 2 * WPAD}
               height={WH - 2 * WPAD}
               rx={3}
-              className="fill-accent"
+              className="pointer-events-none fill-accent"
             />
           ) : null
         )}
@@ -137,8 +152,10 @@ export default function PianoKeyboard({ marks, from, octaves }: PianoKeyboardPro
             width={BW}
             height={BH}
             rx={3}
-            className="fill-ink stroke-ink"
+            className={`fill-ink stroke-ink${onPress ? ' cursor-pointer' : ''}`}
             strokeWidth={1}
+            data-midi={b.midi}
+            onPointerDown={onPress ? () => onPress(b.midi) : undefined}
           />
         ))}
         {blacks.map((b) =>
@@ -150,17 +167,51 @@ export default function PianoKeyboard({ marks, from, octaves }: PianoKeyboardPro
               width={BW - 2 * BPAD}
               height={BH - 2 * BPAD}
               rx={2}
-              className="fill-accent"
+              className="pointer-events-none fill-accent"
             />
           ) : null
         )}
         {/* Finger-number labels (only ever on highlighted keys). */}
         {whites.map((w) => (
-          <g key={`wl${w.midi}`}>{labels(marked.get(w.midi), w.x + WW / 2, WH - 14, 13)}</g>
+          <g key={`wl${w.midi}`} className="pointer-events-none">
+            {labels(marked.get(w.midi), w.x + WW / 2, WH - 14, 13)}
+          </g>
         ))}
         {blacks.map((b) => (
-          <g key={`bl${b.midi}`}>{labels(marked.get(b.midi), b.cx, BH - 11, 10)}</g>
+          <g key={`bl${b.midi}`} className="pointer-events-none">
+            {labels(marked.get(b.midi), b.cx, BH - 11, 10)}
+          </g>
         ))}
+        {/* Momentary "pressed" feedback: a white key shadows down, a black key
+            lights up — so a struck key (tap or MIDI) visibly depresses. */}
+        {pressed != null &&
+          whites.map((w) =>
+            w.midi === pressed ? (
+              <rect
+                key={`wd${w.midi}`}
+                x={w.x}
+                y={6}
+                width={WW}
+                height={WH - 6}
+                rx={4}
+                className="pointer-events-none fill-ink opacity-25"
+              />
+            ) : null
+          )}
+        {pressed != null &&
+          blacks.map((b) =>
+            b.midi === pressed ? (
+              <rect
+                key={`bd${b.midi}`}
+                x={b.cx - BW / 2}
+                y={4}
+                width={BW}
+                height={BH - 4}
+                rx={3}
+                className="pointer-events-none fill-paper opacity-30"
+              />
+            ) : null
+          )}
       </svg>
     </div>
   )

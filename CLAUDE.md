@@ -142,6 +142,14 @@ tests/e2e/           # Playwright browser tests (smoke.spec.ts). Config: playwri
 lists them; every `Question` carries an `etudeId`, and the UI scopes a session + its progress to one
 étude. To add an étude: add an `ETUDES` entry, generate questions tagged with its id, done.
 
+**Interactive (non-MC) études:** most études are multiple-choice (`QuestionCard`). "Play the Scale"
+(`scale-play`) is interactive — `Question.scalePlay` holds the expected ascending `notes` + per-note
+`rh`/`lh` fingerings; `ReviewSession` branches to `ScalePlayCard` (which grades pass/fail via the same
+`resolve`). It reuses `PianoKeyboard` made interactive (`onPress` + a `pressed` depress cue), reads an
+optional MIDI keyboard via `src/midi.ts` `useMidiInput` (graceful no-op without hardware; show a
+connection indicator), and matches input **positionally by pitch class** so any octave works. Scale
+fingerings (major + minor, 1- and 2-octave) live in `theory/fingerings.ts` — verify any new ones.
+
 **Keep the README current:** `README.md` carries the public feature list and étude roster. Update it
 periodically — whenever you add an étude or a notable feature — so it doesn't drift out of date.
 

@@ -6,7 +6,7 @@ export {
   dorianScale,
   phrygianScale,
 } from './scales'
-export { fingering, chordFingering } from './fingerings'
+export { fingering, majorFingering, chordFingering } from './fingerings'
 export type { Mode, Quality, Chord } from './chords'
 export {
   chordSymbol,

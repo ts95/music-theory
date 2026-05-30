@@ -14,6 +14,7 @@ import {
   chordSymbol,
   dorianScale,
   fingering,
+  majorFingering,
   isCleanNinth,
   keySignatureSpec,
   majorScale,
@@ -1139,6 +1140,98 @@ function rhythmDictationQuestions(): Question[] {
   return questions
 }
 
+// ── 11. Play the Scale (interactive) ─────────────────────────────────────────
+// Sudden-death; cumulative ABRSM-grade key scope (the major minor sets match
+// the Scale Fingerings étude). Easy = 1 octave / 15 s; Medium = 2 oct / 20 s;
+// Hard = 2 oct / 15 s. Each in-scope minor key appears in all three forms.
+interface ScalePlayLevel {
+  n: number
+  octaves: 1 | 2
+  seconds: number
+  majors: string[] // major tonic names in scope
+  minors: string[] // minor tonic names in scope
+}
+const ALL_MAJOR = KEYS.map((k) => noteToString(k.majorTonic))
+const ALL_MINOR = KEYS.map((k) => noteToString(k.minorTonic))
+const SCALE_PLAY_LEVELS: ScalePlayLevel[] = [
+  { n: 1, octaves: 1, seconds: 15, majors: ['C', 'G', 'D', 'F'], minors: ['A', 'D'] },
+  { n: 2, octaves: 2, seconds: 20, majors: ['C', 'G', 'D', 'F', 'A'], minors: ['A', 'D', 'E', 'G'] },
+  { n: 3, octaves: 2, seconds: 15, majors: ALL_MAJOR, minors: ALL_MINOR },
+]
+
+function scalePlayQuestion(
+  lvl: ScalePlayLevel,
+  tonic: Note,
+  scale: Note[],
+  idType: string,
+  keyName: string,
+  rh: number[],
+  lh: number[]
+): Question {
+  const seq =
+    lvl.octaves === 1 ? [...scale, scale[0]] : [...scale, ...scale, scale[0]]
+  return {
+    id: `scale-play:L${lvl.n}:${asciiTonicId(tonic)}:${idType}`,
+    etudeId: 'scale-play',
+    category: 'Play the scale',
+    prompt: `Play the ${keyName} scale, ascending.`,
+    choices: [],
+    answerIndex: -1,
+    level: lvl.n,
+    scalePlay: {
+      keyName,
+      octaves: lvl.octaves,
+      seconds: lvl.seconds,
+      notes: voiceScaleAscending(seq),
+      rh,
+      lh,
+    },
+  }
+}
+
+function scalePlayQuestions(): Question[] {
+  const out: Question[] = []
+  for (const lvl of SCALE_PLAY_LEVELS) {
+    for (const key of KEYS) {
+      const root = key.majorTonic
+      if (!lvl.majors.includes(noteToString(root))) continue
+      out.push(
+        scalePlayQuestion(
+          lvl,
+          root,
+          majorScale(root),
+          'major',
+          `${noteToString(root)} major`,
+          majorFingering(root, 'RH', lvl.octaves)!,
+          majorFingering(root, 'LH', lvl.octaves)!
+        )
+      )
+    }
+    for (const key of KEYS) {
+      const root = key.minorTonic
+      if (!lvl.minors.includes(noteToString(root))) continue
+      for (const type of SCALE_TYPES) {
+        const name =
+          type === 'natural'
+            ? `${noteToString(root)} minor`
+            : `${noteToString(root)} ${type} minor`
+        out.push(
+          scalePlayQuestion(
+            lvl,
+            root,
+            minorScale(root, type),
+            type,
+            name,
+            fingering(root, type, 'RH', lvl.octaves)!,
+            fingering(root, type, 'LH', lvl.octaves)!
+          )
+        )
+      }
+    }
+  }
+  return out
+}
+
 /** All study questions, deterministic across runs. */
 export function generateAllQuestions(): Question[] {
   return [
@@ -1152,5 +1245,6 @@ export function generateAllQuestions(): Question[] {
     ...progressionEarQuestions(),
     ...melodicDictationQuestions(),
     ...rhythmDictationQuestions(),
+    ...scalePlayQuestions(),
   ]
 }

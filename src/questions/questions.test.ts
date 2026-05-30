@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { generateAllQuestions } from './generators'
 import { ETUDES } from './etudes'
 import { METERS } from '../rhythm'
+import { voicedMidi } from '../theory'
 
 const questions = generateAllQuestions()
 
@@ -29,9 +30,10 @@ describe('generateAllQuestions', () => {
     // seventh forms) across three cumulative key-range levels (3 + 7 + 12 keys
     // per mode) = 13 × (3 + 7 + 12) = 286.
     // ear: 24 intervals (cumulative levels 4+8+12) + 11 progression types
-    //   + 64 melodic (3 levels × 2 modes) + 142 rhythm (3 levels × metres).
+    //   + 64 melodic (3 levels × 2 modes) + 142 rhythm (3 levels × metres)
+    //   + 75 scale-play (Easy 10 + Medium 17 + Hard 48).
     expect(questions.length).toBe(
-      12 + 36 + fingeringCount + 308 + 308 + 286 + 24 + 11 + 64 + 142
+      12 + 36 + fingeringCount + 308 + 308 + 286 + 24 + 11 + 64 + 142 + 75
     )
   })
 
@@ -51,6 +53,7 @@ describe('generateAllQuestions', () => {
     expect(count('progressions-ear')).toBe(11)
     expect(count('melodic-dictation')).toBe(64) // (10+12+10) motifs × 2 modes
     expect(count('rhythm-dictation')).toBe(142) // L1 31 + L2 54 + L3 57
+    expect(count('scale-play')).toBe(75) // Easy 10 + Medium 17 + Hard 48
   })
 
   it('has unique ids', () => {
@@ -58,8 +61,9 @@ describe('generateAllQuestions', () => {
     expect(new Set(ids).size).toBe(ids.length)
   })
 
-  it('every question is well-formed', () => {
-    for (const q of questions) {
+  it('every multiple-choice question is well-formed', () => {
+    // Scale-play is interactive (no choices) — checked separately.
+    for (const q of questions.filter((x) => !x.scalePlay)) {
       expect(q.choices.length).toBeGreaterThanOrEqual(3)
       // Most questions have 4 choices; harder interval levels show up to 6.
       expect(q.choices.length).toBeLessThanOrEqual(6)
@@ -125,7 +129,7 @@ describe('generateAllQuestions', () => {
   })
 
   it('every choices[answerIndex] equals the documented correct answer', () => {
-    for (const q of questions) {
+    for (const q of questions.filter((x) => !x.scalePlay)) {
       expect(q.choices[q.answerIndex]).toBeDefined()
     }
   })
@@ -244,7 +248,8 @@ describe('generateAllQuestions', () => {
 
   describe('memory tips (explanations)', () => {
     it('every question has a non-empty explanation', () => {
-      for (const q of questions) {
+      // Scale-play is interactive; it reveals the scale itself, not a tip.
+      for (const q of questions.filter((x) => !x.scalePlay)) {
         expect(q.explanation, q.id).toBeTruthy()
         expect(q.explanation!.length).toBeGreaterThan(10)
       }
@@ -574,5 +579,40 @@ describe('generateAllQuestions', () => {
       expect(tempo(1)).toBeLessThan(tempo(2))
       expect(tempo(2)).toBeLessThan(tempo(3))
     })
+  })
+})
+
+describe('play the scale (étude 4)', () => {
+  const scalePlay = questions.filter((q) => q.scalePlay)
+  const sp = (lvl: number) =>
+    scalePlay.find((q) => q.level === lvl)!.scalePlay!
+
+  it('covers the cumulative ABRSM scope per level', () => {
+    expect(scalePlay).toHaveLength(75)
+    expect(scalePlay.filter((q) => q.level === 1)).toHaveLength(10) // 4 maj + 2 min×3
+    expect(scalePlay.filter((q) => q.level === 2)).toHaveLength(17) // 5 maj + 4 min×3
+    expect(scalePlay.filter((q) => q.level === 3)).toHaveLength(48) // 12 maj + 12 min×3
+  })
+
+  it('octaves & sudden-death timer per level', () => {
+    expect([sp(1).octaves, sp(1).seconds]).toEqual([1, 15])
+    expect([sp(2).octaves, sp(2).seconds]).toEqual([2, 20])
+    expect([sp(3).octaves, sp(3).seconds]).toEqual([2, 15])
+  })
+
+  it('notes + both fingerings are aligned and ascending', () => {
+    for (const q of scalePlay) {
+      const s = q.scalePlay!
+      const len = s.octaves === 1 ? 8 : 15
+      expect(s.notes.length, q.id).toBe(len)
+      expect(s.rh.length, q.id).toBe(len)
+      expect(s.lh.length, q.id).toBe(len)
+      const midis = s.notes.map(voicedMidi)
+      for (let i = 1; i < midis.length; i++) {
+        expect(midis[i], q.id).toBeGreaterThan(midis[i - 1]) // strictly ascending
+      }
+      expect(s.rh.every((f) => f >= 1 && f <= 5), q.id).toBe(true)
+      expect(s.lh.every((f) => f >= 1 && f <= 5), q.id).toBe(true)
+    }
   })
 })

@@ -168,6 +168,22 @@ const REFERENCES: Record<string, EtudeReference> = {
       </div>
     ),
   },
+  'scale-play': {
+    title: 'How to play it',
+    body: (
+      <div className="space-y-2">
+        <p>
+          Play the named scale ascending — tap the keys, or strike a connected
+          MIDI keyboard (any octave works). Start on the tonic and go up.
+        </p>
+        <p>
+          Each correct note lights up with its fingering ({mono('RH')} over{' '}
+          {mono('LH')}). A wrong (non-diatonic) note ends the run and reveals the
+          whole scale. It's sudden-death — beat the clock.
+        </p>
+      </div>
+    ),
+  },
   chords: {
     title: 'Diatonic triads',
     body: (

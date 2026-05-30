@@ -3,6 +3,7 @@ import type { Question, SrsData } from '../contracts'
 import { getState, grade, initialState, isDue, save, setState } from '../srs'
 import { remainingDue, recordDue, windowResetAt } from '../dueCap'
 import QuestionCard from './QuestionCard'
+import ScalePlayCard from './ScalePlayCard'
 import Button from './Button'
 
 const CORRECT_QUALITY = 5
@@ -105,6 +106,8 @@ export default function ReviewSession({
   const [selected, setSelected] = useState<number | null>(null)
   // True when the current question's timer expired before an answer.
   const [timedOut, setTimedOut] = useState(false)
+  // True once an interactive (scale-play) question has been graded.
+  const [scaleResolved, setScaleResolved] = useState(false)
   const [answered, setAnswered] = useState(0)
   const [correct, setCorrect] = useState(0)
 
@@ -118,6 +121,7 @@ export default function ReviewSession({
     setIndex(0)
     setSelected(null)
     setTimedOut(false)
+    setScaleResolved(false)
     setAnswered(0)
     setCorrect(0)
   }
@@ -159,9 +163,19 @@ export default function ReviewSession({
     resolve(queue[index], INCORRECT_QUALITY)
   }
 
+  /** Interactive scale-play étude: graded once when the run passes or fails. */
+  function handleScaleResult(passed: boolean) {
+    if (scaleResolved) return
+    setScaleResolved(true)
+    setAnswered((n) => n + 1)
+    if (passed) setCorrect((n) => n + 1)
+    resolve(queue[index], passed ? CORRECT_QUALITY : INCORRECT_QUALITY)
+  }
+
   function handleNext() {
     setSelected(null)
     setTimedOut(false)
+    setScaleResolved(false)
     setIndex((i) => i + 1)
   }
 
@@ -177,7 +191,7 @@ export default function ReviewSession({
 
   if (!finished) {
     const q = queue[index]
-    const resolved = selected !== null || timedOut
+    const resolved = selected !== null || timedOut || scaleResolved
     const progress = total > 0 ? ((index + (resolved ? 1 : 0)) / total) * 100 : 0
     const timeLimitMs = TIMED_LIMITS[q.category]
     return (
@@ -203,17 +217,26 @@ export default function ReviewSession({
             style={{ width: `${progress}%` }}
           />
         </div>
-        <QuestionCard
-          key={q.id}
-          question={q}
-          selected={selected}
-          timedOut={timedOut}
-          timeLimitMs={timeLimitMs}
-          onSelect={handleSelect}
-          onDontKnow={handleDontKnow}
-          onNext={handleNext}
-          onTimeout={handleTimeout}
-        />
+        {q.scalePlay ? (
+          <ScalePlayCard
+            key={q.id}
+            question={q}
+            onResolve={handleScaleResult}
+            onNext={handleNext}
+          />
+        ) : (
+          <QuestionCard
+            key={q.id}
+            question={q}
+            selected={selected}
+            timedOut={timedOut}
+            timeLimitMs={timeLimitMs}
+            onSelect={handleSelect}
+            onDontKnow={handleDontKnow}
+            onNext={handleNext}
+            onTimeout={handleTimeout}
+          />
+        )}
       </div>
     )
   }

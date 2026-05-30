@@ -111,6 +111,24 @@ export function play(p: Playable): void {
 }
 
 /**
+ * Play a single note immediately (a key tap / MIDI strike). Fires as soon as the
+ * synth is ready and lets notes ring together — it does NOT cancel other
+ * playback, so a fast scale sounds natural.
+ */
+export function playNote(midi: number): void {
+  if (muted) return
+  void (async () => {
+    try {
+      await ensureSynth()
+      if (muted || !Tone || !synth) return
+      synth.triggerAttackRelease(Tone.Frequency(midi, 'midi').toFrequency(), 0.45)
+    } catch {
+      /* audio unavailable — ignore */
+    }
+  })()
+}
+
+/**
  * Play an ear-training prompt: an optional reference (block, ~0.9s) then a gap,
  * then the target. `style` sets target timing — melodic (notes in series) or
  * block (chords in series). Replaces any current playback; cancelable via stop().

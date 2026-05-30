@@ -199,4 +199,18 @@ export interface Question {
    * relative minor.
    */
   circle?: { major: string }
+  /**
+   * Interactive "play the scale" étude: the student plays the scale ascending on
+   * a keyboard (tap or MIDI). `notes` is the expected ascending sequence; `rh`/
+   * `lh` are the per-note fingerings (aligned to `notes`); `seconds` is the
+   * sudden-death budget. Present instead of the multiple-choice fields.
+   */
+  scalePlay?: {
+    keyName: string
+    octaves: 1 | 2
+    seconds: number
+    notes: Voiced[]
+    rh: number[]
+    lh: number[]
+  }
 }
