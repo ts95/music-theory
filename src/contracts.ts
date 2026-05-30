@@ -174,10 +174,16 @@ export interface Question {
    */
   keyboard?: { marks: KeyMark[] }
   /**
-   * A chord drawn on a staff as the *question* (chord-recognition étude): the
-   * voiced notes, the clef, and the key signature to render them under.
+   * Notes drawn on a staff: the voiced groups, the clef, and the key signature
+   * to render them under. Shown as the *question* by default (chord-recognition
+   * étude); set `onReveal` to instead show it with the answer (progressions).
    */
-  notation?: { groups: Voiced[][]; clef: 'treble' | 'bass'; keySignature: string }
+  notation?: {
+    groups: Voiced[][]
+    clef: 'treble' | 'bass'
+    keySignature: string
+    onReveal?: boolean
+  }
   /** 1-based difficulty level, for études that define `levels` (else absent). */
   level?: number
   /**

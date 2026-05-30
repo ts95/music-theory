@@ -448,6 +448,9 @@ function progressionQuestions(): Question[] {
           const { tonic, name } = keyForMode(key, prog.mode)
           const audio: Record<string, Playable> = {}
           const correct = spellAndRegister(tonic, prog, seventh, audio)
+          const chords = prog.degrees.map((d) =>
+            romanToChord(tonic, prog.mode, d, seventh)
+          )
 
           const distractors: string[] = []
           // Same-key variant that keeps the FIRST chord but alters the last, so
@@ -481,6 +484,14 @@ function progressionQuestions(): Question[] {
             )
           )
           q.level = level
+          // On reveal, show the chords on a treble staff under the key's
+          // signature, so the spelling is read in its harmonic context.
+          q.notation = {
+            groups: chords.map((c) => voiceChordRootPosition(c, 4)),
+            clef: 'treble',
+            keySignature: keySignatureSpec(tonic, prog.mode),
+            onReveal: true,
+          }
           questions.push(q)
         }
       }

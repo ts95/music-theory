@@ -244,7 +244,7 @@ export default function QuestionCard({
         {question.prompt}
       </h2>
 
-      {question.notation && (
+      {question.notation && !question.notation.onReveal && (
         <Staff
           groups={question.notation.groups}
           clef={question.notation.clef}
@@ -466,6 +466,13 @@ export default function QuestionCard({
                         )
                     : question.choices[question.answerIndex].split('–')
               }
+            />
+          )}
+          {question.notation?.onReveal && (
+            <Staff
+              groups={question.notation.groups}
+              clef={question.notation.clef}
+              keySignature={question.notation.keySignature}
             />
           )}
           {!ear && question.keyboard && (
