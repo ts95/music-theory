@@ -149,20 +149,25 @@ export function melodicDictationExplanation(
   solfegeStr: string
 ): string {
   const numbers = degrees.map((d) => (d === 7 ? '1' : d + 1)).join('–')
-  return `${solfegeStr} — scale degrees ${numbers} in ${mode}. The tonic chord at the start anchors "do"; hear each note as a distance from it.`
+  const ladder = mode === 'major' ? 'do re mi fa sol la ti' : 'do re me fa sol le te'
+  return `Solfège is movable — it names the scale degree, not a fixed letter: ${ladder} = degrees 1–7 up from the tonic (do). ${solfegeStr} = degrees ${numbers} in ${mode}; the tonic chord at the start anchors "do".`
 }
 
 const REST_NAME: Record<RhythmEvent['dur'], string> = {
+  w: 'whole rest',
   h: 'half rest',
   q: 'quarter rest',
   '8': 'eighth rest',
   '16': 'sixteenth rest',
+  '32': 'thirty-second rest',
 }
 const NOTE_NAME: Record<RhythmEvent['dur'], string> = {
+  w: 'whole',
   h: 'half',
   q: 'quarter',
   '8': 'eighth',
   '16': 'sixteenth',
+  '32': 'thirty-second',
 }
 
 /** Ear-training: identify a one-bar rhythm by sound. */
@@ -183,7 +188,10 @@ export function rhythmDictationExplanation(
   }
   const feel =
     meter === '6/8' ? 'two dotted-quarter beats' : `${meter.split('/')[0]} beats`
-  return `In ${meter} (${feel}), group by the beat. The bar is: ${words.join(', ')}. Tap the pulse and slot each onset against it.`
+  const tied = pattern.some((e) => e.tie)
+    ? ' A tie holds a note across — its second notehead isn’t re-struck.'
+    : ''
+  return `In ${meter} (${feel}), group by the beat. The bar is: ${words.join(', ')}.${tied} Tap the pulse and slot each onset against it.`
 }
 
 /** "In G major, spell the progression ii–V–I." */

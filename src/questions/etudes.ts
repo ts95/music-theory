@@ -64,7 +64,8 @@ export const ETUDES: Etude[] = [
     section: 'Ear Training',
     number: 9,
     title: 'Melodic Dictation',
-    subtitle: 'Hear a short motif over its tonic and name it in solfège',
+    subtitle: 'Hear a motif over its tonic and name it in solfège',
+    levels: ['Easy', 'Medium', 'Hard'],
   },
   {
     id: 'rhythm-dictation',
@@ -72,5 +73,6 @@ export const ETUDES: Etude[] = [
     number: 10,
     title: 'Rhythm Dictation',
     subtitle: 'Hear a one-bar rhythm and pick the matching notation',
+    levels: ['Easy', 'Medium', 'Hard'],
   },
 ]

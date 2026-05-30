@@ -42,6 +42,7 @@ export default function RhythmStaff({ pattern, meter = '4/4' }: RhythmStaffProps
           Dot,
           Beam,
           Tuplet,
+          StaveTie,
           Stem,
           Voice,
           Formatter,
@@ -90,6 +91,14 @@ export default function RhythmStaff({ pattern, meter = '4/4' }: RhythmStaffProps
         voice.draw(ctx, stave)
         beams.forEach((b) => b.setContext(ctx).draw())
         tuplets.forEach((t) => t.setContext(ctx).draw())
+        // Tie curves: each event flagged `tie` connects to the next note.
+        pattern.forEach((e, i) => {
+          if (e.tie && notes[i + 1]) {
+            new StaveTie({ firstNote: notes[i], lastNote: notes[i + 1] })
+              .setContext(ctx)
+              .draw()
+          }
+        })
       } catch {
         if (!cancelled) setFailed(true)
       }

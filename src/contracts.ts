@@ -111,15 +111,15 @@ export type EarSpec =
   | { kind: 'interval'; semitones: number; letterSteps: number }
   | { kind: 'progression'; mode: 'major' | 'minor'; degrees: number[] }
   | { kind: 'melody'; mode: 'major' | 'minor'; degrees: number[] }
-  | { kind: 'rhythm'; meter: TimeSig; pattern: RhythmEvent[] }
+  | { kind: 'rhythm'; meter: TimeSig; tempo: number; pattern: RhythmEvent[] }
 
 /** Supported time signatures for the rhythm-dictation étude. */
 export type TimeSig = '4/4' | '3/4' | '6/8'
 
-/** One event in a rhythm pattern (a note or a rest), in 4/4. */
+/** One event in a rhythm pattern (a note or a rest). */
 export interface RhythmEvent {
-  /** Base duration: half, quarter, eighth, sixteenth. */
-  dur: 'h' | 'q' | '8' | '16'
+  /** Base duration: whole, half, quarter, eighth, sixteenth, thirty-second. */
+  dur: 'w' | 'h' | 'q' | '8' | '16' | '32'
   /** Number of augmentation dots (default 0). */
   dots?: number
   /** True for a rest. */
@@ -129,6 +129,8 @@ export interface RhythmEvent {
    * one beat (so each is ⅓ beat instead of ½), drawn beamed with a "3" bracket.
    */
   triplet?: boolean
+  /** Tied to the next event (same pitch, durations combined and held). */
+  tie?: boolean
 }
 
 /** A highlighted key on the reveal piano keyboard. */

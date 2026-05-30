@@ -153,10 +153,12 @@ function scheduleEar(
 }
 
 const BASE_BEATS: Record<RhythmEvent['dur'], number> = {
+  w: 4,
   h: 2,
   q: 1,
   '8': 0.5,
   '16': 0.25,
+  '32': 0.125,
 }
 /** Duration of a rhythm event in beats (dots add half, then a quarter, …). */
 function eventBeats(e: RhythmEvent): number {
@@ -206,9 +208,21 @@ function scheduleRhythm(pattern: RhythmEvent[], meter: TimeSig, tempo: number): 
   }
   countIn.forEach((beat) => fireClick(beat * beatMs)) // count-in (distinct tick)
   let t = totalBeats * beatMs // the bar starts after one count-in bar
-  for (const e of pattern) {
+  for (let i = 0; i < pattern.length; i++) {
+    const e = pattern[i]
     const beats = eventBeats(e)
-    if (!e.rest) fireNote(Math.max(0.12, (beats * beatMs * 0.8) / 1000), t)
+    // A tied continuation isn't re-struck; the note that began the tie holds
+    // through the whole chain.
+    const continuation = i > 0 && !!pattern[i - 1].tie
+    if (!e.rest && !continuation) {
+      let held = beats
+      let j = i
+      while (pattern[j].tie && j + 1 < pattern.length) {
+        j++
+        held += eventBeats(pattern[j])
+      }
+      fireNote(Math.max(0.12, (held * beatMs * 0.8) / 1000), t)
+    }
     t += beats * beatMs
   }
 }

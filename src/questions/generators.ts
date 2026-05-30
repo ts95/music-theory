@@ -665,20 +665,49 @@ function chordRecognitionQuestions(): Question[] {
 }
 
 // ── Melodic dictation ───────────────────────────────────────────────────────
-// Curated 4-note diatonic motifs (0-based scale degrees, 0 = tonic … 7 = octave).
-const MELODY_MOTIFS: number[][] = [
-  [0, 2, 4, 0], // do mi sol do
-  [0, 1, 2, 0], // do re mi do
-  [4, 3, 2, 0], // sol fa mi do
-  [0, 4, 2, 0], // do sol mi do
-  [2, 1, 0, 4], // mi re do sol
-  [0, 2, 1, 0], // do mi re do
-  [4, 2, 0, 2], // sol mi do mi
-  [0, 4, 7, 4], // do sol do' sol
-  [0, 1, 0, 4], // do re do sol
-  [7, 4, 2, 0], // do' sol mi do
-  [0, 2, 4, 7], // do mi sol do'
-  [4, 5, 4, 0], // sol la sol do
+// Diatonic motifs as 0-based scale degrees (0 = tonic … 7 = octave), per level.
+const MELODY_LEVELS: number[][][] = [
+  // L1 Easy: 3-note motifs (stepwise / triadic).
+  [
+    [0, 1, 2],
+    [0, 2, 4],
+    [2, 1, 0],
+    [4, 2, 0],
+    [0, 2, 1],
+    [2, 4, 2],
+    [0, 1, 0],
+    [4, 3, 2],
+    [0, 4, 2],
+    [2, 0, 2],
+  ],
+  // L2 Medium: 4–5-note motifs with leaps.
+  [
+    [0, 2, 4, 0],
+    [0, 1, 2, 0],
+    [4, 3, 2, 0],
+    [0, 4, 2, 0],
+    [2, 1, 0, 4],
+    [0, 2, 1, 0],
+    [4, 2, 0, 2],
+    [0, 4, 7, 4],
+    [0, 1, 0, 4],
+    [7, 4, 2, 0],
+    [0, 2, 4, 7],
+    [4, 5, 4, 0],
+  ],
+  // L3 Hard: 5–8-note lines, including the complete ascending/descending scale.
+  [
+    [0, 1, 2, 3, 4, 5, 6, 7],
+    [7, 6, 5, 4, 3, 2, 1, 0],
+    [0, 2, 4, 5, 7],
+    [0, 1, 2, 3, 4],
+    [0, 2, 4, 7, 4, 2, 0],
+    [7, 5, 4, 2, 0],
+    [4, 5, 6, 7, 6, 5, 4],
+    [0, 1, 2, 4, 2, 1, 0],
+    [0, 2, 4, 5, 7, 5, 4, 2],
+    [0, 4, 2, 5, 4, 7],
+  ],
 ]
 
 const clampDeg = (d: number): number => Math.max(0, Math.min(7, d))
@@ -686,150 +715,213 @@ const clampDeg = (d: number): number => Math.max(0, Math.min(7, d))
 const melodyAnswer = (mode: Mode, degrees: number[]): string =>
   degrees.map((d) => solfege(mode, d)).join('–')
 
-/** 8. Melodic dictation: hear a 4-note motif from a random tonic; name it in solfège. */
+/** Confusable distractor degree-sequences: nudge a note by a step, or swap two. */
+function melodyVariants(degrees: number[]): number[][] {
+  const n = degrees.length
+  const set = (i: number, delta: number) =>
+    degrees.map((d, j) => (j === i ? clampDeg(d + delta) : d))
+  const swap = (i: number, k: number) =>
+    degrees.map((d, j) => (j === i ? degrees[k] : j === k ? degrees[i] : d))
+  const cands: number[][] = [
+    set(1, +1),
+    set(n - 2, -1),
+    set(n - 1, -1),
+    set(0, +1),
+    swap(n - 2, n - 1),
+  ]
+  if (n >= 4) cands.push(swap(1, 2))
+  return cands
+}
+
+/** 9. Melodic dictation: hear a motif from a random tonic; name it in solfège. */
 function melodicDictationQuestions(): Question[] {
   const modes: Mode[] = ['major', 'minor']
   const questions: Question[] = []
-  for (const mode of modes) {
-    for (const degrees of MELODY_MOTIFS) {
-      const correct = melodyAnswer(mode, degrees)
-      // Distractors: nudge the inner notes by ±1 step, or swap them — confusable
-      // but distinct solfège sequences. buildQuestion keeps the first 3 distinct.
-      const variants: number[][] = [
-        [degrees[0], clampDeg(degrees[1] + 1), degrees[2], degrees[3]],
-        [degrees[0], degrees[1], clampDeg(degrees[2] - 1), degrees[3]],
-        [degrees[0], degrees[2], degrees[1], degrees[3]],
-        [degrees[0], clampDeg(degrees[1] - 1), clampDeg(degrees[2] + 1), degrees[3]],
-        [degrees[0], degrees[1], clampDeg(degrees[2] + 1), degrees[3]],
-      ]
-      const q = buildQuestion(
-        'melodic-dictation',
-        `melody:${mode}:${degrees.join('')}`,
-        'Melodic dictation',
-        'Identify the melody you hear (in solfège).',
-        correct,
-        variants.map((v) => melodyAnswer(mode, v)),
-        undefined,
-        melodicDictationExplanation(mode, degrees, correct)
-      )
-      q.ear = { kind: 'melody', mode, degrees }
-      questions.push(q)
+  MELODY_LEVELS.forEach((pool, levelIndex) => {
+    const level = levelIndex + 1
+    for (const mode of modes) {
+      for (const degrees of pool) {
+        const correct = melodyAnswer(mode, degrees)
+        const q = buildQuestion(
+          'melodic-dictation',
+          `melody:L${level}:${mode}:${degrees.join('')}`,
+          'Melodic dictation',
+          'Identify the melody you hear (in solfège).',
+          correct,
+          melodyVariants(degrees).map((v) => melodyAnswer(mode, v)),
+          undefined,
+          melodicDictationExplanation(mode, degrees, correct)
+        )
+        q.ear = { kind: 'melody', mode, degrees }
+        q.level = level
+        questions.push(q)
+      }
     }
-  }
+  })
   return questions
 }
 
 // ── Rhythm dictation ─────────────────────────────────────────────────────────
-// Curated one-bar 4/4 patterns (each sums to 4 beats). Shorthands keep them legible.
+// Shorthands for one-bar patterns. Each pattern sums to its metre's beats
+// (4/4 = 4, 3/4 = 3, 6/8 = 3 quarter-beats); ties don't change the total.
+const W: RhythmEvent = { dur: 'w' }
 const H: RhythmEvent = { dur: 'h' }
 const Q: RhythmEvent = { dur: 'q' }
+const QD: RhythmEvent = { dur: 'q', dots: 1 }
 const E: RhythmEvent = { dur: '8' }
 const S: RhythmEvent = { dur: '16' }
-const QR: RhythmEvent = { dur: 'q', rest: true }
-const ER: RhythmEvent = { dur: '8', rest: true }
-const QD: RhythmEvent = { dur: 'q', dots: 1 }
+const X: RhythmEvent = { dur: '32' }
 const T: RhythmEvent = { dur: '8', triplet: true } // eighth-note triplet member
+const QR: RhythmEvent = { dur: 'q', rest: true }
+const SR: RhythmEvent = { dur: '16', rest: true }
+const XR: RhythmEvent = { dur: '32', rest: true }
+/** Tie this event to the next (same pitch, held together). */
+const tie = (e: RhythmEvent): RhythmEvent => ({ ...e, tie: true })
 
-// One-bar pattern pools per metre (each pattern sums to the metre's beats:
-// 4/4 = 4, 3/4 = 3, 6/8 = 6 eighths = 3). 6/8 patterns group into two beats of
-// three eighths {EEE | QD | QE}.
-const RHYTHM_POOLS: Record<TimeSig, RhythmEvent[][]> = {
-  '4/4': [
-    [Q, Q, Q, Q],
-    [E, E, Q, Q, Q],
-    [Q, E, E, Q, Q],
-    [E, E, E, E, Q, Q],
-    [H, Q, Q],
-    [Q, Q, H],
-    [QD, E, Q, Q],
-    [Q, QD, E, Q],
-    [S, S, S, S, Q, Q, Q],
-    [E, E, S, S, S, S, Q, Q],
-    [QR, Q, Q, Q],
-    [Q, QR, Q, Q],
-    [H, E, E, Q],
-    [E, E, Q, E, E, Q],
-    [QD, E, E, E, Q],
-    [S, S, E, Q, Q, Q],
-    [Q, E, E, H],
-    [ER, E, Q, Q, Q],
-    // Eighth-note triplets (each T,T,T run = one beat).
-    [Q, Q, T, T, T, Q],
-    [T, T, T, Q, Q, Q],
-    [Q, T, T, T, H],
-    [T, T, T, T, T, T, Q, Q],
-  ],
-  '3/4': [
-    [Q, Q, Q],
-    [H, Q],
-    [Q, H],
-    [Q, Q, E, E],
-    [E, E, Q, Q],
-    [Q, E, E, Q],
-    [QD, E, Q],
-    [E, E, E, E, Q],
-    [S, S, S, S, Q, Q],
-    [Q, T, T, T, Q],
-    [H, E, E],
-  ],
-  '6/8': [
-    [QD, QD],
-    [E, E, E, E, E, E],
-    [QD, E, E, E],
-    [E, E, E, QD],
-    [Q, E, QD],
-    [QD, Q, E],
-    [Q, E, Q, E],
-    [E, E, E, Q, E],
-    [Q, E, E, E, E],
-  ],
+interface RhythmLevelDef {
+  tempo: number
+  pools: Partial<Record<TimeSig, RhythmEvent[][]>>
 }
 
-/** Stable serialization of a rhythm pattern, e.g. "q. 8 q q" / "t8 t8 t8 q" — the choice id. */
+// Three difficulty levels: vocabulary, syncopation, and tempo grow per level.
+const RHYTHM_LEVELS: RhythmLevelDef[] = [
+  // L1 Easy — whole/half/quarter/eighth + simple rests; little syncopation.
+  {
+    tempo: 76,
+    pools: {
+      '4/4': [
+        [W],
+        [H, H],
+        [H, Q, Q],
+        [Q, Q, Q, Q],
+        [Q, Q, H],
+        [E, E, Q, Q, Q],
+        [H, E, E, Q],
+        [QR, Q, Q, Q],
+        [Q, QR, H],
+      ],
+      '3/4': [
+        [Q, Q, Q],
+        [H, Q],
+        [Q, H],
+        [E, E, Q, Q],
+        [Q, QR, Q],
+        [H, E, E],
+        [Q, E, E, Q],
+      ],
+    },
+  },
+  // L2 Medium — sixteenths, dotted figures, triplets, 16th rests, a few ties.
+  {
+    tempo: 100,
+    pools: {
+      '4/4': [
+        [QD, E, Q, Q],
+        [E, E, S, S, S, S, Q, Q],
+        [S, S, S, S, Q, Q, Q],
+        [Q, Q, T, T, T, Q],
+        [T, T, T, Q, Q, Q],
+        [QD, E, QD, E],
+        [Q, tie(Q), Q, Q],
+        [S, SR, S, S, Q, Q, Q],
+      ],
+      '3/4': [
+        [QD, E, Q],
+        [S, S, S, S, Q, Q],
+        [Q, T, T, T, Q],
+        [Q, tie(Q), Q],
+        [E, E, Q, E, E],
+        [QD, E, E, E],
+      ],
+      '6/8': [
+        [QD, QD],
+        [E, E, E, E, E, E],
+        [QD, E, E, E],
+        [E, E, E, QD],
+        [Q, E, QD],
+        [QD, Q, E],
+        [Q, E, Q, E],
+      ],
+    },
+  },
+  // L3 Hard — 32nds, 32nd rests, dense ties and off-beat syncopation.
+  {
+    tempo: 138,
+    pools: {
+      '4/4': [
+        [X, X, X, X, E, Q, Q, Q],
+        [E, tie(Q), E, E, tie(Q), E],
+        [S, S, E, S, S, E, Q, Q],
+        [E, X, XR, X, X, Q, Q, Q],
+        [tie(Q), E, E, Q, Q],
+        [X, X, X, X, X, X, X, X, Q, Q, Q],
+      ],
+      '3/4': [
+        [E, tie(Q), E, Q],
+        [X, X, X, X, E, Q, Q],
+        [S, S, S, S, E, E, Q],
+        [tie(Q), tie(Q), Q],
+      ],
+      '6/8': [
+        [S, S, E, E, QD],
+        [E, E, E, S, S, S, S, E],
+        [QD, E, E, E],
+        [Q, E, Q, E],
+        [E, E, E, QD],
+      ],
+    },
+  },
+]
+
+/** Stable serialization, e.g. "q. 8 q q" / "t8 t8 t8 q" / "q~ q" — the choice id. */
 const rhythmKey = (p: RhythmEvent[]): string =>
   p
     .map(
       (e) =>
-        `${e.rest ? 'r' : ''}${e.triplet ? 't' : ''}${e.dur}${'.'.repeat(e.dots ?? 0)}`
+        `${e.rest ? 'r' : ''}${e.triplet ? 't' : ''}${e.dur}${'.'.repeat(e.dots ?? 0)}${e.tie ? '~' : ''}`
     )
     .join(' ')
 
 const onsetCount = (p: RhythmEvent[]): number => p.filter((e) => !e.rest).length
 
-/** 9. Rhythm dictation: hear a one-bar rhythm in 4/4, 3/4, or 6/8; pick the notation. */
+/** 10. Rhythm dictation: hear a one-bar rhythm; pick its notation. Three levels. */
 function rhythmDictationQuestions(): Question[] {
   const questions: Question[] = []
-  for (const meter of Object.keys(RHYTHM_POOLS) as TimeSig[]) {
-    const pool = RHYTHM_POOLS[meter]
-    const byKey: Record<string, RhythmEvent[]> = {}
-    for (const p of pool) byKey[rhythmKey(p)] = p
-    for (const pattern of pool) {
-      const correct = rhythmKey(pattern)
-      // Distractors: other patterns in the SAME metre, closest onset count first.
-      const distractors = pool
-        .filter((p) => rhythmKey(p) !== correct)
-        .sort(
-          (a, b) =>
-            Math.abs(onsetCount(a) - onsetCount(pattern)) -
-            Math.abs(onsetCount(b) - onsetCount(pattern))
+  RHYTHM_LEVELS.forEach((def, levelIndex) => {
+    const level = levelIndex + 1
+    for (const meter of Object.keys(def.pools) as TimeSig[]) {
+      const pool = def.pools[meter]!
+      const byKey: Record<string, RhythmEvent[]> = {}
+      for (const p of pool) byKey[rhythmKey(p)] = p
+      for (const pattern of pool) {
+        const correct = rhythmKey(pattern)
+        // Distractors: other patterns in the SAME level + metre, closest onset count.
+        const distractors = pool
+          .filter((p) => rhythmKey(p) !== correct)
+          .sort(
+            (a, b) =>
+              Math.abs(onsetCount(a) - onsetCount(pattern)) -
+              Math.abs(onsetCount(b) - onsetCount(pattern))
+          )
+          .map(rhythmKey)
+        const q = buildQuestion(
+          'rhythm-dictation',
+          `rhythm:L${level}:${meter.replace('/', '-')}:${correct.replace(/[\s.~]/g, '_')}`,
+          'Rhythm dictation',
+          `Identify the rhythm you hear (${meter}).`,
+          correct,
+          distractors,
+          undefined,
+          rhythmDictationExplanation(pattern, meter)
         )
-        .map(rhythmKey)
-      const q = buildQuestion(
-        'rhythm-dictation',
-        `rhythm:${meter.replace('/', '-')}:${correct.replace(/[\s.]/g, '_')}`,
-        'Rhythm dictation',
-        `Identify the rhythm you hear (${meter}).`,
-        correct,
-        distractors,
-        undefined,
-        rhythmDictationExplanation(pattern, meter)
-      )
-      q.ear = { kind: 'rhythm', meter, pattern }
-      // Align a pattern to each final (sorted) choice so they render as notation.
-      q.rhythmChoices = q.choices.map((k) => byKey[k])
-      questions.push(q)
+        q.ear = { kind: 'rhythm', meter, tempo: def.tempo, pattern }
+        q.level = level
+        // Align a pattern to each final (sorted) choice so they render as notation.
+        q.rhythmChoices = q.choices.map((k) => byKey[k])
+        questions.push(q)
+      }
     }
-  }
+  })
   return questions
 }
 

@@ -34,10 +34,10 @@ describe('generateAllQuestions', () => {
     //   = (3 + 7 + 12 keys) × 2 × 7 = 42 + 98 + 168 = 308.
     // progressions: 6 major + 5 minor triad progressions × 12 keys = 132,
     // plus 2 idiomatic seventh forms × 12 = 24, total 156.
-    // ear: 12 intervals + 11 progression types + 24 melodic (12 motifs × 2 modes)
-    //   + 42 rhythm (22 in 4/4, 11 in 3/4, 9 in 6/8).
+    // ear: 12 intervals + 11 progression types + 64 melodic (3 levels × 2 modes)
+    //   + 52 rhythm (3 levels × metres).
     expect(questions.length).toBe(
-      12 + 36 + fingeringCount + 168 + 308 + 156 + 12 + 11 + 24 + 42
+      12 + 36 + fingeringCount + 168 + 308 + 156 + 12 + 11 + 64 + 52
     )
   })
 
@@ -55,8 +55,8 @@ describe('generateAllQuestions', () => {
     expect(count('progressions')).toBe(156)
     expect(count('intervals-ear')).toBe(12)
     expect(count('progressions-ear')).toBe(11)
-    expect(count('melodic-dictation')).toBe(24)
-    expect(count('rhythm-dictation')).toBe(42) // 22 (4/4) + 11 (3/4) + 9 (6/8)
+    expect(count('melodic-dictation')).toBe(64) // (10+12+10) motifs × 2 modes
+    expect(count('rhythm-dictation')).toBe(52) // L1 16 + L2 21 + L3 15
   })
 
   it('has unique ids', () => {
@@ -289,7 +289,7 @@ describe('generateAllQuestions', () => {
 
     it('every ear question carries an ear spec, 4 choices, and a tip', () => {
       // 12 intervals + 11 progressions + 24 melodic + 42 rhythm.
-      expect(earQ.length).toBe(12 + 11 + 24 + 42)
+      expect(earQ.length).toBe(12 + 11 + 64 + 52)
       for (const q of earQ) {
         expect(q.ear, q.id).toBeDefined()
         expect(q.choices.length).toBe(4)
@@ -449,70 +449,99 @@ describe('generateAllQuestions', () => {
 
   describe('melodic dictation (étude 9)', () => {
     const melody = questions.filter((x) => x.category === 'Melodic dictation')
+    const specOf = (q: (typeof melody)[number]) =>
+      q.ear as { kind: 'melody'; mode: 'major' | 'minor'; degrees: number[] }
 
-    it('is a 4-note solfège prompt in both modes', () => {
-      expect(melody).toHaveLength(24)
+    it('is a solfège prompt across three levels, both modes', () => {
+      expect(melody).toHaveLength(64)
       for (const q of melody) {
         expect(q.ear?.kind).toBe('melody')
-        const spec = q.ear as { kind: 'melody'; mode: string; degrees: number[] }
-        expect(spec.degrees).toHaveLength(4)
-        // Answer is 4 solfège tokens.
-        expect(q.choices[q.answerIndex].split('–')).toHaveLength(4)
+        const spec = specOf(q)
+        // Answer tokens match the degree count.
+        expect(q.choices[q.answerIndex].split('–')).toHaveLength(spec.degrees.length)
+        expect(q.level, q.id).toBeGreaterThanOrEqual(1)
+        expect(q.level, q.id).toBeLessThanOrEqual(3)
         expect(q.explanation).toBeTruthy()
       }
-      // do mi sol do in major.
-      const m = melody.find((x) => x.id === 'melody:major:0240')!
+      // Every level carries both modes.
+      for (const level of [1, 2, 3]) {
+        const modes = new Set(melody.filter((q) => q.level === level).map((q) => specOf(q).mode))
+        expect([...modes].sort()).toEqual(['major', 'minor'])
+      }
+      // do mi sol do in major (Level 2).
+      const m = melody.find((x) => x.id === 'melody:L2:major:0240')!
       expect(m.choices[m.answerIndex]).toBe('do–mi–sol–do')
-      // do me sol do in minor (flat-3 = "me").
-      const n = melody.find((x) => x.id === 'melody:minor:0240')!
-      expect(n.choices[n.answerIndex]).toBe('do–me–sol–do')
+      // Level 3 includes the complete 8-note scale (do…do).
+      const scale = melody.find((x) => x.id === 'melody:L3:major:01234567')!
+      expect(scale.choices[scale.answerIndex]).toBe('do–re–mi–fa–sol–la–ti–do')
     })
   })
 
   describe('rhythm dictation (étude 10)', () => {
     const rhythm = questions.filter((x) => x.category === 'Rhythm dictation')
-    const BEATS = { h: 2, q: 1, '8': 0.5, '16': 0.25 } as const
-
-    const beatsOf = (e: { dur: 'h' | 'q' | '8' | '16'; dots?: number; triplet?: boolean }) =>
+    const BEATS = { w: 4, h: 2, q: 1, '8': 0.5, '16': 0.25, '32': 0.125 } as const
+    type Ev = {
+      dur: keyof typeof BEATS
+      dots?: number
+      triplet?: boolean
+      rest?: boolean
+      tie?: boolean
+    }
+    const beatsOf = (e: Ev) =>
       e.triplet ? BEATS[e.dur] * (2 / 3) : BEATS[e.dur] * (2 - 1 / 2 ** (e.dots ?? 0))
 
-    const meterOf = (q: (typeof rhythm)[number]) =>
-      (q.ear as { kind: 'rhythm'; meter: keyof typeof METERS }).meter
+    const specOf = (q: (typeof rhythm)[number]) =>
+      q.ear as { kind: 'rhythm'; meter: keyof typeof METERS; pattern: Ev[] }
 
     it('every choice is a valid one-bar pattern in its metre, aligned to choices', () => {
-      expect(rhythm).toHaveLength(42) // 22 (4/4) + 11 (3/4) + 9 (6/8)
+      expect(rhythm).toHaveLength(52) // L1 16 + L2 21 + L3 15
       for (const q of rhythm) {
         expect(q.ear?.kind).toBe('rhythm')
-        const total = METERS[meterOf(q)].totalBeats
+        const total = METERS[specOf(q).meter].totalBeats
         expect(q.rhythmChoices, q.id).toBeDefined()
         expect(q.rhythmChoices!).toHaveLength(q.choices.length)
-        for (const pattern of q.rhythmChoices!) {
+        for (const pattern of q.rhythmChoices! as Ev[][]) {
           const beats = pattern.reduce((s, e) => s + beatsOf(e), 0)
-          expect(beats, q.id).toBeCloseTo(total, 5)
+          expect(beats, q.id).toBeCloseTo(total, 5) // ties don't change the total
         }
+        expect(q.level, q.id).toBeGreaterThanOrEqual(1)
         expect(q.explanation).toBeTruthy()
       }
     })
 
-    it('covers all three metres', () => {
-      const metres = new Set(rhythm.map(meterOf))
-      expect([...metres].sort()).toEqual(['3/4', '4/4', '6/8'])
+    it('covers all three metres and three levels', () => {
+      expect([...new Set(rhythm.map((q) => specOf(q).meter))].sort()).toEqual([
+        '3/4',
+        '4/4',
+        '6/8',
+      ])
+      expect([...new Set(rhythm.map((q) => q.level))].sort()).toEqual([1, 2, 3])
     })
 
-    it('includes eighth-note triplets (runs of three triplet eighths)', () => {
-      const hasTripletRun = (p: { triplet?: boolean }[]) => {
-        let run = 0
-        for (const e of p) {
-          run = e.triplet ? run + 1 : 0
-          if (run === 3) return true
-        }
-        return false
+    it('ties are valid: adjacent, never on a rest or the last event', () => {
+      let tied = 0
+      for (const q of rhythm) {
+        const p = specOf(q).pattern
+        p.forEach((e, i) => {
+          if (!e.tie) return
+          tied++
+          expect(e.rest, q.id).toBeFalsy()
+          expect(i, q.id).toBeLessThan(p.length - 1)
+          expect(p[i + 1].rest, q.id).toBeFalsy()
+        })
       }
-      const withTriplets = rhythm.filter((q) =>
-        (q.ear as { kind: 'rhythm'; pattern: { triplet?: boolean }[] }).pattern &&
-        hasTripletRun((q.ear as { kind: 'rhythm'; pattern: { triplet?: boolean }[] }).pattern)
-      )
-      expect(withTriplets.length).toBeGreaterThanOrEqual(4)
+      expect(tied).toBeGreaterThan(0)
+    })
+
+    it('higher levels add 32nds, whole notes, ties; tempo rises', () => {
+      const hasDur = (lvl: number, dur: string) =>
+        rhythm.some((q) => q.level === lvl && specOf(q).pattern.some((e) => e.dur === dur))
+      expect(hasDur(1, 'w')).toBe(true) // whole notes at Easy
+      expect(hasDur(3, '32')).toBe(true) // 32nds at Hard
+      const tempo = (lvl: number) =>
+        (rhythm.find((q) => q.level === lvl)!.ear as { tempo: number }).tempo
+      expect(tempo(1)).toBeLessThan(tempo(2))
+      expect(tempo(2)).toBeLessThan(tempo(3))
     })
   })
 })

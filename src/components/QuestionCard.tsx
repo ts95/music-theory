@@ -119,6 +119,7 @@ export default function QuestionCard({
   const ear = question.ear
   const earIsInterval = ear?.kind === 'interval'
   const earIsRhythm = ear?.kind === 'rhythm'
+  const earIsMelody = ear?.kind === 'melody'
   const rhythmMeter = ear?.kind === 'rhythm' ? ear.meter : '4/4'
   // Rhythm prompts are pitch-agnostic, so they pick no tonic and aren't realized.
   const [earRoot] = useState(() => {
@@ -135,7 +136,7 @@ export default function QuestionCard({
 
   function playPrompt() {
     if (ear?.kind === 'rhythm') {
-      playRhythm(ear.pattern, ear.meter)
+      playRhythm(ear.pattern, ear.meter, ear.tempo)
       return
     }
     if (!realized) return
@@ -271,6 +272,15 @@ export default function QuestionCard({
               to it.
             </p>
           )}
+          {earIsMelody && earRoot && (
+            <p className="mt-3 text-ink-2">
+              The tonic — <span className="font-mono text-ink">do</span> — is{' '}
+              <span className="font-mono text-ink">
+                {noteToString(earRoot.note)}
+              </span>{' '}
+              here. Solfège names each note's step from it.
+            </p>
+          )}
         </>
       )}
 
@@ -364,7 +374,15 @@ export default function QuestionCard({
               labels={
                 earIsInterval
                   ? undefined
-                  : question.choices[question.answerIndex].split('–')
+                  : earIsMelody
+                    ? question.choices[question.answerIndex]
+                        .split('–')
+                        .map((s, i) =>
+                          realized.target[i]
+                            ? `${s} ${noteToString(realized.target[i][0].note)}`
+                            : s,
+                        )
+                    : question.choices[question.answerIndex].split('–')
               }
             />
           )}
