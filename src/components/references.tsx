@@ -269,11 +269,19 @@ const REFERENCES: Record<string, EtudeReference> = {
         <p className="text-ink-3">
           A dot adds half; a triplet = three in the time of two; a tie holds across.
         </p>
-        <Line label="Metres">
-          {mono('4/4')} four quarters · {mono('3/4')} three quarters ·{' '}
-          {mono('6/8')} two dotted-quarter beats
+        <Line label="Easy">
+          {mono('4/4')} · {mono('3/4')} · {mono('6/8')} · {mono('2/4')}
         </Line>
-        <p className="text-ink-3">The count-in clicks set the tempo and metre.</p>
+        <Line label="Medium">
+          adds {mono('₵')} cut time · {mono('12/8')}
+        </Line>
+        <Line label="Hard">
+          adds {mono('5/4')} (felt 3+2)
+        </Line>
+        <p className="text-ink-3">
+          Each level keeps the earlier metres. The count-in clicks set the tempo
+          and metre.
+        </p>
       </div>
     ),
   },
