@@ -893,14 +893,7 @@ const RHYTHM_LEVELS: RhythmLevelDef[] = [
         [H, E, E],
         [Q, QR, Q],
       ],
-      '6/8': [
-        [QD, QD],
-        [E, E, E, E, E, E],
-        [QD, E, E, E],
-        [E, E, E, QD],
-        [Q, E, Q, E],
-        [QD, Q, E],
-      ],
+      // Easy is simple-metre only — 6/8 (compound) is introduced at Medium.
       '2/4': [
         [Q, Q],
         [H],

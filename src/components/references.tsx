@@ -270,10 +270,10 @@ const REFERENCES: Record<string, EtudeReference> = {
           A dot adds half; a triplet = three in the time of two; a tie holds across.
         </p>
         <Line label="Easy">
-          {mono('4/4')} · {mono('3/4')} · {mono('6/8')} · {mono('2/4')}
+          {mono('4/4')} · {mono('3/4')} · {mono('2/4')}
         </Line>
         <Line label="Medium">
-          adds {mono('₵')} cut time · {mono('12/8')}
+          adds {mono('6/8')} · {mono('₵')} cut time · {mono('12/8')}
         </Line>
         <Line label="Hard">
           adds {mono('5/4')} (felt 3+2)

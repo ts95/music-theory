@@ -29,9 +29,9 @@ describe('generateAllQuestions', () => {
     // seventh forms) across three cumulative key-range levels (3 + 7 + 12 keys
     // per mode) = 13 × (3 + 7 + 12) = 286.
     // ear: 24 intervals (cumulative levels 4+8+12) + 11 progression types
-    //   + 64 melodic (3 levels × 2 modes) + 148 rhythm (3 levels × metres).
+    //   + 64 melodic (3 levels × 2 modes) + 142 rhythm (3 levels × metres).
     expect(questions.length).toBe(
-      12 + 36 + fingeringCount + 308 + 308 + 286 + 24 + 11 + 64 + 148
+      12 + 36 + fingeringCount + 308 + 308 + 286 + 24 + 11 + 64 + 142
     )
   })
 
@@ -50,7 +50,7 @@ describe('generateAllQuestions', () => {
     expect(count('intervals-ear')).toBe(24) // cumulative levels: 4 + 8 + 12
     expect(count('progressions-ear')).toBe(11)
     expect(count('melodic-dictation')).toBe(64) // (10+12+10) motifs × 2 modes
-    expect(count('rhythm-dictation')).toBe(148) // L1 37 + L2 54 + L3 57
+    expect(count('rhythm-dictation')).toBe(142) // L1 31 + L2 54 + L3 57
   })
 
   it('has unique ids', () => {
@@ -288,8 +288,8 @@ describe('generateAllQuestions', () => {
     const earQ = questions.filter((q) => q.ear)
 
     it('every ear question carries an ear spec, distinct choices, and a tip', () => {
-      // 24 intervals + 11 progressions + 64 melodic + 148 rhythm.
-      expect(earQ.length).toBe(24 + 11 + 64 + 148)
+      // 24 intervals + 11 progressions + 64 melodic + 142 rhythm.
+      expect(earQ.length).toBe(24 + 11 + 64 + 142)
       for (const q of earQ) {
         expect(q.ear, q.id).toBeDefined()
         expect(q.choices.length, q.id).toBeGreaterThanOrEqual(4)
@@ -507,7 +507,7 @@ describe('generateAllQuestions', () => {
       q.ear as { kind: 'rhythm'; meter: keyof typeof METERS; pattern: Ev[] }
 
     it('every choice is a valid one-bar pattern in its metre, aligned to choices', () => {
-      expect(rhythm).toHaveLength(148) // L1 37 + L2 54 + L3 57
+      expect(rhythm).toHaveLength(142) // L1 31 + L2 54 + L3 57
       for (const q of rhythm) {
         expect(q.ear?.kind).toBe('rhythm')
         const total = METERS[specOf(q).meter].totalBeats
@@ -544,7 +544,8 @@ describe('generateAllQuestions', () => {
       for (const m of easy) expect(medium.has(m), `medium missing ${m}`).toBe(true)
       for (const m of medium) expect(hard.has(m), `hard missing ${m}`).toBe(true)
       expect(easy.has('2/4')).toBe(true) // Easy adds 2/4
-      expect(medium.has('12/8') && medium.has('2/2')).toBe(true) // Medium adds 12/8 + cut time
+      expect(easy.has('6/8')).toBe(false) // 6/8 is compound — Medium and up only
+      expect(medium.has('6/8') && medium.has('12/8') && medium.has('2/2')).toBe(true)
       expect(hard.has('5/4')).toBe(true) // Hard adds 5/4
     })
 
