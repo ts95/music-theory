@@ -20,6 +20,8 @@ interface StaffProps {
   groups: Voiced[][]
   /** Optional labels (e.g. Roman numerals) shown under each group. */
   labels?: string[]
+  /** Optional second, muted label row under `labels` (e.g. concrete chords). */
+  sublabels?: string[]
   /** Clef to render in (default treble). */
   clef?: 'treble' | 'bass'
   /**
@@ -35,6 +37,7 @@ interface StaffProps {
 export default function Staff({
   groups,
   labels,
+  sublabels,
   clef = 'treble',
   keySignature,
   highlight,
@@ -109,6 +112,7 @@ export default function Staff({
   if (failed) return null
 
   const showLabels = labels && noteXs.length === labels.length
+  const showSublabels = sublabels && noteXs.length === sublabels.length
 
   return (
     <div className="mt-3 overflow-x-auto">
@@ -119,6 +123,19 @@ export default function Staff({
             <span
               key={i}
               className="absolute font-mono text-sm text-ink-2 -translate-x-1/2"
+              style={{ left: noteXs[i] }}
+            >
+              {label}
+            </span>
+          ))}
+        </div>
+      )}
+      {showSublabels && (
+        <div className="relative" style={{ width, height: 18 }}>
+          {sublabels!.map((label, i) => (
+            <span
+              key={i}
+              className="absolute font-mono text-xs text-ink-3 -translate-x-1/2"
               style={{ left: noteXs[i] }}
             >
               {label}

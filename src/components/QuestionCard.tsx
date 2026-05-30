@@ -10,10 +10,12 @@ import { isMuted, play, playEar, playRhythm, stop } from '../audio/player'
 import { useIsTouch, wasTouch } from '../touch'
 import {
   INTERVAL_ROOTS,
+  chordSymbol,
   keySignatureSpec,
   noteToString,
   progressionTonics,
   realizeEar,
+  romanToChord,
   solfege,
   voicedMidi,
 } from '../theory'
@@ -168,6 +170,14 @@ export default function QuestionCard({
   const revealKeySignature =
     earRoot && (ear?.kind === 'melody' || ear?.kind === 'progression')
       ? keySignatureSpec(earRoot.note, ear.mode)
+      : undefined
+  // Progression-by-ear reveal: the concrete chord symbols in the chosen key,
+  // shown under the Roman numerals.
+  const progressionSymbols =
+    ear?.kind === 'progression' && earRoot
+      ? ear.degrees.map((d) =>
+          chordSymbol(romanToChord(earRoot.note, ear.mode, d, false)),
+        )
       : undefined
   // Optional interval "training wheels", revealed only on request and reset
   // each question (the card remounts per question id).
@@ -626,7 +636,13 @@ export default function QuestionCard({
                         )
                     : question.choices[question.answerIndex].split('–')
               }
+              sublabels={progressionSymbols}
             />
+          )}
+          {question.caption && (
+            <p className="mt-3 text-sm leading-relaxed text-ink-2">
+              {question.caption}
+            </p>
           )}
           {question.notation?.onReveal && (
             <Staff

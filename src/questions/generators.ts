@@ -576,6 +576,21 @@ function intervalEarQuestions(): Question[] {
 }
 
 /** 7. Progression ear-training: identify a curated progression by sound. */
+// A succinct note on each progression's character and where it's heard.
+const PROGRESSION_STYLE: Record<string, string> = {
+  'I-IV-V': 'The three primary chords — the bedrock of folk, blues, and early rock ’n’ roll.',
+  'ii-V-I': 'The ii–V–I: the cadential backbone of jazz.',
+  'I-V-vi-IV': 'The “four-chord song” — ubiquitous across modern pop.',
+  'I-vi-IV-V': 'The 1950s doo-wop progression (think “Stand by Me”).',
+  'vi-IV-I-V': 'A pop/rock anthem staple — a rotation of the “axis” progression.',
+  'I-IV-vi-V': 'A bright pop turnaround.',
+  'i-iv-V': 'A minor cadence with a major V borrowed from the harmonic minor — common in classical and flamenco.',
+  'iio-V-i': 'The minor ii°–V–i: the minor-key jazz cadence.',
+  'i-VI-iv-V': 'A wistful minor pop/rock progression.',
+  'VI-iv-i-V': 'A brooding minor pop progression.',
+  'i-iv-V-i': 'A full minor cadence, classical in flavour.',
+}
+
 function progressionEarQuestions(): Question[] {
   const labelOf = (p: Progression) =>
     p.degrees.map((d) => romanLabel(p.mode, d, false)).join('–')
@@ -594,6 +609,7 @@ function progressionEarQuestions(): Question[] {
       progressionEarExplanation(prog.slug, labelOf(prog))
     )
     q.ear = { kind: 'progression', mode: prog.mode, degrees: prog.degrees }
+    q.caption = PROGRESSION_STYLE[prog.slug]
     return q
   })
 }

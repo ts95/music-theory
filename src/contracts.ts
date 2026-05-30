@@ -165,6 +165,8 @@ export interface Question {
   audio?: Record<string, Playable>
   /** A memory tip (rule + worked example) shown when the answer is missed. */
   explanation?: string
+  /** A short note always shown on reveal (e.g. a progression's style/genre). */
+  caption?: string
   /** Present for ear-training questions: what to play (realized from a random root). */
   ear?: EarSpec
   /**
