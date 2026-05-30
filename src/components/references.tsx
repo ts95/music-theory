@@ -73,20 +73,38 @@ const NUMERALS: [string, string][] = [
   ['7', 'seventh'],
 ]
 
-const INTERVALS: [string, number][] = [
-  ['m2', 1],
-  ['M2', 2],
+// Intervals grouped by consonance (semitones). P4 is treated as a (perfect)
+// consonance here; the tritone is the sharpest dissonance.
+const CONSONANT: [string, number][] = [
   ['m3', 3],
   ['M3', 4],
   ['P4', 5],
-  ['TT', 6],
   ['P5', 7],
   ['m6', 8],
   ['M6', 9],
-  ['m7', 10],
-  ['M7', 11],
   ['8ve', 12],
 ]
+const DISSONANT: [string, number][] = [
+  ['m2', 1],
+  ['M2', 2],
+  ['TT', 6],
+  ['m7', 10],
+  ['M7', 11],
+]
+
+/** A row of "name semitones" interval tokens. */
+function IntervalRow({ items }: { items: [string, number][] }) {
+  return (
+    <div className="flex flex-wrap gap-x-3 gap-y-1 font-mono">
+      {items.map(([n, s]) => (
+        <span key={n}>
+          <span className="text-ink">{n}</span>{' '}
+          <span className="text-ink-3">{s}</span>
+        </span>
+      ))}
+    </div>
+  )
+}
 
 const DURATIONS: [string, string][] = [
   ['whole', '4'],
@@ -186,16 +204,19 @@ const REFERENCES: Record<string, EtudeReference> = {
   'intervals-ear': {
     title: 'Intervals (semitones)',
     body: (
-      <div className="space-y-2">
-        <div className="grid grid-cols-3 gap-x-4 gap-y-1 font-mono sm:grid-cols-4">
-          {INTERVALS.map(([n, s]) => (
-            <span key={n}>
-              <span className="text-ink">{n}</span>{' '}
-              <span className="text-ink-3">{s}</span>
-            </span>
-          ))}
+      <div className="space-y-3">
+        <div>
+          <p className="marking mb-1 text-correct">Consonant — stable, restful</p>
+          <IntervalRow items={CONSONANT} />
         </div>
-        <p className="text-ink-3">The lower note plays first — count up from it.</p>
+        <div>
+          <p className="marking mb-1 text-wrong">Dissonant — tense, wants to resolve</p>
+          <IntervalRow items={DISSONANT} />
+        </div>
+        <p className="text-ink-3">
+          The tritone (TT) is the sharpest dissonance. The lower note plays first
+          — count up from it.
+        </p>
       </div>
     ),
   },
