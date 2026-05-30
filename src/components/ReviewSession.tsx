@@ -19,6 +19,8 @@ const TIMED_LIMITS: Record<string, number> = {
   'Diatonic chord': 5000,
   // Reading a staff with inversions/extensions takes longer.
   'Chord recognition': 10000,
+  // Working out a Roman-numeral progression needs a bit more thinking time.
+  Progression: 15000,
 }
 
 interface ReviewSessionProps {
