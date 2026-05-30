@@ -19,6 +19,7 @@ import Button from './components/Button'
 import { isMuted, setMuted } from './audio/player'
 import { formatMinutes, getTodaySeconds } from './time'
 import { getSavedLevel, saveLevel } from './levels'
+import { remainingDue } from './dueCap'
 import { useEtudeTimer } from './useEtudeTimer'
 
 // ---- URL routing: one clean path per étude (and /about) under the Vite base -
@@ -276,9 +277,10 @@ function EtudeScreen({
   )
 
   const now = Date.now()
-  const dueCount = bank.filter((q) =>
-    isDue(getState(data, q.id) ?? initialState(now), now),
-  ).length
+  const dueCount = Math.min(
+    bank.filter((q) => isDue(getState(data, q.id) ?? initialState(now), now)).length,
+    remainingDue(etude.id, now),
+  )
   const studiedCount = bank.filter(
     (q) => (getState(data, q.id)?.reps ?? 0) > 0,
   ).length
@@ -385,6 +387,7 @@ function EtudeScreen({
         <ReviewSession
           key={`${etude.id}:${level}:${sessionKey}`}
           bank={bank}
+          etudeId={etude.id}
           data={data}
           onDataChange={setData}
         />

@@ -2,6 +2,7 @@ import { Fragment } from 'react'
 import type { Etude, Question, SrsData } from '../contracts'
 import { getState, initialState, isDue } from '../srs'
 import { formatMinutes } from '../time'
+import { remainingDue, windowResetAt } from '../dueCap'
 
 interface EtudeMenuProps {
   etudes: Etude[]
@@ -53,6 +54,14 @@ export default function EtudeMenu({
         ).length
         const progress = total > 0 ? (studied / total) * 100 : 0
 
+        // Cap the shown "due" to this étude's 5-hour batch allowance.
+        const dueShown = Math.min(due, remainingDue(e.id, now))
+        const cappedOut = due > 0 && dueShown === 0
+        const resetAt = cappedOut ? windowResetAt(e.id, now) : null
+        const hoursToReset = resetAt
+          ? Math.max(1, Math.ceil((resetAt - now) / 3_600_000))
+          : 0
+
         const showHeader = i === 0 || etudes[i - 1].section !== e.section
         return (
           <Fragment key={e.id}>
@@ -87,12 +96,21 @@ export default function EtudeMenu({
               </span>
               <span className="shrink-0 text-right">
                 <span className="marking block text-ink-3">
-                  <span
-                    className={`font-mono ${due > 0 ? 'text-accent' : 'text-ink-3'}`}
-                  >
-                    {due}
-                  </span>{' '}
-                  due
+                  {cappedOut ? (
+                    <>
+                      next batch{' '}
+                      <span className="font-mono text-ink-2">~{hoursToReset}h</span>
+                    </>
+                  ) : (
+                    <>
+                      <span
+                        className={`font-mono ${dueShown > 0 ? 'text-accent' : 'text-ink-3'}`}
+                      >
+                        {dueShown}
+                      </span>{' '}
+                      due
+                    </>
+                  )}
                 </span>
                 <span className="marking mt-1 block text-ink-3">
                   <span className="font-mono text-ink-2">

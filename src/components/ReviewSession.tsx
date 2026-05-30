@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import type { Question, SrsData } from '../contracts'
 import { getState, grade, initialState, isDue, save, setState } from '../srs'
+import { remainingDue, recordDue, windowResetAt } from '../dueCap'
 import QuestionCard from './QuestionCard'
 import Button from './Button'
 
@@ -18,6 +19,8 @@ const TIMED_LIMITS: Record<string, number> = {
 interface ReviewSessionProps {
   /** The questions to study this session (already scoped to one étude). */
   bank: Question[]
+  /** The étude id, for the per-étude due-batch cap. */
+  etudeId: string
   /** The current SRS store, owned by App (so import/export stay in sync). */
   data: SrsData
   /** Persist + lift store changes back to App. */
@@ -67,6 +70,7 @@ function formatRelative(dueAt: number, now: number): string {
 
 export default function ReviewSession({
   bank,
+  etudeId,
   data,
   onDataChange,
 }: ReviewSessionProps) {
@@ -80,7 +84,9 @@ export default function ReviewSession({
   // and shuffling so the order can't be memorized.
   const queue = useMemo(() => {
     const now = Date.now()
-    return shuffle(practiceAll ? bank : dueQueue(bank, data, now))
+    if (practiceAll) return shuffle(bank) // explicit override — uncapped
+    // Cap a due session to this étude's remaining batch allowance.
+    return shuffle(dueQueue(bank, data, now)).slice(0, remainingDue(etudeId, now))
     // queueToken forces a rebuild (and reshuffle) when the user restarts a session.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bank, queueToken, practiceAll])
@@ -113,6 +119,8 @@ export default function ReviewSession({
     const updated = setState(dataRef.current, q.id, next)
     save(updated)
     onDataChange(updated)
+    // Each answered due exercise counts against the étude's 5-hour batch.
+    if (!practiceAll) recordDue(etudeId, Date.now())
   }
 
   function handleSelect(choiceIndex: number) {
@@ -189,6 +197,10 @@ export default function ReviewSession({
   const now = Date.now()
   const moreDue = dueQueue(bank, data, now).length
   const nextDue = soonestDueAt(bank, data, now)
+  // How many of those are still allowed in this window, and when the cap lifts.
+  const allowed = Math.min(moreDue, remainingDue(etudeId, now))
+  const resetAt = windowResetAt(etudeId, now)
+  const cappedOut = moreDue > 0 && allowed === 0
 
   return (
     <article className="rise relative overflow-hidden rounded-3xl border border-rule bg-card px-6 py-12 text-center shadow-[0_22px_60px_-32px_rgba(33,28,21,0.5)] sm:px-10 sm:py-14">
@@ -211,13 +223,15 @@ export default function ReviewSession({
       )}
 
       <p className="marking mt-3 text-ink-3">
-        {moreDue > 0
-          ? `${moreDue} item${moreDue === 1 ? '' : 's'} still due`
-          : `Next review ${formatRelative(nextDue, now)}`}
+        {allowed > 0
+          ? `${allowed} item${allowed === 1 ? '' : 's'} still due`
+          : cappedOut && resetAt
+            ? `Batch done — next batch ${formatRelative(resetAt, now)}`
+            : `Next review ${formatRelative(nextDue, now)}`}
       </p>
 
       <div className="mt-8 flex flex-wrap justify-center gap-3">
-        {moreDue > 0 && (
+        {allowed > 0 && (
           <Button onClick={() => startSession(false)}>Study again</Button>
         )}
         <Button variant="secondary" onClick={() => startSession(true)}>
