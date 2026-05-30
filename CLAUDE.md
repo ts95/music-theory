@@ -142,6 +142,9 @@ tests/e2e/           # Playwright browser tests (smoke.spec.ts). Config: playwri
 lists them; every `Question` carries an `etudeId`, and the UI scopes a session + its progress to one
 étude. To add an étude: add an `ETUDES` entry, generate questions tagged with its id, done.
 
+**Keep the README current:** `README.md` carries the public feature list and étude roster. Update it
+periodically — whenever you add an étude or a notable feature — so it doesn't drift out of date.
+
 **Hover-to-play audio:** generators attach a `Question.audio` map (choice string → `Playable` of MIDI
 events) computed via `theory/midi.ts` — never parse display strings back into pitches. `audio/player.ts`
 is the only Tone.js consumer (dynamically imported, synthesized PolySynth); QuestionCard calls
