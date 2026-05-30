@@ -12,6 +12,8 @@ interface EtudeMenuProps {
   /** Seconds practiced today, keyed by étude id. */
   practiceSeconds: Record<string, number>
   onSelect: (etudeId: string) => void
+  /** Clear all études' practice time for today. */
+  onResetAll: () => void
 }
 
 /** A score "table of contents": one clickable row per étude. */
@@ -21,6 +23,7 @@ export default function EtudeMenu({
   data,
   practiceSeconds,
   onSelect,
+  onResetAll,
 }: EtudeMenuProps) {
   const now = Date.now()
 
@@ -143,7 +146,16 @@ export default function EtudeMenu({
         className="rise mt-8 rounded-2xl border border-rule bg-card px-5 py-4 sm:px-7"
         style={{ animationDelay: `${260 + etudes.length * 70}ms` }}
       >
-        <p className="marking text-ink-3">Practice today</p>
+        <div className="flex items-center justify-between gap-4">
+          <p className="marking text-ink-3">Practice today</p>
+          <button
+            type="button"
+            onClick={onResetAll}
+            className="marking text-ink-3 transition-colors hover:text-wrong"
+          >
+            reset all
+          </button>
+        </div>
         <dl className="mt-3 space-y-1.5">
           {sectionMinutes.map(({ section, minutes }) => (
             <div

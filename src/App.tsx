@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
 import type { Etude, Question, SrsData } from './contracts'
 import { ETUDES, generateAllQuestions } from './questions'
 import {
@@ -19,7 +26,7 @@ import InfoBox from './components/InfoBox'
 import { etudeReference } from './components/references'
 import Button from './components/Button'
 import { isMuted, setMuted } from './audio/player'
-import { formatMinutes, getTodaySeconds } from './time'
+import { formatMinutes, getTodaySeconds, resetAllSeconds } from './time'
 import { getSavedLevel, saveLevel } from './levels'
 import { remainingDue } from './dueCap'
 import { useEtudeTimer } from './useEtudeTimer'
@@ -60,6 +67,8 @@ export default function App() {
   const [soundOn, setSoundOn] = useState(() => !isMuted())
   // Bumped on import so the session restarts against the new data.
   const [sessionKey, setSessionKey] = useState(0)
+  // Force a re-read of today's practice time after a global reset.
+  const [, refreshPractice] = useReducer((n: number) => n + 1, 0)
   const [notice, setNotice] = useState<{
     kind: 'ok' | 'error'
     text: string
@@ -223,6 +232,10 @@ export default function App() {
                 data={data}
                 practiceSeconds={getTodaySeconds()}
                 onSelect={navigate}
+                onResetAll={() => {
+                  resetAllSeconds()
+                  refreshPractice()
+                }}
               />
             </main>
           </>
@@ -299,7 +312,13 @@ function EtudeScreen({
   const studiedCount = bank.filter(
     (q) => (getState(data, q.id)?.reps ?? 0) > 0,
   ).length
-  const practiceSeconds = useEtudeTimer(etude.id)
+  // The question currently shown (from ReviewSession), so the timer can cap
+  // counted time per exercise at 15 s.
+  const [currentQid, setCurrentQid] = useState<string | null>(null)
+  const { seconds: practiceSeconds, reset: resetPractice } = useEtudeTimer(
+    etude.id,
+    currentQid,
+  )
   const reference = etudeReference(etude.id)
 
   return (
@@ -384,6 +403,15 @@ function EtudeScreen({
           ))}
         </dl>
 
+        <button
+          type="button"
+          onClick={resetPractice}
+          className="marking rise mt-3 text-ink-3 transition-colors hover:text-wrong"
+          style={{ animationDelay: '150ms' }}
+        >
+          reset today’s time
+        </button>
+
         {noticeBanner}
       </header>
 
@@ -414,6 +442,7 @@ function EtudeScreen({
           etudeId={etude.id}
           data={data}
           onDataChange={setData}
+          onQuestionChange={setCurrentQid}
         />
       </main>
     </>

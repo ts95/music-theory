@@ -152,9 +152,12 @@ is the only Tone.js consumer (dynamically imported, synthesized PolySynth); Ques
 
 **Practice time** (`src/time.ts` + `src/useEtudeTimer.ts`): per-étude seconds for *today only*, in
 localStorage. Reset at local midnight is **lazy** — any read/write whose stored date ≠ today starts fresh
-(no background timer). `useEtudeTimer(etudeId)` accrues active time (tab visible + interaction within ~60s)
-while an étude screen is open and returns today's live seconds; shown on the menu rows and the étude
-header. Keep it presence-based and independent of SRS/grading.
+(no background timer). `useEtudeTimer(etudeId, exerciseKey?)` accrues active time (tab visible + interaction
+within ~60s) while an étude screen is open and returns today's live seconds plus a `reset()`; shown on the
+menu rows and the étude header. To guard against idling on the étude screen, **at most 15 s is counted per
+exercise** — pass the current question id as `exerciseKey` and the budget resets when it changes. Users can
+clear time per étude (header) or globally (menu) via `resetEtudeSeconds` / `resetAllSeconds`. Keep it
+presence-based and independent of SRS/grading.
 
 **Ear-training études** (`ear?: EarSpec` on a Question): the *question* owns the audio (not the choices).
 `theory/eartraining.ts` `realizeEar(spec, root)` turns a relative spec into voiced notes from a root the

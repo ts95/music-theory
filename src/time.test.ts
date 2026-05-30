@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { addSeconds, getTodaySeconds, localDate } from './time'
+import {
+  addSeconds,
+  getTodaySeconds,
+  localDate,
+  resetAllSeconds,
+  resetEtudeSeconds,
+} from './time'
 
 // Minimal in-memory localStorage stub (vitest runs in node).
 const store: Record<string, string> = {}
@@ -52,5 +58,19 @@ describe('practice time store', () => {
 
   it('localDate formats as YYYY-MM-DD', () => {
     expect(localDate(new Date(2026, 0, 3))).toBe('2026-01-03')
+  })
+
+  it('resets one étude, leaving the others', () => {
+    addSeconds('keys', 60, DAY)
+    addSeconds('chords', 30, DAY)
+    resetEtudeSeconds('keys', DAY)
+    expect(getTodaySeconds(DAY)).toEqual({ chords: 30 })
+  })
+
+  it('resets all études for today', () => {
+    addSeconds('keys', 60, DAY)
+    addSeconds('chords', 30, DAY)
+    resetAllSeconds(DAY)
+    expect(getTodaySeconds(DAY)).toEqual({})
   })
 })

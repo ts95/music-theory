@@ -63,7 +63,9 @@ progress, chosen from a table-of-contents home screen. Ten études today, in thr
 - 🪶 **Gentle pacing.** Each étude serves at most **10 due cards per 5-hour window**, so a backlog never
   feels overwhelming.
 - 📈 **Daily practice time.** Each étude tracks active minutes practiced **today** (it pauses when you
-  switch away), with per-section and overall totals on the home screen; resets at midnight.
+  switch away, and counts at most 15 s per question so idling on a card doesn't inflate it), with
+  per-section and overall totals on the home screen; resets at midnight, or on demand per étude or
+  globally.
 - 📖 **About page.** A short explainer on how (and why) spaced repetition works.
 - 💾 **Progress that's yours.** Saved to your browser, with versioned JSON **export/import** to back up
   or move between devices.

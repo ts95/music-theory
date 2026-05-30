@@ -67,3 +67,16 @@ export function addSeconds(
   seconds[etudeId] = (seconds[etudeId] ?? 0) + secs
   write({ date: today, seconds })
 }
+
+/** Clear one étude's practice time for today. */
+export function resetEtudeSeconds(etudeId: string, today: string = localDate()): void {
+  const stored = read()
+  const seconds = stored && stored.date === today ? { ...stored.seconds } : {}
+  delete seconds[etudeId]
+  write({ date: today, seconds })
+}
+
+/** Clear all practice time for today. */
+export function resetAllSeconds(today: string = localDate()): void {
+  write({ date: today, seconds: {} })
+}

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Question, SrsData } from '../contracts'
 import { getState, grade, initialState, isDue, save, setState } from '../srs'
 import { remainingDue, recordDue, windowResetAt } from '../dueCap'
@@ -32,6 +32,8 @@ interface ReviewSessionProps {
   data: SrsData
   /** Persist + lift store changes back to App. */
   onDataChange: (data: SrsData) => void
+  /** The id of the question currently shown (null on the summary), for the timer. */
+  onQuestionChange?: (questionId: string | null) => void
 }
 
 /** The due questions (presentation order is randomized later, see `shuffle`). */
@@ -80,6 +82,7 @@ export default function ReviewSession({
   etudeId,
   data,
   onDataChange,
+  onQuestionChange,
 }: ReviewSessionProps) {
   // A "queue token" lets us rebuild the queue on demand (start/restart).
   const [queueToken, setQueueToken] = useState(0)
@@ -164,6 +167,13 @@ export default function ReviewSession({
 
   const total = queue.length
   const finished = index >= total
+
+  // Tell the timer which exercise is showing (null on the summary) so it can
+  // cap counted time per question.
+  const currentId = finished ? null : (queue[index]?.id ?? null)
+  useEffect(() => {
+    onQuestionChange?.(currentId)
+  }, [currentId, onQuestionChange])
 
   if (!finished) {
     const q = queue[index]
