@@ -160,6 +160,16 @@ export default function QuestionCard({
     if (!realized) return
     playEar([], realized.reference.map((ev) => ev.map(voicedMidi)), realized.style)
   }
+  // Hint (melody): play the whole scale from the tonic up to the octave, so you
+  // can anchor each solfège syllable if you're struggling.
+  function playScale() {
+    if (!earRoot || ear?.kind !== 'melody') return
+    const scale = realizeEar(
+      { kind: 'melody', mode: ear.mode, degrees: [0, 1, 2, 3, 4, 5, 6, 7] },
+      earRoot,
+    )
+    playEar([], scale.target.map((ev) => ev.map(voicedMidi)), 'melodic')
+  }
   // Intervals only: sound both notes at once (one block event).
   function playHarmonic() {
     if (!realized) return
@@ -272,6 +282,15 @@ export default function QuestionCard({
                 className="marking text-ink-3 transition-colors hover:text-ink"
               >
                 {earIsInterval ? 'hear lower note' : 'hear tonic'}
+              </button>
+            )}
+            {earIsMelody && (
+              <button
+                type="button"
+                onClick={playScale}
+                className="marking text-ink-3 transition-colors hover:text-ink"
+              >
+                hear scale
               </button>
             )}
             {isMuted() && (
