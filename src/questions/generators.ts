@@ -426,40 +426,48 @@ function spellAndRegister(
  * idiomatic ii–V–I / ii°–V–i. Distractors: the same progression in other keys
  * (strong) plus a one-chord variant within the same key.
  */
+// Three cumulative difficulty levels by key range (key-signature accidentals),
+// mirroring Chord Recognition — the dominant difficulty when spelling a
+// progression: Easy ≤1 accidental (C/G/F + relative minors), Medium ≤3, Hard all.
+const PROGRESSION_LEVEL_ACCIDENTALS = [1, 3, 12]
+
 function progressionQuestions(): Question[] {
   const questions: Question[] = []
-  for (const prog of PROGRESSIONS) {
-    const sevenths = SEVENTH_PROGRESSION_SLUGS.has(prog.slug)
-      ? [false, true]
-      : [false]
-    for (const seventh of sevenths) {
-      const label = progressionLabel(prog, seventh)
-      const modeKeys = KEYS.map((key) => keyForMode(key, prog.mode))
-      const lastIndex = prog.degrees.length - 1
-      for (const { tonic, name } of modeKeys) {
-        const audio: Record<string, Playable> = {}
-        const correct = spellAndRegister(tonic, prog, seventh, audio)
+  PROGRESSION_LEVEL_ACCIDENTALS.forEach((maxAccidentals, levelIndex) => {
+    const level = levelIndex + 1
+    for (const prog of PROGRESSIONS) {
+      const sevenths = SEVENTH_PROGRESSION_SLUGS.has(prog.slug)
+        ? [false, true]
+        : [false]
+      for (const seventh of sevenths) {
+        const label = progressionLabel(prog, seventh)
+        const modeKeys = KEYS.map((key) => keyForMode(key, prog.mode))
+        const lastIndex = prog.degrees.length - 1
+        for (const key of KEYS) {
+          if (accidentalCount(key.majorTonic) > maxAccidentals) continue
+          const { tonic, name } = keyForMode(key, prog.mode)
+          const audio: Record<string, Playable> = {}
+          const correct = spellAndRegister(tonic, prog, seventh, audio)
 
-        const distractors: string[] = []
-        // Same-key variant that keeps the FIRST chord but alters the last, so
-        // "starts on the tonic chord" is no longer a giveaway.
-        const sameStart: Progression = {
-          ...prog,
-          degrees: prog.degrees.map((d, i) =>
-            i === lastIndex ? (d + 2) % 7 : d
-          ),
-        }
-        distractors.push(spellAndRegister(tonic, sameStart, seventh, audio))
-        // Then the same progression transposed to other keys of this mode.
-        for (const other of modeKeys) {
-          if (other.tonic === tonic) continue
-          distractors.push(spellAndRegister(other.tonic, prog, seventh, audio))
-        }
+          const distractors: string[] = []
+          // Same-key variant that keeps the FIRST chord but alters the last, so
+          // "starts on the tonic chord" is no longer a giveaway.
+          const sameStart: Progression = {
+            ...prog,
+            degrees: prog.degrees.map((d, i) =>
+              i === lastIndex ? (d + 2) % 7 : d
+            ),
+          }
+          distractors.push(spellAndRegister(tonic, sameStart, seventh, audio))
+          // Then the same progression transposed to other keys of this mode.
+          for (const other of modeKeys) {
+            if (other.tonic === tonic) continue
+            distractors.push(spellAndRegister(other.tonic, prog, seventh, audio))
+          }
 
-        questions.push(
-          buildQuestion(
+          const q = buildQuestion(
             'progressions',
-            `prog:${asciiTonicId(tonic)}:${prog.mode}:${prog.slug}${seventh ? ':7' : ':3'}`,
+            `prog:L${level}:${asciiTonicId(tonic)}:${prog.mode}:${prog.slug}${seventh ? ':7' : ':3'}`,
             'Progression',
             `In ${name}, spell the progression ${label}.`,
             correct,
@@ -472,10 +480,12 @@ function progressionQuestions(): Question[] {
               prog.slug
             )
           )
-        )
+          q.level = level
+          questions.push(q)
+        }
       }
     }
-  }
+  })
   return questions
 }
 

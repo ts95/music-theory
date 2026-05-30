@@ -24,12 +24,13 @@ describe('generateAllQuestions', () => {
     // chords by degree: 24 key/mode combos × 7 (trimmed triads + V7) = 168.
     // chord recognition: 3 levels by key range × 2 modes × 7 degrees
     //   = (3 + 7 + 12 keys) × 2 × 7 = 42 + 98 + 168 = 308.
-    // progressions: 6 major + 5 minor triad progressions × 12 keys = 132,
-    // plus 2 idiomatic seventh forms × 12 = 24, total 156.
+    // progressions: 13 progression-variants (6 major + 5 minor triad + 2
+    // seventh forms) across three cumulative key-range levels (3 + 7 + 12 keys
+    // per mode) = 13 × (3 + 7 + 12) = 286.
     // ear: 24 intervals (cumulative levels 4+8+12) + 11 progression types
     //   + 64 melodic (3 levels × 2 modes) + 52 rhythm (3 levels × metres).
     expect(questions.length).toBe(
-      12 + 36 + fingeringCount + 168 + 308 + 156 + 24 + 11 + 64 + 52
+      12 + 36 + fingeringCount + 168 + 308 + 286 + 24 + 11 + 64 + 52
     )
   })
 
@@ -44,7 +45,7 @@ describe('generateAllQuestions', () => {
     expect(count('fingerings')).toBe(18) // both hands × (2 + 4 + 12) keys
     expect(count('chords')).toBe(168)
     expect(count('chord-recognition')).toBe(308)
-    expect(count('progressions')).toBe(156)
+    expect(count('progressions')).toBe(286) // 13 variants × (3+7+12) keys
     expect(count('intervals-ear')).toBe(24) // cumulative levels: 4 + 8 + 12
     expect(count('progressions-ear')).toBe(11)
     expect(count('melodic-dictation')).toBe(64) // (10+12+10) motifs × 2 modes
@@ -104,15 +105,15 @@ describe('generateAllQuestions', () => {
   })
 
   it('spot-checks: progressions', () => {
-    const cMajIIVI = questions.find((x) => x.id === 'prog:C:major:ii-V-I:3')
+    const cMajIIVI = questions.find((x) => x.id === 'prog:L1:C:major:ii-V-I:3')
     expect(cMajIIVI).toBeDefined()
     expect(cMajIIVI!.choices[cMajIIVI!.answerIndex]).toBe('Dm – G – C')
 
-    const aMin = questions.find((x) => x.id === 'prog:A:minor:iio-V-i:3')
+    const aMin = questions.find((x) => x.id === 'prog:L1:A:minor:iio-V-i:3')
     expect(aMin).toBeDefined()
     expect(aMin!.choices[aMin!.answerIndex]).toBe('B° – E – Am')
 
-    const cMajSeventh = questions.find((x) => x.id === 'prog:C:major:ii-V-I:7')
+    const cMajSeventh = questions.find((x) => x.id === 'prog:L1:C:major:ii-V-I:7')
     expect(cMajSeventh).toBeDefined()
     expect(cMajSeventh!.prompt).toBe(
       'In C major, spell the progression ii7–V7–Imaj7.'
@@ -172,7 +173,7 @@ describe('generateAllQuestions', () => {
       expect(fMaj.audio!['F']).toEqual({ kind: 'chord', events: [[65, 69, 72]] })
 
       // Étude 3 C major I–IV–V progression.
-      const prog = questions.find((x) => x.id === 'prog:C:major:I-IV-V:3')!
+      const prog = questions.find((x) => x.id === 'prog:L1:C:major:I-IV-V:3')!
       expect(prog.audio!['C – F – G']).toEqual({
         kind: 'progression',
         events: [
@@ -228,7 +229,7 @@ describe('generateAllQuestions', () => {
     })
 
     it('progressions offer more than one option starting on the same chord', () => {
-      const q = questions.find((x) => x.id === 'prog:C:major:I-IV-V:3')!
+      const q = questions.find((x) => x.id === 'prog:L1:C:major:I-IV-V:3')!
       const firstChords = q.choices.map((c) => c.split(' – ')[0])
       expect(firstChords.filter((fc) => fc === 'C').length).toBeGreaterThanOrEqual(2)
     })
@@ -236,7 +237,7 @@ describe('generateAllQuestions', () => {
     it('keeps the question counts and ids stable', () => {
       expect(scaleQ).toHaveLength(36)
       expect(chordQ).toHaveLength(168)
-      expect(progQ).toHaveLength(156)
+      expect(progQ).toHaveLength(286)
     })
   })
 
@@ -270,7 +271,7 @@ describe('generateAllQuestions', () => {
     })
 
     it('progression tip reads out the numerals', () => {
-      const q = questions.find((x) => x.id === 'prog:C:major:ii-V-I:3')!
+      const q = questions.find((x) => x.id === 'prog:L1:C:major:ii-V-I:3')!
       expect(q.explanation).toContain('ii=Dm')
       expect(q.explanation).toContain('V=G')
       expect(q.explanation).toContain('I=C')

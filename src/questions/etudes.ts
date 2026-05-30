@@ -45,6 +45,7 @@ export const ETUDES: Etude[] = [
     number: 6,
     title: 'Progressions',
     subtitle: 'Roman-numeral progressions → concrete chords',
+    levels: ['Easy', 'Medium', 'Hard'],
   },
   {
     id: 'intervals-ear',
