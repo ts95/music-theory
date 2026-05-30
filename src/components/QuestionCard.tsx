@@ -1,6 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import type { Question } from '../contracts'
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from 'react'
+import type { Playable, Question } from '../contracts'
 import { isMuted, play, playEar, playRhythm, stop } from '../audio/player'
+import { useIsTouch, wasTouch } from '../touch'
 import {
   INTERVAL_ROOTS,
   keySignatureSpec,
@@ -31,7 +38,7 @@ interface QuestionCardProps {
   onTimeout: () => void
 }
 
-type ChoiceState = 'idle' | 'correct' | 'wrong' | 'muted'
+type ChoiceState = 'idle' | 'correct' | 'wrong' | 'muted' | 'armed'
 
 // `selected` sentinel for "I don't know" (kept in sync with ReviewSession).
 const DONT_KNOW = -1
@@ -55,6 +62,9 @@ function rowClasses(state: ChoiceState): string {
       return 'bg-wrong/10 ring-2 ring-wrong'
     case 'muted':
       return 'bg-card/60 ring-1 ring-rule opacity-55'
+    case 'armed':
+      // Touch: tapped once, awaiting a confirming second tap.
+      return 'bg-paper ring-2 ring-ink -translate-y-0.5'
     default:
       return 'bg-card ring-1 ring-rule hover:ring-ink hover:bg-paper hover:-translate-y-0.5'
   }
@@ -69,6 +79,8 @@ function badgeClasses(state: ChoiceState): string {
       return 'bg-wrong text-card ring-wrong'
     case 'muted':
       return 'text-ink-3 ring-rule'
+    case 'armed':
+      return 'bg-ink text-paper ring-ink'
     default:
       return 'text-ink-2 ring-rule group-hover:bg-ink group-hover:text-paper group-hover:ring-ink'
   }
@@ -165,6 +177,16 @@ export default function QuestionCard({
   // lit; 0..7 = the scale degree currently sounding (for the solfège readout).
   const [scaleStep, setScaleStep] = useState<number | null>(null)
 
+  // Touch answering: a tap arms a choice (selects + previews it) instead of
+  // committing; a second tap on the armed choice confirms. Pressing and dragging
+  // across the list re-arms each option under the finger (the hover-scrub
+  // equivalent). `armed` is a choice index, or DONT_KNOW, or null. Mouse is
+  // unaffected (single click answers). Resets per question via the key remount.
+  const isTouch = useIsTouch()
+  const [armed, setArmed] = useState<number | null>(null)
+  const armedRef = useRef<number | null>(null)
+  const pressingRef = useRef(false)
+
   function playPrompt() {
     if (ear?.kind === 'rhythm') {
       playRhythm(ear.pattern, ear.meter, ear.tempo)
@@ -213,6 +235,53 @@ export default function QuestionCard({
   // which roughly halves the options. (P4 grouped as a consonance here.)
   const isConsonant =
     intervalSemis !== null && [3, 4, 5, 7, 8, 9, 12].includes(intervalSemis)
+
+  // ── Touch answering ──────────────────────────────────────────────────────
+  const playableFor = (choiceIndex: number): Playable | undefined =>
+    question.audio?.[question.choices[choiceIndex]]
+  function arm(choiceIndex: number) {
+    armedRef.current = choiceIndex
+    setArmed(choiceIndex)
+    const playable = choiceIndex >= 0 ? playableFor(choiceIndex) : undefined
+    if (playable) play(playable)
+  }
+  /** The choice index under a touch point (or DONT_KNOW), via its data attr. */
+  function choiceAtPoint(e: ReactPointerEvent): number | null {
+    const el = document
+      .elementFromPoint(e.clientX, e.clientY)
+      ?.closest('[data-choice]') as HTMLElement | null | undefined
+    if (!el) return null
+    const v = Number(el.dataset.choice)
+    return Number.isNaN(v) ? null : v
+  }
+  // Touch-down arms the option (and previews it); a second down on the already-
+  // armed option confirms. Dragging re-arms each option the finger crosses.
+  function onListPointerDown(e: ReactPointerEvent) {
+    if (answered || e.pointerType === 'mouse') return
+    pressingRef.current = true
+    const i = choiceAtPoint(e)
+    if (i === null) return
+    if (armedRef.current === i) onSelect(i)
+    else arm(i)
+  }
+  function onListPointerMove(e: ReactPointerEvent) {
+    if (answered || !pressingRef.current) return
+    const i = choiceAtPoint(e)
+    if (i !== null && i !== armedRef.current) arm(i)
+  }
+  const endPress = () => {
+    pressingRef.current = false
+  }
+  // Click answers on mouse (touch is handled on pointer-down above).
+  function onChoiceClick(choiceIndex: number) {
+    if (!answered && !wasTouch()) onSelect(choiceIndex)
+  }
+  // "I don't know": same arm-then-confirm on touch; single click on mouse.
+  function onDontKnowDown(e: ReactPointerEvent) {
+    if (answered || e.pointerType === 'mouse') return
+    if (armedRef.current === DONT_KNOW) onDontKnow()
+    else arm(DONT_KNOW)
+  }
 
   // Auto-play once when an ear question mounts (audio is already unlocked by the
   // click that opened the étude).
@@ -329,8 +398,14 @@ export default function QuestionCard({
               {[0, 1, 2, 3, 4, 5, 6, 7].map((d) => (
                 <span
                   key={d}
-                  onPointerEnter={scaleIdle ? () => playScaleNote(d) : undefined}
-                  onPointerLeave={scaleIdle ? () => stop() : undefined}
+                  // Mouse hovers to hear a degree; touch taps it.
+                  onPointerEnter={(e) => {
+                    if (e.pointerType === 'mouse' && scaleIdle) playScaleNote(d)
+                  }}
+                  onPointerLeave={(e) => {
+                    if (e.pointerType === 'mouse') stop()
+                  }}
+                  onClick={scaleIdle ? () => playScaleNote(d) : undefined}
                   className={`rounded px-2 py-1 transition-colors ${
                     d === scaleStep ? 'bg-accent text-paper' : 'text-ink-2'
                   } ${scaleIdle ? 'cursor-pointer hover:bg-rule/60' : ''}`}
@@ -398,7 +473,13 @@ export default function QuestionCard({
         </>
       )}
 
-      <ul className="mt-7 space-y-2.5">
+      <ul
+        className="mt-7 space-y-2.5 touch-none"
+        onPointerDown={onListPointerDown}
+        onPointerMove={onListPointerMove}
+        onPointerUp={endPress}
+        onPointerCancel={endPress}
+      >
         {order.map((choiceIndex, pos) => {
           const isAnswer = choiceIndex === question.answerIndex
           const isChosen = choiceIndex === selected
@@ -408,6 +489,8 @@ export default function QuestionCard({
             if (isAnswer) state = 'correct'
             else if (isChosen) state = 'wrong'
             else state = 'muted'
+          } else if (armed === choiceIndex) {
+            state = 'armed'
           }
 
           const choiceText = question.choices[choiceIndex]
@@ -418,13 +501,20 @@ export default function QuestionCard({
               key={choiceIndex}
               className="ink"
               style={{ animationDelay: `${pos * 60}ms` }}
-              onPointerEnter={playable ? () => play(playable) : undefined}
-              onPointerLeave={playable ? () => stop() : undefined}
+              // Mouse hover previews; touch preview is handled by the list's
+              // pointer-down/move (drag-scrub) above.
+              onPointerEnter={(e) => {
+                if (e.pointerType === 'mouse' && playable) play(playable)
+              }}
+              onPointerLeave={(e) => {
+                if (e.pointerType === 'mouse') stop()
+              }}
             >
               <button
                 type="button"
+                data-choice={choiceIndex}
                 disabled={answered}
-                onClick={() => onSelect(choiceIndex)}
+                onClick={() => onChoiceClick(choiceIndex)}
                 className={`group flex w-full items-center gap-4 rounded-2xl px-4 py-3.5 text-left transition-all duration-200 disabled:cursor-default ${rowClasses(state)}`}
               >
                 <span
@@ -444,13 +534,17 @@ export default function QuestionCard({
                     {choiceText}
                   </span>
                 )}
-                {playable && (
-                  <span
-                    aria-hidden
-                    className="shrink-0 text-ink-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-                  >
-                    ♪
-                  </span>
+                {state === 'armed' ? (
+                  <span className="marking shrink-0 text-accent">tap again</span>
+                ) : (
+                  playable && (
+                    <span
+                      aria-hidden
+                      className="shrink-0 text-ink-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+                    >
+                      ♪
+                    </span>
+                  )
                 )}
               </button>
             </li>
@@ -460,33 +554,47 @@ export default function QuestionCard({
 
       {/* "I don't know" — an honest miss; reveals the answer and tells the SRS
           to bring this back soon. Shown until answered, or kept (red) if chosen. */}
-      {(!answered || selected === DONT_KNOW) && (
-        <button
-          type="button"
-          disabled={answered}
-          onClick={onDontKnow}
-          className={`mt-2.5 flex w-full items-center gap-4 rounded-2xl px-4 py-3 text-left transition-all duration-200 disabled:cursor-default ${
-            selected === DONT_KNOW
-              ? 'bg-wrong/10 ring-2 ring-wrong'
-              : 'bg-card/50 ring-1 ring-rule hover:-translate-y-0.5 hover:bg-paper hover:ring-ink'
-          }`}
-        >
-          <span
-            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-mono text-sm font-medium ring-1 transition-colors duration-200 ${
-              selected === DONT_KNOW
-                ? 'bg-wrong text-card ring-wrong'
-                : 'text-ink-3 ring-rule'
-            }`}
-          >
-            {selected === DONT_KNOW ? '✕' : '0'}
-          </span>
-          <span
-            className={`flex-1 ${selected === DONT_KNOW ? 'text-ink' : 'text-ink-2'}`}
-          >
-            I don’t know
-          </span>
-        </button>
-      )}
+      {(!answered || selected === DONT_KNOW) &&
+        (() => {
+          const dkArmed = !answered && armed === DONT_KNOW
+          return (
+            <button
+              type="button"
+              disabled={answered}
+              onPointerDown={onDontKnowDown}
+              onClick={() => {
+                if (!answered && !wasTouch()) onDontKnow()
+              }}
+              className={`mt-2.5 flex w-full items-center gap-4 rounded-2xl px-4 py-3 text-left transition-all duration-200 disabled:cursor-default ${
+                selected === DONT_KNOW
+                  ? 'bg-wrong/10 ring-2 ring-wrong'
+                  : dkArmed
+                    ? 'bg-paper ring-2 ring-ink -translate-y-0.5'
+                    : 'bg-card/50 ring-1 ring-rule hover:-translate-y-0.5 hover:bg-paper hover:ring-ink'
+              }`}
+            >
+              <span
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-mono text-sm font-medium ring-1 transition-colors duration-200 ${
+                  selected === DONT_KNOW
+                    ? 'bg-wrong text-card ring-wrong'
+                    : dkArmed
+                      ? 'bg-ink text-paper ring-ink'
+                      : 'text-ink-3 ring-rule'
+                }`}
+              >
+                {selected === DONT_KNOW ? '✕' : '0'}
+              </span>
+              <span
+                className={`flex-1 ${selected === DONT_KNOW || dkArmed ? 'text-ink' : 'text-ink-2'}`}
+              >
+                I don’t know
+              </span>
+              {dkArmed && (
+                <span className="marking shrink-0 text-accent">tap again</span>
+              )}
+            </button>
+          )
+        })()}
 
       {answered ? (
         <div className="mt-7 border-t border-rule pt-5">
@@ -551,7 +659,9 @@ export default function QuestionCard({
         </div>
       ) : (
         <p className="marking mt-7 text-ink-3">
-          Keys 1–{order.length} to answer · 0 = don’t know · Enter for next
+          {isTouch
+            ? 'Tap to hear · tap again to answer'
+            : `Keys 1–${order.length} to answer · 0 = don’t know · Enter for next`}
         </p>
       )}
     </article>

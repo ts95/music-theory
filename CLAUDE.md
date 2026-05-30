@@ -235,6 +235,10 @@ Tailwind utilities like `bg-paper`, `text-ink`, `ring-rule`, `text-accent`):
 
 - TypeScript strict; functional components + hooks; Tailwind utility classes.
 - Prefer computing music data over hardcoding it; add unit tests for `theory/` and `srs/` as they grow.
+- **Touch support:** any hover-triggered feature must also work by tap, and a *definite/committing* action
+  (answering, reset, import) must **select-then-confirm** on touch — first tap selects/previews, second
+  tap confirms; mouse keeps single-click. Decide per interaction via `pointerType`, not device sniffing
+  (`src/touch.ts`: `wasTouch()` / `useConfirmTap()`). New interactive UI should follow this.
 - **Verify changes by driving the app with Playwright** (the default for "does it work in the browser?"):
   - **Regression:** run `npm run test:e2e` — the `tests/e2e/` smoke suite boots the dev server and
     proves a question renders, grades, and advances. Extend it when you add behavior worth locking in.

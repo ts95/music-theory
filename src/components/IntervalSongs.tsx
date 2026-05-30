@@ -138,7 +138,7 @@ function SongPage({
             >
               ▶ play melody
             </button>
-            <span className="marking text-ink-3">hover the staff to hear it</span>
+            <span className="marking text-ink-3">tap or hover the staff to hear it</span>
             {isMuted() && <span className="marking text-wrong">♪ sound is off</span>}
           </div>
         </div>

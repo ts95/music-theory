@@ -53,6 +53,10 @@ progress, chosen from a table-of-contents home screen. Ten études today, in thr
   inversions), or use the ABRSM grade-1/2 key sets — cumulatively, so harder includes easier.
 - 🔊 **Hover to hear it.** Hover any answer to play it on a synthesized piano — scales arpeggiate,
   chords ring as a block, progressions play chord-by-chord. Toggle with **♪ Sound**.
+- 👆 **Touch-friendly.** Every hover preview also works by tap. On touch, the first tap on an answer
+  **selects and previews** it (press and drag across the options to scrub through them); a **second tap
+  confirms**. Committing actions — answering, "I don't know", reset, import — likewise take a confirming
+  second tap. The mouse keeps single-click everywhere.
 - 🎼 **See it on the staff.** Ear-training answers (and progression spellings) are rendered with VexFlow
   on reveal, under the correct key signature.
 - 🧠 **Learn from misses.** Get one wrong (or let a timer run out) and a **Remember** note explains the

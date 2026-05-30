@@ -26,6 +26,7 @@ import InfoBox from './components/InfoBox'
 import { etudeReference } from './components/references'
 import Button from './components/Button'
 import { isMuted, setMuted } from './audio/player'
+import { useConfirmTap } from './touch'
 import { formatMinutes, getTodaySeconds, resetAllSeconds } from './time'
 import { getSavedLevel, saveLevel } from './levels'
 import { remainingDue } from './dueCap'
@@ -136,6 +137,10 @@ export default function App() {
     }
   }
 
+  // Import overwrites progress — on touch, tap once to arm, again to open the
+  // file picker (mouse opens it in one click).
+  const importTap = useConfirmTap(() => fileInputRef.current?.click())
+
   const ioButtons = (
     <div className="flex gap-2">
       <Button
@@ -149,11 +154,8 @@ export default function App() {
       <Button variant="secondary" onClick={handleExport}>
         Export
       </Button>
-      <Button
-        variant="secondary"
-        onClick={() => fileInputRef.current?.click()}
-      >
-        Import
+      <Button variant="secondary" onClick={importTap.onClick}>
+        {importTap.armed ? 'Confirm?' : 'Import'}
       </Button>
       <Button variant="secondary" onClick={() => navigate('about')}>
         About
@@ -319,6 +321,7 @@ function EtudeScreen({
     etude.id,
     currentQid,
   )
+  const resetToday = useConfirmTap(resetPractice)
   const reference = etudeReference(etude.id)
 
   return (
@@ -405,11 +408,13 @@ function EtudeScreen({
 
         <button
           type="button"
-          onClick={resetPractice}
-          className="marking rise mt-3 text-ink-3 transition-colors hover:text-wrong"
+          onClick={resetToday.onClick}
+          className={`marking rise mt-3 transition-colors ${
+            resetToday.armed ? 'text-wrong' : 'text-ink-3 hover:text-wrong'
+          }`}
           style={{ animationDelay: '150ms' }}
         >
-          reset today’s time
+          {resetToday.armed ? 'tap to confirm' : 'reset today’s time'}
         </button>
 
         {noticeBanner}
