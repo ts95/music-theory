@@ -3,7 +3,6 @@ import type { Etude, Question, SrsData } from '../contracts'
 import { getState, initialState, isDue } from '../srs'
 import { formatMinutes } from '../time'
 import { remainingDue, windowResetAt } from '../dueCap'
-import { useConfirmTap } from '../touch'
 
 interface EtudeMenuProps {
   etudes: Etude[]
@@ -27,9 +26,6 @@ export default function EtudeMenu({
   onResetAll,
 }: EtudeMenuProps) {
   const now = Date.now()
-  // Resetting all practice time is destructive — on touch, tap once to arm, again
-  // to confirm (mouse clicks through in one).
-  const resetAll = useConfirmTap(onResetAll)
 
   // Practice-time totals for today — per section, and overall. Minutes are
   // rounded, and the total is the sum of the rounded sections so they add up.
@@ -154,12 +150,10 @@ export default function EtudeMenu({
           <p className="marking text-ink-3">Practice today</p>
           <button
             type="button"
-            onClick={resetAll.onClick}
-            className={`marking transition-colors ${
-              resetAll.armed ? 'text-wrong' : 'text-ink-3 hover:text-wrong'
-            }`}
+            onClick={onResetAll}
+            className="marking text-ink-3 transition-colors hover:text-wrong"
           >
-            {resetAll.armed ? 'tap to confirm' : 'reset all'}
+            reset all
           </button>
         </div>
         <dl className="mt-3 space-y-1.5">

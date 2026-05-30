@@ -239,13 +239,15 @@ export default function QuestionCard({
   // ── Touch answering ──────────────────────────────────────────────────────
   const playableFor = (choiceIndex: number): Playable | undefined =>
     question.audio?.[question.choices[choiceIndex]]
-  function arm(choiceIndex: number) {
+  /** Highlight + preview the option the finger is over (null = nothing). */
+  function arm(choiceIndex: number | null) {
+    if (choiceIndex === armedRef.current) return
     armedRef.current = choiceIndex
     setArmed(choiceIndex)
-    const playable = choiceIndex >= 0 ? playableFor(choiceIndex) : undefined
+    const playable = choiceIndex !== null ? playableFor(choiceIndex) : undefined
     if (playable) play(playable)
   }
-  /** The choice index under a touch point (or DONT_KNOW), via its data attr. */
+  /** The choice index under a touch point, via its data attr (null if none). */
   function choiceAtPoint(e: ReactPointerEvent): number | null {
     const el = document
       .elementFromPoint(e.clientX, e.clientY)
@@ -254,33 +256,33 @@ export default function QuestionCard({
     const v = Number(el.dataset.choice)
     return Number.isNaN(v) ? null : v
   }
-  // Touch-down arms the option (and previews it); a second down on the already-
-  // armed option confirms. Dragging re-arms each option the finger crosses.
+  // Touch picks like a finger on a piano: press to hear the option under it,
+  // drag to hear/arm others, and *release on an option to choose it* — release
+  // off the options (or drag away) to cancel. Mouse is handled by onClick.
   function onListPointerDown(e: ReactPointerEvent) {
     if (answered || e.pointerType === 'mouse') return
     pressingRef.current = true
-    const i = choiceAtPoint(e)
-    if (i === null) return
-    if (armedRef.current === i) onSelect(i)
-    else arm(i)
+    arm(choiceAtPoint(e))
   }
   function onListPointerMove(e: ReactPointerEvent) {
     if (answered || !pressingRef.current) return
-    const i = choiceAtPoint(e)
-    if (i !== null && i !== armedRef.current) arm(i)
+    arm(choiceAtPoint(e))
   }
-  const endPress = () => {
+  function onListPointerUp(e: ReactPointerEvent) {
+    if (!pressingRef.current) return
     pressingRef.current = false
+    const i = choiceAtPoint(e)
+    arm(null)
+    if (i !== null && !answered) onSelect(i)
   }
-  // Click answers on mouse (touch is handled on pointer-down above).
+  const cancelPress = () => {
+    pressingRef.current = false
+    arm(null)
+  }
+  // Click answers on mouse; on touch the release above already chose, so the
+  // trailing synthetic click is ignored.
   function onChoiceClick(choiceIndex: number) {
     if (!answered && !wasTouch()) onSelect(choiceIndex)
-  }
-  // "I don't know": same arm-then-confirm on touch; single click on mouse.
-  function onDontKnowDown(e: ReactPointerEvent) {
-    if (answered || e.pointerType === 'mouse') return
-    if (armedRef.current === DONT_KNOW) onDontKnow()
-    else arm(DONT_KNOW)
   }
 
   // Auto-play once when an ear question mounts (audio is already unlocked by the
@@ -477,8 +479,8 @@ export default function QuestionCard({
         className="mt-7 space-y-2.5 touch-none"
         onPointerDown={onListPointerDown}
         onPointerMove={onListPointerMove}
-        onPointerUp={endPress}
-        onPointerCancel={endPress}
+        onPointerUp={onListPointerUp}
+        onPointerCancel={cancelPress}
       >
         {order.map((choiceIndex, pos) => {
           const isAnswer = choiceIndex === question.answerIndex
@@ -535,7 +537,7 @@ export default function QuestionCard({
                   </span>
                 )}
                 {state === 'armed' ? (
-                  <span className="marking shrink-0 text-accent">tap again</span>
+                  <span className="marking shrink-0 text-accent">release</span>
                 ) : (
                   playable && (
                     <span
@@ -553,48 +555,35 @@ export default function QuestionCard({
       </ul>
 
       {/* "I don't know" — an honest miss; reveals the answer and tells the SRS
-          to bring this back soon. Shown until answered, or kept (red) if chosen. */}
-      {(!answered || selected === DONT_KNOW) &&
-        (() => {
-          const dkArmed = !answered && armed === DONT_KNOW
-          return (
-            <button
-              type="button"
-              disabled={answered}
-              onPointerDown={onDontKnowDown}
-              onClick={() => {
-                if (!answered && !wasTouch()) onDontKnow()
-              }}
-              className={`mt-2.5 flex w-full items-center gap-4 rounded-2xl px-4 py-3 text-left transition-all duration-200 disabled:cursor-default ${
-                selected === DONT_KNOW
-                  ? 'bg-wrong/10 ring-2 ring-wrong'
-                  : dkArmed
-                    ? 'bg-paper ring-2 ring-ink -translate-y-0.5'
-                    : 'bg-card/50 ring-1 ring-rule hover:-translate-y-0.5 hover:bg-paper hover:ring-ink'
-              }`}
-            >
-              <span
-                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-mono text-sm font-medium ring-1 transition-colors duration-200 ${
-                  selected === DONT_KNOW
-                    ? 'bg-wrong text-card ring-wrong'
-                    : dkArmed
-                      ? 'bg-ink text-paper ring-ink'
-                      : 'text-ink-3 ring-rule'
-                }`}
-              >
-                {selected === DONT_KNOW ? '✕' : '0'}
-              </span>
-              <span
-                className={`flex-1 ${selected === DONT_KNOW || dkArmed ? 'text-ink' : 'text-ink-2'}`}
-              >
-                I don’t know
-              </span>
-              {dkArmed && (
-                <span className="marking shrink-0 text-accent">tap again</span>
-              )}
-            </button>
-          )
-        })()}
+          to bring this back soon. Shown until answered, or kept (red) if chosen.
+          A single tap/click commits (touch cancels if you slide off before lift). */}
+      {(!answered || selected === DONT_KNOW) && (
+        <button
+          type="button"
+          disabled={answered}
+          onClick={onDontKnow}
+          className={`mt-2.5 flex w-full items-center gap-4 rounded-2xl px-4 py-3 text-left transition-all duration-200 disabled:cursor-default ${
+            selected === DONT_KNOW
+              ? 'bg-wrong/10 ring-2 ring-wrong'
+              : 'bg-card/50 ring-1 ring-rule hover:-translate-y-0.5 hover:bg-paper hover:ring-ink'
+          }`}
+        >
+          <span
+            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-mono text-sm font-medium ring-1 transition-colors duration-200 ${
+              selected === DONT_KNOW
+                ? 'bg-wrong text-card ring-wrong'
+                : 'text-ink-3 ring-rule'
+            }`}
+          >
+            {selected === DONT_KNOW ? '✕' : '0'}
+          </span>
+          <span
+            className={`flex-1 ${selected === DONT_KNOW ? 'text-ink' : 'text-ink-2'}`}
+          >
+            I don’t know
+          </span>
+        </button>
+      )}
 
       {answered ? (
         <div className="mt-7 border-t border-rule pt-5">
@@ -660,7 +649,7 @@ export default function QuestionCard({
       ) : (
         <p className="marking mt-7 text-ink-3">
           {isTouch
-            ? 'Tap to hear · tap again to answer'
+            ? 'Press to hear · release on a choice to answer · slide off to cancel'
             : `Keys 1–${order.length} to answer · 0 = don’t know · Enter for next`}
         </p>
       )}

@@ -26,41 +26,6 @@ export function wasTouch(): boolean {
   return lastPointerType === 'touch' || lastPointerType === 'pen'
 }
 
-const ARMED_TIMEOUT_MS = 3000
-
-/**
- * Make a definite/destructive action safe on touch: mouse clicks fire it at
- * once, but a touch taps once to *arm* (caller shows a "tap to confirm" cue)
- * and again to confirm. Arming auto-clears after a few seconds.
- */
-export function useConfirmTap(onConfirm: () => void): {
-  armed: boolean
-  onClick: () => void
-} {
-  const [armed, setArmed] = useState(false)
-
-  useEffect(() => {
-    if (!armed) return
-    const id = setTimeout(() => setArmed(false), ARMED_TIMEOUT_MS)
-    return () => clearTimeout(id)
-  }, [armed])
-
-  const onClick = () => {
-    if (!wasTouch()) {
-      onConfirm()
-      return
-    }
-    if (armed) {
-      setArmed(false)
-      onConfirm()
-    } else {
-      setArmed(true)
-    }
-  }
-
-  return { armed, onClick }
-}
-
 /** True on touch-only devices (no hover) — for static hint copy, not behaviour. */
 export function useIsTouch(): boolean {
   const [touch, setTouch] = useState(false)
