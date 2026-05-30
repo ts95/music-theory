@@ -133,6 +133,10 @@ export default function QuestionCard({
       ear && ear.kind !== 'rhythm' && earRoot ? realizeEar(ear, earRoot) : null,
     [ear, earRoot],
   )
+  // Optional interval "training wheels", revealed only on request and reset
+  // each question (the card remounts per question id).
+  const intervalSemis = ear?.kind === 'interval' ? ear.semitones : null
+  const [revealQuality, setRevealQuality] = useState(false)
 
   function playPrompt() {
     if (ear?.kind === 'rhythm') {
@@ -156,6 +160,18 @@ export default function QuestionCard({
     const both = realized.target.flat().map(voicedMidi)
     playEar([], [both], 'block')
   }
+  // Hint: walk up one semitone at a time from the lower note to the target, so
+  // you can count the distance instead of guessing.
+  function playWalkUp() {
+    if (!earRoot || intervalSemis === null) return
+    const base = voicedMidi(earRoot)
+    const steps = Array.from({ length: intervalSemis + 1 }, (_, i) => [base + i])
+    playEar([], steps, 'melodic')
+  }
+  // Hint: consonant intervals are stable/restful, dissonant ones tense — knowing
+  // which roughly halves the options. (P4 grouped as a consonance here.)
+  const isConsonant =
+    intervalSemis !== null && [3, 4, 5, 7, 8, 9, 12].includes(intervalSemis)
 
   // Auto-play once when an ear question mounts (audio is already unlocked by the
   // click that opened the étude).
@@ -259,6 +275,34 @@ export default function QuestionCard({
               The lower note is{' '}
               <span className="font-mono text-ink">{noteToString(earRoot.note)}</span>.
             </p>
+          )}
+          {earIsInterval && !answered && (
+            // Optional training wheels — kept subtle so they don't crowd the prompt.
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <span className="marking text-ink-3">Hints</span>
+              <button
+                type="button"
+                onClick={playWalkUp}
+                className="marking text-ink-3 transition-colors hover:text-ink"
+              >
+                ▶ step up to it
+              </button>
+              {revealQuality ? (
+                <span
+                  className={`marking ${isConsonant ? 'text-correct' : 'text-wrong'}`}
+                >
+                  {isConsonant ? 'consonant — restful' : 'dissonant — tense'}
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setRevealQuality(true)}
+                  className="marking text-ink-3 transition-colors hover:text-ink"
+                >
+                  consonant or dissonant?
+                </button>
+              )}
+            </div>
           )}
           {earIsRhythm && (
             <p className="mt-3 text-ink-2">
