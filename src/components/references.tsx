@@ -154,11 +154,13 @@ const REFERENCES: Record<string, EtudeReference> = {
     body: (
       <div className="space-y-2">
         <p>
-          {mono('1')} = thumb … {mono('5')} = pinky.
+          {mono('1')} = thumb … {mono('5')} = pinky. Each answer gives both hands,
+          RH over LH.
         </p>
         <p>
           The thumb ({mono('1')}) never plays a black key — that fixes where it
-          tucks under (RH) and where the 3rd finger crosses over (LH).
+          tucks under (RH) and where the 3rd finger crosses over (LH). A wide gap
+          in the numbers marks each of those shifts.
         </p>
         <p className="text-ink-3">
           Two octaves; drill hands separately until the crossing is automatic.
