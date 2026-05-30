@@ -30,6 +30,7 @@ export const ETUDES: Etude[] = [
     number: 4,
     title: 'Chords by Degree',
     subtitle: 'Diatonic triads (and V7) in every major & minor key',
+    levels: ['Easy', 'Medium', 'Hard'],
   },
   {
     id: 'chord-recognition',

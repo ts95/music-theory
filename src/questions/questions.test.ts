@@ -21,7 +21,8 @@ describe('generateAllQuestions', () => {
     expect(scale).toHaveLength(36)
     expect(fing).toHaveLength(fingeringCount) // 18
 
-    // chords by degree: 24 key/mode combos × 7 (trimmed triads + V7) = 168.
+    // chords by degree: 3 cumulative key-range levels × 2 modes × 7
+    //   (trimmed triads + V7) = (3 + 7 + 12 keys) × 2 × 7 = 308.
     // chord recognition: 3 levels by key range × 2 modes × 7 degrees
     //   = (3 + 7 + 12 keys) × 2 × 7 = 42 + 98 + 168 = 308.
     // progressions: 13 progression-variants (6 major + 5 minor triad + 2
@@ -30,7 +31,7 @@ describe('generateAllQuestions', () => {
     // ear: 24 intervals (cumulative levels 4+8+12) + 11 progression types
     //   + 64 melodic (3 levels × 2 modes) + 52 rhythm (3 levels × metres).
     expect(questions.length).toBe(
-      12 + 36 + fingeringCount + 168 + 308 + 286 + 24 + 11 + 64 + 52
+      12 + 36 + fingeringCount + 308 + 308 + 286 + 24 + 11 + 64 + 52
     )
   })
 
@@ -43,7 +44,7 @@ describe('generateAllQuestions', () => {
     expect(count('relative-minors')).toBe(12)
     expect(count('scales')).toBe(36)
     expect(count('fingerings')).toBe(18) // both hands × (2 + 4 + 12) keys
-    expect(count('chords')).toBe(168)
+    expect(count('chords')).toBe(308) // 3 levels × (3+7+12) keys × 2 × 7
     expect(count('chord-recognition')).toBe(308)
     expect(count('progressions')).toBe(286) // 13 variants × (3+7+12) keys
     expect(count('intervals-ear')).toBe(24) // cumulative levels: 4 + 8 + 12
@@ -236,7 +237,7 @@ describe('generateAllQuestions', () => {
 
     it('keeps the question counts and ids stable', () => {
       expect(scaleQ).toHaveLength(36)
-      expect(chordQ).toHaveLength(168)
+      expect(chordQ).toHaveLength(308)
       expect(progQ).toHaveLength(286)
     })
   })
@@ -376,7 +377,7 @@ describe('generateAllQuestions', () => {
       expect(iv.keyboard!.marks.map((m) => m.label)).toEqual(['1', '3', '5'])
       expect(iv.keyboard!.marks.map((m) => m.sublabel)).toEqual(['5', '3', '1'])
       // V7 is a four-note chord, fingered 1-2-3-5 / 5-3-2-1.
-      const v7 = questions.find((x) => x.id === 'chord-deg:C:major:4:7')!
+      const v7 = questions.find((x) => x.id === 'chord-deg:L1:C:major:4:7')!
       expect(v7.keyboard!.marks).toHaveLength(4)
       expect(v7.keyboard!.marks.map((m) => m.label)).toEqual(['1', '2', '3', '5'])
       expect(v7.keyboard!.marks.map((m) => m.sublabel)).toEqual(['5', '3', '2', '1'])

@@ -297,6 +297,10 @@ function keyForMode(
 /** The trimmed degree set for chord questions: I/i, ii/ii°, IV/iv, V, vi/VI, vii°. */
 const CHORD_DEGREES = [0, 1, 3, 4, 5, 6]
 
+// Three cumulative difficulty levels by key range (key-signature accidentals),
+// like Chord Recognition and Progressions: Easy ≤1, Medium ≤3, Hard all twelve.
+const CHORD_LEVEL_ACCIDENTALS = [1, 3, 12]
+
 /**
  * 4. Diatonic chords by Roman-numeral degree, for both modes of every key.
  * Trimmed triad set plus the V7. Distractors lead with the same degree in
@@ -306,68 +310,73 @@ const CHORD_DEGREES = [0, 1, 3, 4, 5, 6]
 function chordDegreeQuestions(): Question[] {
   const modes: Mode[] = ['major', 'minor']
   const questions: Question[] = []
-  for (const key of KEYS) {
-    for (const mode of modes) {
-      const { tonic, name } = keyForMode(key, mode)
-      // (degree, seventh) pairs: trimmed triads + V7.
-      const specs: Array<{ degree: number; seventh: boolean }> = [
-        ...CHORD_DEGREES.map((degree) => ({ degree, seventh: false })),
-        { degree: 4, seventh: true },
-      ]
-      for (const { degree, seventh } of specs) {
-        const roman = romanLabel(mode, degree, seventh)
-        const audio: Record<string, Playable> = {}
-        // Render a chord to its symbol AND register its block playback.
-        const reg = (c: Chord): string => {
-          const s = chordSymbol(c)
-          audio[s] = { kind: 'chord', events: chordEvents(c.root, c.quality) }
-          return s
-        }
-        const correctChord = romanToChord(tonic, mode, degree, seventh)
-        const correct = reg(correctChord)
+  CHORD_LEVEL_ACCIDENTALS.forEach((maxAccidentals, levelIndex) => {
+    const level = levelIndex + 1
+    for (const key of KEYS) {
+      if (accidentalCount(key.majorTonic) > maxAccidentals) continue
+      for (const mode of modes) {
+        const { tonic, name } = keyForMode(key, mode)
+        // (degree, seventh) pairs: trimmed triads + V7.
+        const specs: Array<{ degree: number; seventh: boolean }> = [
+          ...CHORD_DEGREES.map((degree) => ({ degree, seventh: false })),
+          { degree: 4, seventh: true },
+        ]
+        for (const { degree, seventh } of specs) {
+          const roman = romanLabel(mode, degree, seventh)
+          const audio: Record<string, Playable> = {}
+          // Render a chord to its symbol AND register its block playback.
+          const reg = (c: Chord): string => {
+            const s = chordSymbol(c)
+            audio[s] = { kind: 'chord', events: chordEvents(c.root, c.quality) }
+            return s
+          }
+          const correctChord = romanToChord(tonic, mode, degree, seventh)
+          const correct = reg(correctChord)
 
-        const distractors: string[] = []
-        // Same root, different quality (so the root alone never reveals it).
-        distractors.push(
-          reg({
-            root: correctChord.root,
-            quality: alternateQuality(correctChord.quality),
-          })
-        )
-        // Same quality (same degree) in the other keys — varied roots, so the
-        // quality alone never reveals it either.
-        for (const other of KEYS) {
-          if (other === key) continue
-          const ot = keyForMode(other, mode).tonic
-          distractors.push(reg(romanToChord(ot, mode, degree, seventh)))
-        }
+          const distractors: string[] = []
+          // Same root, different quality (so the root alone never reveals it).
+          distractors.push(
+            reg({
+              root: correctChord.root,
+              quality: alternateQuality(correctChord.quality),
+            })
+          )
+          // Same quality (same degree) in the other keys — varied roots, so the
+          // quality alone never reveals it either.
+          for (const other of KEYS) {
+            if (other === key) continue
+            const ot = keyForMode(other, mode).tonic
+            distractors.push(reg(romanToChord(ot, mode, degree, seventh)))
+          }
 
-        const q = buildQuestion(
-          'chords',
-          `chord-deg:${asciiTonicId(tonic)}:${mode}:${degree}${seventh ? ':7' : ''}`,
-          'Diatonic chord',
-          `In ${name}, what is the ${roman} chord?`,
-          correct,
-          distractors,
-          audio,
-          chordExplanation(name, mode, degree, seventh, correctChord)
-        )
-        // Reveal lights up the answer chord (root position) on the keyboard,
-        // each key labelled with both fingerings (RH over LH).
-        const voiced = voiceChordRootPosition(correctChord)
-        const rhFng = chordFingering(voiced.length, 'RH')
-        const lhFng = chordFingering(voiced.length, 'LH')
-        q.keyboard = {
-          marks: voiced.map((v, i) => ({
-            midi: voicedMidi(v),
-            label: String(rhFng[i]),
-            sublabel: String(lhFng[i]),
-          })),
+          const q = buildQuestion(
+            'chords',
+            `chord-deg:L${level}:${asciiTonicId(tonic)}:${mode}:${degree}${seventh ? ':7' : ''}`,
+            'Diatonic chord',
+            `In ${name}, what is the ${roman} chord?`,
+            correct,
+            distractors,
+            audio,
+            chordExplanation(name, mode, degree, seventh, correctChord)
+          )
+          q.level = level
+          // Reveal lights up the answer chord (root position) on the keyboard,
+          // each key labelled with both fingerings (RH over LH).
+          const voiced = voiceChordRootPosition(correctChord)
+          const rhFng = chordFingering(voiced.length, 'RH')
+          const lhFng = chordFingering(voiced.length, 'LH')
+          q.keyboard = {
+            marks: voiced.map((v, i) => ({
+              midi: voicedMidi(v),
+              label: String(rhFng[i]),
+              sublabel: String(lhFng[i]),
+            })),
+          }
+          questions.push(q)
         }
-        questions.push(q)
       }
     }
-  }
+  })
   return questions
 }
 
