@@ -114,7 +114,7 @@ export type EarSpec =
   | { kind: 'rhythm'; meter: TimeSig; tempo: number; pattern: RhythmEvent[] }
 
 /** Supported time signatures for the rhythm-dictation étude. */
-export type TimeSig = '4/4' | '3/4' | '6/8'
+export type TimeSig = '4/4' | '3/4' | '6/8' | '2/4' | '12/8' | '5/4' | '2/2'
 
 /** One event in a rhythm pattern (a note or a rest). */
 export interface RhythmEvent {

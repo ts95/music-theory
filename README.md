@@ -41,9 +41,10 @@ progress, chosen from a table-of-contents home screen. Ten études today, in thr
   **hear-scale** hint plays the whole scale with a synced solfège readout (and you can hover a syllable
   to play just that note); the melody is shown on the staff, in key, on reveal.
 - **No. 10 — Rhythm Dictation.** Hear a one-bar rhythm and pick the matching notation. A wide vocabulary
-  of common patterns across 4/4, 3/4 and 6/8 — sixteenth cells (ti-tika / tika-ti), dotted-eighth and
-  Scotch-snap figures, the tresillo (3+3+2), eighth-note triplets, ties, rests and off-beat syncopation;
-  a count-in sets the tempo and metre.
+  of common patterns — sixteenth cells (ti-tika / tika-ti), dotted-eighth and Scotch-snap figures, the
+  tresillo (3+3+2), eighth-note triplets, ties, rests and off-beat syncopation. The metres accumulate
+  with difficulty: Easy adds **2/4** (to 4/4, 3/4, 6/8), Medium adds **cut time (₵)** and **12/8**, Hard
+  adds **5/4**; a count-in sets the tempo and metre.
 
 ### Across the études
 

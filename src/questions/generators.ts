@@ -901,6 +901,15 @@ const RHYTHM_LEVELS: RhythmLevelDef[] = [
         [Q, E, Q, E],
         [QD, Q, E],
       ],
+      '2/4': [
+        [Q, Q],
+        [H],
+        [Q, E, E],
+        [E, E, Q],
+        [E, E, E, E],
+        [Q, QR],
+        [QR, Q],
+      ],
     },
   },
   // L2 Medium — sixteenth cells (ti-tika, tika-ti), dotted-eighth figures and the
@@ -946,6 +955,37 @@ const RHYTHM_LEVELS: RhythmLevelDef[] = [
         [E, E, E, Q, E],
         [S, S, E, E, QD],
       ],
+      // 2/4 inherited from Easy — now with sixteenth and dotted cells.
+      '2/4': [
+        [S, S, S, S, Q],
+        [E, S, S, Q],
+        [S, S, E, Q],
+        [ED, S, Q],
+        [S, ED, Q],
+        [QD, E],
+        [T, T, T, Q],
+      ],
+      // 12/8 — compound quadruple (four dotted-quarter beats).
+      '12/8': [
+        [QD, QD, QD, QD],
+        [E, E, E, E, E, E, E, E, E, E, E, E],
+        [QD, E, E, E, QD, E, E, E],
+        [E, E, E, QD, E, E, E, QD],
+        [Q, E, Q, E, Q, E, Q, E],
+        [QD, QD, Q, E, QD],
+        [E, E, E, E, E, E, QD, QD],
+        [S, S, E, E, QD, QD, QD],
+      ],
+      // 2/2 — cut time (felt in two half-note beats).
+      '2/2': [
+        [H, H],
+        [W],
+        [H, Q, Q],
+        [Q, Q, H],
+        [Q, Q, Q, Q],
+        [E, E, Q, Q, Q],
+        [H, E, E, Q],
+      ],
     },
   },
   // L3 Hard — sixteenth runs, paired dotted-eighth/snap cells, tresillo and
@@ -986,6 +1026,47 @@ const RHYTHM_LEVELS: RhythmLevelDef[] = [
         [E, S, S, E, QD],
         [QD, S, S, E, E],
         [E, E, E, E, S, S, E],
+      ],
+      // 2/4 inherited — dense sixteenth runs, snaps, triplets, syncopation.
+      '2/4': [
+        [S, S, S, S, S, S, S, S],
+        [E, S, S, E, S, S],
+        [ED, S, ED, S],
+        [S, ED, S, ED],
+        [T, T, T, T, T, T],
+        [E, tie(Q), E],
+        [E, Q, E],
+      ],
+      // 12/8 inherited — sixteenth cells and off-beat compound syncopation.
+      '12/8': [
+        [S, S, E, E, QD, QD, QD],
+        [E, S, S, E, QD, E, S, S, E, QD],
+        [S, S, S, S, S, S, QD, QD, QD],
+        [E, Q, E, Q, E, Q, E, Q],
+        [QD, S, S, E, E, QD, QD],
+        [QD, QD, E, S, S, E, QD],
+      ],
+      // 5/4 — asymmetric quintuple (felt 3+2).
+      '5/4': [
+        [Q, Q, Q, Q, Q],
+        [HD, H],
+        [H, HD],
+        [H, Q, H],
+        [Q, Q, Q, H],
+        [E, E, E, E, Q, Q, Q],
+        [QD, QD, Q, Q],
+        [S, S, S, S, Q, Q, Q, Q],
+        [Q, Q, Q, T, T, T, Q],
+      ],
+      // 2/2 inherited — cut time, now with syncopation and finer subdivision.
+      '2/2': [
+        [H, H],
+        [Q, Q, Q, Q],
+        [E, E, E, E, E, E, E, E],
+        [Q, H, Q],
+        [S, S, S, S, Q, Q, Q],
+        [E, Q, Q, Q, E],
+        [QD, QD, Q],
       ],
     },
   },

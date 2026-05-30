@@ -12,6 +12,10 @@ export const METERS: Record<TimeSig, MeterInfo> = {
   '4/4': { totalBeats: 4, countIn: [0, 1, 2, 3] }, // four quarter beats
   '3/4': { totalBeats: 3, countIn: [0, 1, 2] }, // three quarter beats
   '6/8': { totalBeats: 3, countIn: [0, 1.5] }, // two dotted-quarter beats
+  '2/4': { totalBeats: 2, countIn: [0, 1] }, // two quarter beats
+  '12/8': { totalBeats: 6, countIn: [0, 1.5, 3, 4.5] }, // four dotted-quarter beats
+  '5/4': { totalBeats: 5, countIn: [0, 1, 2, 3, 4] }, // five quarter beats (felt 3+2)
+  '2/2': { totalBeats: 4, countIn: [0, 2] }, // cut time — two half-note beats
 }
 
 const BASE_BEATS: Record<RhythmEvent['dur'], number> = {

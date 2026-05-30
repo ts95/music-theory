@@ -54,7 +54,8 @@ export default function RhythmStaff({ pattern, meter = '4/4' }: RhythmStaffProps
         ctx.setFillStyle(INK)
         ctx.setStrokeStyle(INK)
         const stave = new Stave(0, 10, width)
-        stave.addTimeSignature(meter)
+        // Cut time is drawn with the ₵ symbol; everything else as n/d.
+        stave.addTimeSignature(meter === '2/2' ? 'C|' : meter)
         stave.setContext(ctx).draw()
 
         const notes = pattern.map(
