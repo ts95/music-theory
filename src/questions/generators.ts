@@ -839,15 +839,18 @@ function melodicDictationQuestions(): Question[] {
 // (4/4 = 4, 3/4 = 3, 6/8 = 3 quarter-beats); ties don't change the total.
 const W: RhythmEvent = { dur: 'w' }
 const H: RhythmEvent = { dur: 'h' }
+const HD: RhythmEvent = { dur: 'h', dots: 1 } // dotted half = 3 beats
 const Q: RhythmEvent = { dur: 'q' }
-const QD: RhythmEvent = { dur: 'q', dots: 1 }
+const QD: RhythmEvent = { dur: 'q', dots: 1 } // dotted quarter = 1.5 beats
 const E: RhythmEvent = { dur: '8' }
+const ED: RhythmEvent = { dur: '8', dots: 1 } // dotted eighth = 0.75 beat
 const S: RhythmEvent = { dur: '16' }
 const X: RhythmEvent = { dur: '32' }
 const T: RhythmEvent = { dur: '8', triplet: true } // eighth-note triplet member
 const QR: RhythmEvent = { dur: 'q', rest: true }
+const ER: RhythmEvent = { dur: '8', rest: true }
 const SR: RhythmEvent = { dur: '16', rest: true }
-const XR: RhythmEvent = { dur: '32', rest: true }
+// (No 32nd rests — avoided as a rule; they read as clutter.)
 /** Tie this event to the next (same pitch, held together). */
 const tie = (e: RhythmEvent): RhythmEvent => ({ ...e, tie: true })
 
@@ -863,84 +866,126 @@ const RHYTHM_LEVELS: RhythmLevelDef[] = [
     tempo: 76,
     pools: {
       '4/4': [
-        [W],
-        [H, H],
-        [H, Q, Q],
         [Q, Q, Q, Q],
+        [H, H],
+        [W],
+        [H, Q, Q],
         [Q, Q, H],
+        [Q, H, Q],
+        [HD, Q],
         [E, E, Q, Q, Q],
+        [Q, E, E, Q, Q],
+        [Q, Q, Q, E, E],
+        [E, E, E, E, H],
         [H, E, E, Q],
         [QR, Q, Q, Q],
+        [Q, QR, Q, Q],
         [Q, QR, H],
       ],
       '3/4': [
         [Q, Q, Q],
         [H, Q],
         [Q, H],
+        [HD],
         [E, E, Q, Q],
-        [Q, QR, Q],
-        [H, E, E],
         [Q, E, E, Q],
-      ],
-    },
-  },
-  // L2 Medium — sixteenths, dotted figures, triplets, 16th rests, a few ties.
-  {
-    tempo: 100,
-    pools: {
-      '4/4': [
-        [QD, E, Q, Q],
-        [E, E, S, S, S, S, Q, Q],
-        [S, S, S, S, Q, Q, Q],
-        [Q, Q, T, T, T, Q],
-        [T, T, T, Q, Q, Q],
-        [QD, E, QD, E],
-        [Q, tie(Q), Q, Q],
-        [S, SR, S, S, Q, Q, Q],
-      ],
-      '3/4': [
-        [QD, E, Q],
-        [S, S, S, S, Q, Q],
-        [Q, T, T, T, Q],
-        [Q, tie(Q), Q],
-        [E, E, Q, E, E],
-        [QD, E, E, E],
+        [Q, Q, E, E],
+        [H, E, E],
+        [Q, QR, Q],
       ],
       '6/8': [
         [QD, QD],
         [E, E, E, E, E, E],
         [QD, E, E, E],
         [E, E, E, QD],
-        [Q, E, QD],
-        [QD, Q, E],
         [Q, E, Q, E],
+        [QD, Q, E],
       ],
     },
   },
-  // L3 Hard — 32nds, 32nd rests, dense ties and off-beat syncopation.
+  // L2 Medium — sixteenth cells (ti-tika, tika-ti), dotted-eighth figures and the
+  // Scotch snap, eighth triplets, the tresillo, a tie, and off-beat eighths.
+  {
+    tempo: 100,
+    pools: {
+      '4/4': [
+        [S, S, S, S, Q, Q, Q],
+        [E, S, S, E, S, S, Q, Q],
+        [S, S, E, S, S, E, Q, Q],
+        [ED, S, Q, Q, Q], // dotted-eighth + sixteenth (long-short)
+        [S, ED, Q, Q, Q], // sixteenth + dotted-eighth (Scotch snap)
+        [QD, E, Q, Q],
+        [Q, QD, E, Q],
+        [QD, QD, Q], // tresillo (3+3+2)
+        [T, T, T, Q, Q, Q],
+        [Q, Q, T, T, T, Q],
+        [E, E, S, S, S, S, Q, Q],
+        [Q, tie(Q), Q, Q],
+        [S, SR, S, S, Q, Q, Q],
+        [ER, E, ER, E, Q, Q], // off-beat eighths
+      ],
+      '3/4': [
+        [S, S, S, S, Q, Q],
+        [E, S, S, E, S, S, Q],
+        [ED, S, Q, Q],
+        [S, ED, Q, Q],
+        [QD, E, Q],
+        [Q, QD, E],
+        [T, T, T, Q, Q],
+        [E, E, Q, E, E],
+        [Q, tie(Q), Q],
+      ],
+      '6/8': [
+        [QD, QD],
+        [E, E, E, E, E, E],
+        [QD, E, E, E],
+        [E, E, E, QD],
+        [Q, E, Q, E],
+        [Q, E, QD],
+        [QD, Q, E],
+        [E, E, E, Q, E],
+        [S, S, E, E, QD],
+      ],
+    },
+  },
+  // L3 Hard — sixteenth runs, paired dotted-eighth/snap cells, tresillo and
+  // Charleston-style syncopation, tied off-beats, triplet beats, a 32nd run.
   {
     tempo: 138,
     pools: {
       '4/4': [
-        [X, X, X, X, E, Q, Q, Q],
+        [S, S, S, S, S, S, S, S, Q, Q],
+        [E, S, S, E, S, S, E, S, S, Q],
+        [ED, S, ED, S, Q, Q],
+        [S, ED, S, ED, Q, Q],
+        [QD, QD, Q], // tresillo
+        [E, QD, QD, E], // Charleston-style off-beats
+        [E, Q, Q, Q, E],
         [E, tie(Q), E, E, tie(Q), E],
-        [S, S, E, S, S, E, Q, Q],
-        [E, X, XR, X, X, Q, Q, Q],
-        [tie(Q), E, E, Q, Q],
-        [X, X, X, X, X, X, X, X, Q, Q, Q],
+        [T, T, T, T, T, T, Q, Q],
+        [T, T, T, Q, T, T, T, Q],
+        [X, X, X, X, E, Q, Q, Q],
+        [ED, S, E, E, Q, Q],
       ],
       '3/4': [
+        [S, S, S, S, S, S, S, S, Q],
+        [ED, S, ED, S, Q],
+        [S, ED, S, ED, Q],
+        [E, Q, Q, E],
+        [T, T, T, T, T, T, Q],
         [E, tie(Q), E, Q],
-        [X, X, X, X, E, Q, Q],
-        [S, S, S, S, E, E, Q],
-        [tie(Q), tie(Q), Q],
+        [E, QD, Q],
+        [S, S, E, S, S, E, Q],
       ],
       '6/8': [
-        [S, S, E, E, QD],
-        [E, E, E, S, S, S, S, E],
         [QD, E, E, E],
-        [Q, E, Q, E],
         [E, E, E, QD],
+        [Q, E, Q, E],
+        [S, S, S, S, E, QD],
+        [E, E, E, S, S, S, S, E],
+        [E, S, S, E, QD],
+        [QD, S, S, E, E],
+        [E, E, E, E, S, S, E],
       ],
     },
   },

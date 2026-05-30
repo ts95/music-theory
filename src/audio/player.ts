@@ -1,5 +1,5 @@
 import type { Playable, RhythmEvent, TimeSig } from '../contracts'
-import { METERS } from '../rhythm'
+import { METERS, eventBeats } from '../rhythm'
 
 /**
  * Hover-to-play audio. The only Tone.js consumer. Tone is dynamically imported
@@ -162,20 +162,6 @@ function scheduleEar(
   if (onStep) scheduled.push(setTimeout(() => onStep(-1), t + target.length * step))
 }
 
-const BASE_BEATS: Record<RhythmEvent['dur'], number> = {
-  w: 4,
-  h: 2,
-  q: 1,
-  '8': 0.5,
-  '16': 0.25,
-  '32': 0.125,
-}
-/** Duration of a rhythm event in beats (dots add half, then a quarter, …). */
-function eventBeats(e: RhythmEvent): number {
-  // A triplet eighth is ⅔ of a normal eighth (three fill one beat).
-  if (e.triplet) return BASE_BEATS[e.dur] * (2 / 3)
-  return BASE_BEATS[e.dur] * (2 - 1 / 2 ** (e.dots ?? 0))
-}
 
 const RHYTHM_PITCH = 72 // C5 — the rhythm notes (pitched, triangle)
 const COUNT_PITCH = 'C6' // the count-in tick (percussive woodblock)

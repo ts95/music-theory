@@ -40,9 +40,10 @@ progress, chosen from a table-of-contents home screen. Ten études today, in thr
 - **No. 9 — Melodic Dictation.** Hear a short motif over its tonic and name it in **solfège**. A
   **hear-scale** hint plays the whole scale with a synced solfège readout (and you can hover a syllable
   to play just that note); the melody is shown on the staff, in key, on reveal.
-- **No. 10 — Rhythm Dictation.** Hear a one-bar rhythm and pick the matching notation. Covers 4/4, 3/4
-  and 6/8, with triplets, dotted notes, ties, rests and up to 32nd notes; a count-in sets the tempo and
-  metre.
+- **No. 10 — Rhythm Dictation.** Hear a one-bar rhythm and pick the matching notation. A wide vocabulary
+  of common patterns across 4/4, 3/4 and 6/8 — sixteenth cells (ti-tika / tika-ti), dotted-eighth and
+  Scotch-snap figures, the tresillo (3+3+2), eighth-note triplets, ties, rests and off-beat syncopation;
+  a count-in sets the tempo and metre.
 
 ### Across the études
 

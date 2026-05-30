@@ -29,9 +29,9 @@ describe('generateAllQuestions', () => {
     // seventh forms) across three cumulative key-range levels (3 + 7 + 12 keys
     // per mode) = 13 × (3 + 7 + 12) = 286.
     // ear: 24 intervals (cumulative levels 4+8+12) + 11 progression types
-    //   + 64 melodic (3 levels × 2 modes) + 52 rhythm (3 levels × metres).
+    //   + 64 melodic (3 levels × 2 modes) + 90 rhythm (3 levels × metres).
     expect(questions.length).toBe(
-      12 + 36 + fingeringCount + 308 + 308 + 286 + 24 + 11 + 64 + 52
+      12 + 36 + fingeringCount + 308 + 308 + 286 + 24 + 11 + 64 + 90
     )
   })
 
@@ -50,7 +50,7 @@ describe('generateAllQuestions', () => {
     expect(count('intervals-ear')).toBe(24) // cumulative levels: 4 + 8 + 12
     expect(count('progressions-ear')).toBe(11)
     expect(count('melodic-dictation')).toBe(64) // (10+12+10) motifs × 2 modes
-    expect(count('rhythm-dictation')).toBe(52) // L1 16 + L2 21 + L3 15
+    expect(count('rhythm-dictation')).toBe(90) // L1 30 + L2 32 + L3 28
   })
 
   it('has unique ids', () => {
@@ -288,8 +288,8 @@ describe('generateAllQuestions', () => {
     const earQ = questions.filter((q) => q.ear)
 
     it('every ear question carries an ear spec, distinct choices, and a tip', () => {
-      // 24 intervals + 11 progressions + 64 melodic + 52 rhythm.
-      expect(earQ.length).toBe(24 + 11 + 64 + 52)
+      // 24 intervals + 11 progressions + 64 melodic + 90 rhythm.
+      expect(earQ.length).toBe(24 + 11 + 64 + 90)
       for (const q of earQ) {
         expect(q.ear, q.id).toBeDefined()
         expect(q.choices.length, q.id).toBeGreaterThanOrEqual(4)
@@ -507,7 +507,7 @@ describe('generateAllQuestions', () => {
       q.ear as { kind: 'rhythm'; meter: keyof typeof METERS; pattern: Ev[] }
 
     it('every choice is a valid one-bar pattern in its metre, aligned to choices', () => {
-      expect(rhythm).toHaveLength(52) // L1 16 + L2 21 + L3 15
+      expect(rhythm).toHaveLength(90) // L1 30 + L2 32 + L3 28
       for (const q of rhythm) {
         expect(q.ear?.kind).toBe('rhythm')
         const total = METERS[specOf(q).meter].totalBeats
