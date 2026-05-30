@@ -360,6 +360,12 @@ function chordDegreeQuestions(): Question[] {
             chordExplanation(name, mode, degree, seventh, correctChord)
           )
           q.level = level
+          // V and vii° in minor borrow the harmonic minor's raised 7th, which
+          // isn't in the natural minor scale — clarify that on the reveal.
+          if (mode === 'minor' && (degree === 4 || degree === 6)) {
+            const leadingTone = noteToString(minorScale(tonic, 'harmonic')[6])
+            q.caption = `${leadingTone} is the harmonic minor's raised 7th — the leading tone, not in the natural minor scale. Minor keys borrow it so V is major and vii° diminished; natural minor alone gives a minor v and a major VII.`
+          }
           // Reveal lights up the answer chord (root position) on the keyboard,
           // each key labelled with both fingerings (RH over LH).
           const voiced = voiceChordRootPosition(correctChord)
