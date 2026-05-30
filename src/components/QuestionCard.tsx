@@ -378,7 +378,7 @@ export default function QuestionCard({
                     />
                   </span>
                 ) : (
-                  <span className="flex-1 font-mono text-[1.02rem] text-ink">
+                  <span className="flex-1 whitespace-pre-wrap font-mono text-[1.02rem] leading-relaxed text-ink">
                     {choiceText}
                   </span>
                 )}

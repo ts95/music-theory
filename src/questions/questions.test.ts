@@ -1,33 +1,25 @@
 import { describe, expect, it } from 'vitest'
 import { generateAllQuestions } from './generators'
 import { ETUDES } from './etudes'
-import { KEYS, fingering } from '../theory'
 import { METERS } from '../rhythm'
 
 const questions = generateAllQuestions()
 
 const ETUDE_IDS = new Set(ETUDES.map((e) => e.id))
 
-function countNonNullFingerings(): number {
-  let n = 0
-  for (const key of KEYS) {
-    for (const hand of ['RH', 'LH'] as const) {
-      if (fingering(key.minorTonic, 'natural', hand)) n++
-    }
-  }
-  return n
-}
+// Fingerings: one per key (both hands), across three cumulative ABRSM levels —
+// Easy (A, D) + Medium (A, D, E, G) + Hard (all 12) = 2 + 4 + 12.
+const fingeringCount = 2 + 4 + 12
 
 describe('generateAllQuestions', () => {
   it('returns the expected total count', () => {
-    const fingeringCount = countNonNullFingerings()
     const relMinor = questions.filter((q) => q.category === 'Relative minor')
     const scale = questions.filter((q) => q.category === 'Scale spelling')
     const fing = questions.filter((q) => q.category === 'Fingering')
 
     expect(relMinor).toHaveLength(12)
     expect(scale).toHaveLength(36)
-    expect(fing).toHaveLength(fingeringCount) // 24
+    expect(fing).toHaveLength(fingeringCount) // 18
 
     // chords by degree: 24 key/mode combos × 7 (trimmed triads + V7) = 168.
     // chord recognition: 3 levels by key range × 2 modes × 7 degrees
@@ -49,7 +41,7 @@ describe('generateAllQuestions', () => {
       questions.filter((q) => q.etudeId === id).length
     expect(count('relative-minors')).toBe(12)
     expect(count('scales')).toBe(36)
-    expect(count('fingerings')).toBe(24)
+    expect(count('fingerings')).toBe(18) // both hands × (2 + 4 + 12) keys
     expect(count('chords')).toBe(168)
     expect(count('chord-recognition')).toBe(308)
     expect(count('progressions')).toBe(156)
@@ -88,10 +80,15 @@ describe('generateAllQuestions', () => {
     expect(q!.choices[q!.answerIndex]).toBe('C – D – E♭ – F – G – A♭ – B')
   })
 
-  it('spot-checks: A minor right-hand fingering', () => {
-    const q = questions.find((x) => x.id === 'fingering:A:RH')
+  it('spot-checks: A minor both-hands fingering (Easy level, thumb-tuck gaps)', () => {
+    const q = questions.find((x) => x.id === 'fingering:L1:A')
     expect(q).toBeDefined()
-    expect(q!.choices[q!.answerIndex]).toBe('1 2 3 1 2 3 4 1 2 3 1 2 3 4 5')
+    expect(q!.level).toBe(1)
+    // RH over LH, two lines, with a wide gap at each position shift.
+    expect(q!.choices[q!.answerIndex]).toBe(
+      'RH  1 2 3    1 2 3 4    1 2 3    1 2 3 4 5\n' +
+        'LH  5 4 3 2 1    3 2 1    4 3 2 1    3 2 1'
+    )
   })
 
   function correctFor(prompt: string): string {
@@ -280,7 +277,7 @@ describe('generateAllQuestions', () => {
     })
 
     it('fingering tip states the thumb rule', () => {
-      const q = questions.find((x) => x.id === 'fingering:A:RH')!
+      const q = questions.find((x) => x.id === 'fingering:L1:A')!
       expect(q.explanation).toMatch(/thumb/)
     })
   })
@@ -341,18 +338,23 @@ describe('generateAllQuestions', () => {
       expect(a.keyboard!.marks.map((m) => m.sublabel)).toEqual(['5', '4', '3', '2', '1', '3', '2'])
     })
 
-    it('fingering questions light up two octaves, each key labelled with its finger', () => {
+    it('fingering questions light up two octaves, each key labelled both hands', () => {
       for (const q of questions.filter((x) => x.category === 'Fingering')) {
         expect(q.keyboard, q.id).toBeDefined()
         expect(q.keyboard!.marks).toHaveLength(15) // tonic..tonic..tonic
+        // Both hands shown at once: RH in label, LH in sublabel.
         expect(q.keyboard!.marks.every((m) => m.label !== undefined), q.id).toBe(true)
+        expect(q.keyboard!.marks.every((m) => m.sublabel !== undefined), q.id).toBe(true)
       }
-      const rh = questions.find((x) => x.id === 'fingering:A:RH')!
-      expect(rh.keyboard!.marks.map((m) => m.label)).toEqual([
+      const a = questions.find((x) => x.id === 'fingering:L1:A')!
+      expect(a.keyboard!.marks.map((m) => m.label)).toEqual([
         '1', '2', '3', '1', '2', '3', '4', '1', '2', '3', '1', '2', '3', '4', '5',
       ])
+      expect(a.keyboard!.marks.map((m) => m.sublabel)).toEqual([
+        '5', '4', '3', '2', '1', '3', '2', '1', '4', '3', '2', '1', '3', '2', '1',
+      ])
       // First and last keys are the tonic two octaves apart (A4 → A6).
-      const m = rh.keyboard!.marks
+      const m = a.keyboard!.marks
       expect(m[0].midi).toBe(69)
       expect(m[14].midi).toBe(69 + 24)
     })

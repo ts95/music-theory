@@ -1,4 +1,4 @@
-import type { Hand, Note, RhythmEvent, ScaleType, TimeSig } from '../contracts'
+import type { Note, RhythmEvent, ScaleType, TimeSig } from '../contracts'
 import type { Chord, Mode, Quality } from '../theory'
 import { chordSymbol, majorScale, minorScale, noteToString, romanLabel } from '../theory'
 
@@ -64,15 +64,10 @@ export function scaleExplanation(
 /** "What is the standard right-hand fingering for the C minor scale?" */
 export function fingeringExplanation(
   tonic: Note,
-  hand: Hand,
-  fingers: number[]
+  rh: number[],
+  lh: number[]
 ): string {
-  const handWord = hand === 'RH' ? 'right' : 'left'
-  const cross =
-    hand === 'RH'
-      ? 'the thumb tucks under after the 3rd finger'
-      : 'the 3rd finger crosses over the thumb'
-  return `Standard ${handWord}-hand fingering for ${noteToString(tonic)} minor (two octaves): ${fingers.join(' ')}. Key rule: the thumb (1) never plays a black key — that fixes where ${cross}. Drill hands separately until the crossing is automatic.`
+  return `Standard two-octave fingering for ${noteToString(tonic)} minor — RH: ${rh.join(' ')}; LH: ${lh.join(' ')}. Key rule: the thumb (1) never plays a black key — that fixes where the RH thumb tucks under and where the LH 3rd finger crosses over. Each break in the fingering marks one of those shifts. Drill hands separately, then together.`
 }
 
 /** "In C major, what is the IV chord?" */

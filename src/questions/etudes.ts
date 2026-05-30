@@ -22,6 +22,7 @@ export const ETUDES: Etude[] = [
     number: 3,
     title: 'Scale Fingerings',
     subtitle: 'Two-octave RH & LH fingerings for every minor scale',
+    levels: ['Easy', 'Medium', 'Hard'],
   },
   {
     id: 'chords',
