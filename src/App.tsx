@@ -146,6 +146,9 @@ export default function App() {
       >
         Import
       </Button>
+      <Button variant="secondary" onClick={() => navigate('about')}>
+        About
+      </Button>
       <input
         ref={fileInputRef}
         type="file"
@@ -239,18 +242,6 @@ export default function App() {
         )}
 
         <footer className="marking mt-10 text-center text-ink-3">
-          {route !== 'about' && (
-            <>
-              <button
-                type="button"
-                onClick={() => navigate('about')}
-                className="transition-colors hover:text-ink"
-              >
-                About
-              </button>
-              <span className="mx-2">·</span>
-            </>
-          )}
           ♪ practice daily · progress saved on this device
         </footer>
       </div>
