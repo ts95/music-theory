@@ -12,6 +12,7 @@ import {
 } from './srs'
 import ReviewSession from './components/ReviewSession'
 import EtudeMenu from './components/EtudeMenu'
+import AboutPage from './components/AboutPage'
 import InfoBox from './components/InfoBox'
 import { etudeReference } from './components/references'
 import Button from './components/Button'
@@ -20,28 +21,29 @@ import { formatMinutes, getTodaySeconds } from './time'
 import { getSavedLevel, saveLevel } from './levels'
 import { useEtudeTimer } from './useEtudeTimer'
 
-// ---- URL routing: one clean path per étude under the Vite base ------------
+// ---- URL routing: one clean path per étude (and /about) under the Vite base -
 const BASE = import.meta.env.BASE_URL // "/music-theory/" in prod, "/" in dev
 
-/** The étude id encoded in the current URL path, or null for the home screen. */
-function etudeIdFromLocation(): string | null {
+/** Valid route segments: each étude id, plus the About page. */
+const ROUTES = new Set<string>([...ETUDES.map((e) => e.id), 'about'])
+
+/** The route segment in the current URL (étude id or "about"), or null for home. */
+function routeFromLocation(): string | null {
   let rest = window.location.pathname
   if (rest.startsWith(BASE)) rest = rest.slice(BASE.length)
   rest = rest.replace(/^\/+|\/+$/g, '')
-  return ETUDES.some((e) => e.id === rest) ? rest : null
+  return ROUTES.has(rest) ? rest : null
 }
 
-/** Absolute path for an étude (or the home screen when id is null). */
-function pathForEtude(id: string | null): string {
-  return id === null ? BASE : `${BASE}${id}`
+/** Absolute path for a route (or the home screen when null). */
+function pathForRoute(route: string | null): string {
+  return route === null ? BASE : `${BASE}${route}`
 }
 
 export default function App() {
   const allQuestions = useMemo(() => generateAllQuestions(), [])
   const [data, setData] = useState<SrsData>(() => load())
-  const [selectedEtudeId, setSelectedEtudeId] = useState<string | null>(() =>
-    etudeIdFromLocation(),
-  )
+  const [route, setRoute] = useState<string | null>(() => routeFromLocation())
   const [soundOn, setSoundOn] = useState(() => !isMuted())
   // Bumped on import so the session restarts against the new data.
   const [sessionKey, setSessionKey] = useState(0)
@@ -53,22 +55,26 @@ export default function App() {
 
   // Sync the screen with the URL on browser back/forward.
   useEffect(() => {
-    const onPop = () => setSelectedEtudeId(etudeIdFromLocation())
+    const onPop = () => setRoute(routeFromLocation())
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [])
 
-  // Reflect the current étude in the tab title.
+  // Reflect the current screen in the tab title.
   useEffect(() => {
-    const etude = ETUDES.find((e) => e.id === selectedEtudeId)
-    document.title = etude ? `${etude.title} · Music Theory` : 'Music Theory'
-  }, [selectedEtudeId])
+    const etude = ETUDES.find((e) => e.id === route)
+    document.title = etude
+      ? `${etude.title} · Music Theory`
+      : route === 'about'
+        ? 'About · Music Theory'
+        : 'Music Theory'
+  }, [route])
 
-  /** Navigate to an étude (or home when null), pushing a new history entry. */
-  function navigate(id: string | null) {
-    if (id === selectedEtudeId) return
-    window.history.pushState(null, '', pathForEtude(id))
-    setSelectedEtudeId(id)
+  /** Navigate to a route (étude id or "about"), or home when null. */
+  function navigate(next: string | null) {
+    if (next === route) return
+    window.history.pushState(null, '', pathForRoute(next))
+    setRoute(next)
   }
 
   function toggleSound() {
@@ -151,15 +157,15 @@ export default function App() {
     </p>
   )
 
-  const selectedEtude =
-    selectedEtudeId === null
-      ? null
-      : (ETUDES.find((e) => e.id === selectedEtudeId) ?? null)
+  const selectedEtude = ETUDES.find((e) => e.id === route) ?? null
 
   return (
     <div className="min-h-screen">
       <div className="mx-auto max-w-2xl px-5 py-12 sm:py-16">
-        {selectedEtude === null ? (
+        {route === 'about' ? (
+          // ---- About page --------------------------------------------------
+          <AboutPage onBack={() => navigate(null)} />
+        ) : selectedEtude === null ? (
           // ---- Home screen: table of contents -----------------------------
           <>
             <header className="mb-9">
@@ -210,6 +216,18 @@ export default function App() {
         )}
 
         <footer className="marking mt-10 text-center text-ink-3">
+          {route !== 'about' && (
+            <>
+              <button
+                type="button"
+                onClick={() => navigate('about')}
+                className="transition-colors hover:text-ink"
+              >
+                About
+              </button>
+              <span className="mx-2">·</span>
+            </>
+          )}
           ♪ practice daily · progress saved on this device
         </footer>
       </div>
