@@ -3,6 +3,7 @@ import type { Question } from '../contracts'
 import { isMuted, play, playEar, playRhythm, stop } from '../audio/player'
 import {
   INTERVAL_ROOTS,
+  keySignatureSpec,
   noteToString,
   progressionTonics,
   realizeEar,
@@ -150,6 +151,12 @@ export default function QuestionCard({
     )
     return scale.target.map((ev) => voicedMidi(ev[0]))
   }, [ear, earRoot])
+  // Key signature for the reveal staff — melody/progression are in a key (drawn
+  // under its signature); intervals are relative-pitch, so no signature.
+  const revealKeySignature =
+    earRoot && (ear?.kind === 'melody' || ear?.kind === 'progression')
+      ? keySignatureSpec(earRoot.note, ear.mode)
+      : undefined
   // Optional interval "training wheels", revealed only on request and reset
   // each question (the card remounts per question id).
   const intervalSemis = ear?.kind === 'interval' ? ear.semitones : null
@@ -508,6 +515,7 @@ export default function QuestionCard({
           {ear && realized && (
             <Staff
               groups={realized.target}
+              keySignature={revealKeySignature}
               labels={
                 earIsInterval
                   ? undefined
