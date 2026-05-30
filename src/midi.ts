@@ -23,8 +23,14 @@ interface MidiAccessLike {
 export function useMidiInput(
   onNoteOn: (midi: number) => void,
   enabled = true
-): { connected: boolean } {
+): { connected: boolean; supported: boolean } {
   const [connected, setConnected] = useState(false)
+  // Web MIDI is absent in Safari / all iOS-iPadOS browsers (WebKit). Knowing this
+  // up front lets the UI say "not supported here" rather than "no device".
+  const supported =
+    typeof navigator !== 'undefined' &&
+    typeof (navigator as { requestMIDIAccess?: unknown }).requestMIDIAccess ===
+      'function'
   // Keep the latest callback without re-requesting MIDI access each render.
   const cb = useRef(onNoteOn)
   cb.current = onNoteOn
@@ -77,5 +83,5 @@ export function useMidiInput(
     }
   }, [enabled])
 
-  return { connected }
+  return { connected, supported }
 }

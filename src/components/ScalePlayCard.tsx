@@ -77,7 +77,7 @@ export default function ScalePlayCard({
   // Stable callback for the MIDI listener (avoids re-subscribing each render).
   const handleRef = useRef(handleNote)
   handleRef.current = handleNote
-  const { connected } = useMidiInput(
+  const { connected, supported } = useMidiInput(
     (m) => handleRef.current(m),
     status === 'playing'
   )
@@ -153,7 +153,11 @@ export default function ScalePlayCard({
 
       <p className="marking mt-3 flex items-center gap-2 text-ink-3">
         <span className={connected ? 'text-correct' : 'text-ink-3'}>
-          {connected ? '🎹 MIDI connected' : '🎹 no MIDI — tap the keys'}
+          {!supported
+            ? '🎹 MIDI not supported in this browser — tap the keys'
+            : connected
+              ? '🎹 MIDI connected'
+              : '🎹 connect a MIDI keyboard, or tap the keys'}
         </span>
         {isMuted() && <span className="text-wrong">· ♪ sound off</span>}
       </p>
