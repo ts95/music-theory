@@ -34,10 +34,10 @@ describe('generateAllQuestions', () => {
     //   = (3 + 7 + 12 keys) × 2 × 7 = 42 + 98 + 168 = 308.
     // progressions: 6 major + 5 minor triad progressions × 12 keys = 132,
     // plus 2 idiomatic seventh forms × 12 = 24, total 156.
-    // ear: 12 intervals + 11 progression types + 64 melodic (3 levels × 2 modes)
-    //   + 52 rhythm (3 levels × metres).
+    // ear: 24 intervals (cumulative levels 4+8+12) + 11 progression types
+    //   + 64 melodic (3 levels × 2 modes) + 52 rhythm (3 levels × metres).
     expect(questions.length).toBe(
-      12 + 36 + fingeringCount + 168 + 308 + 156 + 12 + 11 + 64 + 52
+      12 + 36 + fingeringCount + 168 + 308 + 156 + 24 + 11 + 64 + 52
     )
   })
 
@@ -53,7 +53,7 @@ describe('generateAllQuestions', () => {
     expect(count('chords')).toBe(168)
     expect(count('chord-recognition')).toBe(308)
     expect(count('progressions')).toBe(156)
-    expect(count('intervals-ear')).toBe(12)
+    expect(count('intervals-ear')).toBe(24) // cumulative levels: 4 + 8 + 12
     expect(count('progressions-ear')).toBe(11)
     expect(count('melodic-dictation')).toBe(64) // (10+12+10) motifs × 2 modes
     expect(count('rhythm-dictation')).toBe(52) // L1 16 + L2 21 + L3 15
@@ -67,7 +67,8 @@ describe('generateAllQuestions', () => {
   it('every question is well-formed', () => {
     for (const q of questions) {
       expect(q.choices.length).toBeGreaterThanOrEqual(3)
-      expect(q.choices.length).toBeLessThanOrEqual(4)
+      // Most questions have 4 choices; harder interval levels show up to 6.
+      expect(q.choices.length).toBeLessThanOrEqual(6)
       expect(new Set(q.choices).size).toBe(q.choices.length)
       expect(q.answerIndex).toBeGreaterThanOrEqual(0)
       expect(q.answerIndex).toBeLessThan(q.choices.length)
@@ -287,24 +288,32 @@ describe('generateAllQuestions', () => {
   describe('ear-training questions', () => {
     const earQ = questions.filter((q) => q.ear)
 
-    it('every ear question carries an ear spec, 4 choices, and a tip', () => {
-      // 12 intervals + 11 progressions + 24 melodic + 42 rhythm.
-      expect(earQ.length).toBe(12 + 11 + 64 + 52)
+    it('every ear question carries an ear spec, distinct choices, and a tip', () => {
+      // 24 intervals + 11 progressions + 64 melodic + 52 rhythm.
+      expect(earQ.length).toBe(24 + 11 + 64 + 52)
       for (const q of earQ) {
         expect(q.ear, q.id).toBeDefined()
-        expect(q.choices.length).toBe(4)
-        expect(new Set(q.choices).size).toBe(4)
+        expect(q.choices.length, q.id).toBeGreaterThanOrEqual(4)
+        expect(q.choices.length, q.id).toBeLessThanOrEqual(6)
+        expect(new Set(q.choices).size).toBe(q.choices.length)
         expect(q.explanation).toBeTruthy()
         expect(q.audio).toBeUndefined() // no hover audio — the question owns the sound
       }
     })
 
-    it('interval questions cover all 12 intervals with correct specs', () => {
+    it('interval questions span three cumulative levels with widening options', () => {
       const intervals = questions.filter((q) => q.ear?.kind === 'interval')
-      expect(intervals).toHaveLength(12)
-      const p5 = questions.find((x) => x.id === 'interval-ear:7')!
+      expect(intervals).toHaveLength(24)
+      expect(intervals.filter((q) => q.level === 1)).toHaveLength(4) // Easy
+      expect(intervals.filter((q) => q.level === 2)).toHaveLength(8) // Medium
+      expect(intervals.filter((q) => q.level === 3)).toHaveLength(12) // Hard
+      // P5 appears at every level; the option count grows 4 → 5 → 6.
+      const p5 = questions.find((x) => x.id === 'interval-ear:L1:7')!
       expect(p5.choices[p5.answerIndex]).toBe('Perfect 5th')
       expect(p5.ear).toEqual({ kind: 'interval', semitones: 7, letterSteps: 4 })
+      expect(p5.choices.length).toBe(4)
+      expect(questions.find((x) => x.id === 'interval-ear:L2:7')!.choices.length).toBe(5)
+      expect(questions.find((x) => x.id === 'interval-ear:L3:7')!.choices.length).toBe(6)
     })
 
     it('progression-by-ear reuses the curated set', () => {

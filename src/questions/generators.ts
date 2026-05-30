@@ -84,7 +84,8 @@ function renderScale(notes: Note[]): string {
  * Build a Question with deterministic choice ordering. Choices are sorted
  * with localeCompare so the answer isn't always first, with zero randomness.
  * `distractors` may contain extras/dupes; they are filtered to be distinct
- * from `correct` and each other, then the first three are used.
+ * from `correct` and each other, then the first `maxDistractors` (default 3,
+ * i.e. four choices) are used.
  */
 function buildQuestion(
   etudeId: string,
@@ -94,13 +95,14 @@ function buildQuestion(
   correct: string,
   distractors: string[],
   audio?: Record<string, Playable>,
-  explanation?: string
+  explanation?: string,
+  maxDistractors = 3
 ): Question {
   const picked: string[] = []
   for (const d of distractors) {
     if (d === correct || picked.includes(d)) continue
     picked.push(d)
-    if (picked.length === 3) break
+    if (picked.length === maxDistractors) break
   }
   const choices = [correct, ...picked].sort((a, b) => a.localeCompare(b))
   const question: Question = {
@@ -476,30 +478,48 @@ const INTERVALS: IntervalDef[] = [
   { name: 'Octave', semitones: 12, letterSteps: 7 },
 ]
 
-/** 6. Interval ear-training: identify an ascending interval by sound. */
+// Three cumulative difficulty levels by semitone span. Each level keeps the
+// easier intervals and adds more (so harder levels offer a wider array of
+// options), and shows more choices: Easy 4, Medium 5, Hard 6.
+const INTERVAL_LEVELS: { semitones: number[]; maxDistractors: number }[] = [
+  { semitones: [1, 6, 7, 12], maxDistractors: 3 }, // m2, TT, P5, 8ve
+  { semitones: [1, 2, 3, 4, 5, 6, 7, 12], maxDistractors: 4 }, // + M2 m3 M3 P4
+  { semitones: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], maxDistractors: 5 }, // all
+]
+
+/** 6. Interval ear-training: identify an ascending interval by sound (3 levels). */
 function intervalEarQuestions(): Question[] {
-  return INTERVALS.map((iv) => {
-    // Distractors: the nearest intervals by semitone (the easiest to confuse).
-    const distractors = INTERVALS.filter((x) => x.name !== iv.name)
-      .sort(
-        (a, b) =>
-          Math.abs(a.semitones - iv.semitones) -
-          Math.abs(b.semitones - iv.semitones)
+  const out: Question[] = []
+  INTERVAL_LEVELS.forEach((def, levelIndex) => {
+    const level = levelIndex + 1
+    const pool = INTERVALS.filter((iv) => def.semitones.includes(iv.semitones))
+    for (const iv of pool) {
+      // Distractors: the nearest intervals by semitone within this level's pool.
+      const distractors = pool
+        .filter((x) => x.name !== iv.name)
+        .sort(
+          (a, b) =>
+            Math.abs(a.semitones - iv.semitones) -
+            Math.abs(b.semitones - iv.semitones)
+        )
+        .map((x) => x.name)
+      const q = buildQuestion(
+        'intervals-ear',
+        `interval-ear:L${level}:${iv.semitones}`,
+        'Interval',
+        'Identify the interval you hear.',
+        iv.name,
+        distractors,
+        undefined,
+        intervalEarExplanation(iv.name, iv.semitones),
+        def.maxDistractors
       )
-      .map((x) => x.name)
-    const q = buildQuestion(
-      'intervals-ear',
-      `interval-ear:${iv.semitones}`,
-      'Interval',
-      'Identify the interval you hear.',
-      iv.name,
-      distractors,
-      undefined,
-      intervalEarExplanation(iv.name, iv.semitones)
-    )
-    q.ear = { kind: 'interval', semitones: iv.semitones, letterSteps: iv.letterSteps }
-    return q
+      q.ear = { kind: 'interval', semitones: iv.semitones, letterSteps: iv.letterSteps }
+      q.level = level
+      out.push(q)
+    }
   })
+  return out
 }
 
 /** 7. Progression ear-training: identify a curated progression by sound. */

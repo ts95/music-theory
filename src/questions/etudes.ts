@@ -51,6 +51,7 @@ export const ETUDES: Etude[] = [
     number: 7,
     title: 'Intervals by Ear',
     subtitle: 'Hear an interval and name it — relative-pitch training',
+    levels: ['Easy', 'Medium', 'Hard'],
   },
   {
     id: 'progressions-ear',
