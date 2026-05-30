@@ -140,6 +140,16 @@ export default function QuestionCard({
       ear && ear.kind !== 'rhythm' && earRoot ? realizeEar(ear, earRoot) : null,
     [ear, earRoot],
   )
+  // The melody's scale (tonic..octave) as MIDI, for the "hear scale" hint and
+  // its per-note hover playback.
+  const scaleMidis = useMemo(() => {
+    if (ear?.kind !== 'melody' || !earRoot) return null
+    const scale = realizeEar(
+      { kind: 'melody', mode: ear.mode, degrees: [0, 1, 2, 3, 4, 5, 6, 7] },
+      earRoot,
+    )
+    return scale.target.map((ev) => voicedMidi(ev[0]))
+  }, [ear, earRoot])
   // Optional interval "training wheels", revealed only on request and reset
   // each question (the card remounts per question id).
   const intervalSemis = ear?.kind === 'interval' ? ear.semitones : null
@@ -167,18 +177,16 @@ export default function QuestionCard({
   // Hint (melody): play the whole scale from the tonic up to the octave, so you
   // can anchor each solfège syllable if you're struggling.
   function playScale() {
-    if (!earRoot || ear?.kind !== 'melody') return
-    const scale = realizeEar(
-      { kind: 'melody', mode: ear.mode, degrees: [0, 1, 2, 3, 4, 5, 6, 7] },
-      earRoot,
-    )
+    if (!scaleMidis) return
     setScaleStep(-1)
-    playEar(
-      [],
-      scale.target.map((ev) => ev.map(voicedMidi)),
-      'melodic',
-      (i) => setScaleStep(i),
-    )
+    playEar([], scaleMidis.map((m) => [m]), 'melodic', (i) => setScaleStep(i))
+  }
+  // Hovering a syllable plays that scale note — but only while the scale itself
+  // isn't mid-playback (scaleStep >= 0 means a note is currently sounding).
+  const scaleIdle = scaleStep === -1
+  function playScaleNote(degree: number) {
+    if (!scaleMidis || !scaleIdle) return
+    playEar([], [[scaleMidis[degree]]], 'melodic')
   }
   // Intervals only: sound both notes at once (one block event).
   function playHarmonic() {
@@ -314,9 +322,11 @@ export default function QuestionCard({
               {[0, 1, 2, 3, 4, 5, 6, 7].map((d) => (
                 <span
                   key={d}
+                  onPointerEnter={scaleIdle ? () => playScaleNote(d) : undefined}
+                  onPointerLeave={scaleIdle ? () => stop() : undefined}
                   className={`rounded px-2 py-1 transition-colors ${
                     d === scaleStep ? 'bg-accent text-paper' : 'text-ink-2'
-                  }`}
+                  } ${scaleIdle ? 'cursor-pointer hover:bg-rule/60' : ''}`}
                 >
                   {solfege(ear.mode, d % 7)}
                 </span>
