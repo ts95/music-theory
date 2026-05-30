@@ -61,15 +61,6 @@ export function scaleExplanation(
   return `Melodic minor (ascending) = natural minor with a raised 6th AND 7th. In ${T}, ${noteToString(nat[5])}→${noteToString(m[5])} and ${noteToString(nat[6])}→${noteToString(m[6])}: ${spell(m)}.`
 }
 
-/** "What is the standard right-hand fingering for the C minor scale?" */
-export function fingeringExplanation(
-  tonic: Note,
-  rh: number[],
-  lh: number[]
-): string {
-  return `Standard two-octave fingering for ${noteToString(tonic)} minor — RH: ${rh.join(' ')}; LH: ${lh.join(' ')}. Key rule: the thumb (1) never plays a black key — that fixes where the RH thumb tucks under and where the LH 3rd finger crosses over. Each break in the fingering marks one of those shifts. Drill hands separately, then together.`
-}
-
 /** "In C major, what is the IV chord?" */
 export function chordExplanation(
   keyName: string,

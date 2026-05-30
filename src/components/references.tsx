@@ -149,25 +149,6 @@ const REFERENCES: Record<string, EtudeReference> = {
       </div>
     ),
   },
-  fingerings: {
-    title: 'Fingering rules',
-    body: (
-      <div className="space-y-2">
-        <p>
-          {mono('1')} = thumb … {mono('5')} = pinky. Each answer gives both hands,
-          RH over LH.
-        </p>
-        <p>
-          The thumb ({mono('1')}) never plays a black key — that fixes where it
-          tucks under (RH) and where the 3rd finger crosses over (LH). A wide gap
-          in the numbers marks each of those shifts.
-        </p>
-        <p className="text-ink-3">
-          Two octaves; drill hands separately until the crossing is automatic.
-        </p>
-      </div>
-    ),
-  },
   'scale-play': {
     title: 'How to play it',
     body: (
@@ -178,8 +159,14 @@ const REFERENCES: Record<string, EtudeReference> = {
         </p>
         <p>
           Each correct note lights up with its fingering ({mono('RH')} over{' '}
-          {mono('LH')}). A wrong (non-diatonic) note ends the run and reveals the
-          whole scale. It's sudden-death — beat the clock.
+          {mono('LH')}). A few wrong notes are forgiven (Hard allows one, Easy and
+          Medium two) — one past that ends the run and reveals the whole scale.
+          It's sudden-death — beat the clock.
+        </p>
+        <p className="text-ink-3">
+          Stuck? Tap <span className="text-ink">show fingering</span> to flash the
+          whole scale's finger numbers for 3 seconds (any key hides them sooner).
+          Peeking counts the exercise as failed — it'll resurface sooner.
         </p>
       </div>
     ),

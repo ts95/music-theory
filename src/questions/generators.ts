@@ -40,7 +40,6 @@ import type { Chord, ChordSize, Mode, Voiced } from '../theory'
 import {
   chordExplanation,
   chordRecognitionExplanation,
-  fingeringExplanation,
   intervalEarExplanation,
   melodicDictationExplanation,
   progressionEarExplanation,
@@ -206,81 +205,6 @@ function scaleSpellingQuestions(): Question[] {
       }
       questions.push(q)
     })
-  })
-  return questions
-}
-
-/**
- * Join finger numbers with a wide gap (a "tab") at each position shift — where
- * the finger jumps by more than a step, i.e. an RH thumb-tuck or an LH cross-
- * over. The gaps make the hand-position groups legible.
- */
-function groupFingers(f: number[]): string {
-  return f
-    .map((n, i) =>
-      i === 0 ? `${n}` : Math.abs(n - f[i - 1]) !== 1 ? `    ${n}` : ` ${n}`
-    )
-    .join('')
-}
-
-/** Both hands as a two-line label (RH over LH), with thumb-tuck gaps. */
-function bothHandsLabel(rh: number[], lh: number[]): string {
-  return `RH  ${groupFingers(rh)}\nLH  ${groupFingers(lh)}`
-}
-
-// Three cumulative difficulty levels by ABRSM grade (the étude covers the minor
-// keys, so these are the minor scales required at each grade): Easy = Grade 1
-// (A, D), Medium adds Grade 2 (E, G), Hard = all twelve keys.
-const FINGERING_LEVELS: string[][] = [
-  ['A minor', 'D minor'],
-  ['A minor', 'D minor', 'E minor', 'G minor'],
-  KEYS.map((k) => k.minorName),
-]
-
-/** 3. Piano fingerings: one per key (both hands at once), three ABRSM levels. */
-function fingeringQuestions(): Question[] {
-  // Distractor pool: every key's both-hands label (deduped downstream).
-  const pool: string[] = []
-  for (const key of KEYS) {
-    const rh = fingering(key.minorTonic, 'natural', 'RH')
-    const lh = fingering(key.minorTonic, 'natural', 'LH')
-    if (rh && lh) pool.push(bothHandsLabel(rh, lh))
-  }
-
-  const questions: Question[] = []
-  FINGERING_LEVELS.forEach((names, levelIndex) => {
-    const level = levelIndex + 1
-    for (const key of KEYS) {
-      if (!names.includes(key.minorName)) continue
-      const rh = fingering(key.minorTonic, 'natural', 'RH')
-      const lh = fingering(key.minorTonic, 'natural', 'LH')
-      if (!rh || !lh) continue
-      const q = buildQuestion(
-        'fingerings',
-        `fingering:L${level}:${asciiTonicId(key.minorTonic)}`,
-        'Fingering',
-        `What is the standard fingering — both hands — for the ${noteToString(
-          key.minorTonic
-        )} minor scale (two octaves, ascending)?`,
-        bothHandsLabel(rh, lh),
-        pool,
-        undefined,
-        fingeringExplanation(key.minorTonic, rh, lh)
-      )
-      // Reveal lights up two octaves of the natural-minor scale, each key
-      // labelled with both fingers (RH over LH).
-      const natural = minorScale(key.minorTonic, 'natural')
-      const twoOctaves = [...natural, ...natural, natural[0]]
-      q.keyboard = {
-        marks: voiceScaleAscending(twoOctaves).map((v, i) => ({
-          midi: voicedMidi(v),
-          label: String(rh[i]),
-          sublabel: String(lh[i]),
-        })),
-      }
-      q.level = level
-      questions.push(q)
-    }
   })
   return questions
 }
@@ -1140,10 +1064,10 @@ function rhythmDictationQuestions(): Question[] {
   return questions
 }
 
-// ── 11. Play the Scale (interactive) ─────────────────────────────────────────
-// Sudden-death; cumulative ABRSM-grade key scope (the major minor sets match
-// the Scale Fingerings étude). Easy = 1 octave / 15 s; Medium = 2 oct / 20 s;
-// Hard = 2 oct / 15 s. Each in-scope minor key appears in all three forms.
+// ── Play the Scale (interactive) ─────────────────────────────────────────────
+// Sudden-death; cumulative ABRSM-grade key scope. Easy = 1 octave / 15 s;
+// Medium = 2 oct / 20 s; Hard = 2 oct / 15 s. Each in-scope minor key appears
+// in all three forms.
 interface ScalePlayLevel {
   n: number
   octaves: 1 | 2
@@ -1237,7 +1161,6 @@ export function generateAllQuestions(): Question[] {
   return [
     ...relativeMinorQuestions(),
     ...scaleSpellingQuestions(),
-    ...fingeringQuestions(),
     ...chordDegreeQuestions(),
     ...chordRecognitionQuestions(),
     ...progressionQuestions(),

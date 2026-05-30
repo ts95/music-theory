@@ -9,42 +9,41 @@ stored locally and can be exported to a file. Live at **<https://ts95.github.io/
 ## Features
 
 Lessons are organised into **selectable études**, each its own spaced-repetition session with its own
-progress, chosen from a table-of-contents home screen. Eleven études today, in three sections:
+progress, chosen from a table-of-contents home screen. Ten études today, in three sections:
 
 ### 🎹 Keys & Scales
 
 - **No. 1 — Relative Minors.** Name the relative minor of a major key ("What is the relative minor of
   E♭ major?"); the circle of fifths is shown on reveal. Timed (5 s sudden-death).
 - **No. 2 — Scales.** Spell the natural / harmonic / melodic minor scales of every key.
-- **No. 3 — Scale Fingerings.** Standard two-octave piano fingerings, **both hands at once** (RH over
-  LH), with a wide gap marking each thumb-tuck / cross-over. The reveal lights the scale across two
-  octaves on a keyboard, labelled with both hands' finger numbers.
-- **No. 4 — Play the Scale.** Hands-on twin of #3: you're given a key and **play the scale ascending**
-  on an interactive keyboard — tap/click, or strike a connected **MIDI keyboard**. Each correct note
-  lights with its RH+LH fingering; a wrong (non-diatonic) note ends the run and reveals the whole scale.
-  Sudden-death; cumulative ABRSM-grade scope (Easy 1 octave / 15 s, Medium 2 / 20 s, Hard 2 / 15 s).
+- **No. 3 — Play the Scale.** You're given a key and **play the scale ascending** on an interactive
+  keyboard — tap/click, or strike a connected **MIDI keyboard**. Each correct note lights with its
+  RH+LH fingering; a few wrong notes are forgiven (Hard allows one, Easy/Medium two) before the run
+  ends and reveals the whole scale. An optional **show-fingering** hint flashes the whole scale's finger
+  numbers for 3 s (any key hides them) — but peeking grades the exercise as failed. Sudden-death;
+  cumulative ABRSM-grade scope (Easy 1 octave / 15 s, Medium 2 / 20 s, Hard 2 / 15 s).
 
 ### 🎶 Chords & Harmony
 
-- **No. 5 — Chords by Degree.** Recall the diatonic chord on a scale degree ("In C major, what is the
+- **No. 4 — Chords by Degree.** Recall the diatonic chord on a scale degree ("In C major, what is the
   IV chord?" → F), across every major and minor key — the common triads plus V7. Timed (5 s).
-- **No. 6 — Chord Recognition.** Read a chord drawn on the staff (under its key signature) and name it
+- **No. 5 — Chord Recognition.** Read a chord drawn on the staff (under its key signature) and name it
   as a symbol, with slash notation for inversions. Timed (10 s).
-- **No. 7 — Progressions.** Map a Roman-numeral progression to concrete chords ("In G major, spell
+- **No. 6 — Progressions.** Map a Roman-numeral progression to concrete chords ("In G major, spell
   ii–V–I" → Am – D – G), including ii–V–I seventh forms. The spelled chords are shown on a treble staff
   under the key's signature on reveal. Timed (15 s).
 
 ### 👂 Ear Training
 
-- **No. 8 — Intervals by Ear.** Hear an interval and name it; the lower note is randomized each time
+- **No. 7 — Intervals by Ear.** Hear an interval and name it; the lower note is randomized each time
   (relative-pitch training). Optional hints — *step up to it* (walks the distance a semitone at a time)
   and *consonant or dissonant?* — plus a set of **reference songs**: a familiar tune for every interval,
   notated, that you can play to recognise the leap.
-- **No. 9 — Progressions by Ear.** Hear the tonic, then a progression, and name it in Roman numerals.
-- **No. 10 — Melodic Dictation.** Hear a short motif over its tonic and name it in **solfège**. A
+- **No. 8 — Progressions by Ear.** Hear the tonic, then a progression, and name it in Roman numerals.
+- **No. 9 — Melodic Dictation.** Hear a short motif over its tonic and name it in **solfège**. A
   **hear-scale** hint plays the whole scale with a synced solfège readout (and you can hover a syllable
   to play just that note); the melody is shown on the staff, in key, on reveal.
-- **No. 11 — Rhythm Dictation.** Hear a one-bar rhythm and pick the matching notation. A wide vocabulary
+- **No. 10 — Rhythm Dictation.** Hear a one-bar rhythm and pick the matching notation. A wide vocabulary
   of common patterns — sixteenth cells (ti-tika / tika-ti), dotted-eighth and Scotch-snap figures, the
   tresillo (3+3+2), eighth-note triplets, ties, rests and off-beat syncopation. The metres accumulate
   with difficulty: Easy adds **2/4** (to 4/4, 3/4, 6/8), Medium adds **cut time (₵)** and **12/8**, Hard

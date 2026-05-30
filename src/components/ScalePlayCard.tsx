@@ -9,9 +9,10 @@ import Button from './Button'
 /**
  * Interactive "Play the Scale" étude. Show a key; the student plays it ascending
  * on the keyboard (tap/click or MIDI). Each correct note lights with its RH+LH
- * fingering; the first wrong (non-diatonic) note — or the sudden-death timer
- * running out — fails and reveals the full scale. Matching is positional by
- * pitch class, so a MIDI keyboard in any octave works.
+ * fingering. A few wrong (non-diatonic) notes are tolerated — the allowance is
+ * level-based (Hard 1, Easy/Medium 2) — but one mistake past it, or the
+ * sudden-death timer running out, fails and reveals the full scale. Matching is
+ * positional by pitch class, so a MIDI keyboard in any octave works.
  */
 
 interface ScalePlayCardProps {
@@ -39,18 +40,47 @@ export default function ScalePlayCard({
     return { from, octaves: Math.max(1, (top - from) / 12) as number }
   }, [midis])
 
+  // Mistakes tolerated before the run fails: Hard (L3) allows 1, Easy/Medium 2.
+  // The run fails on the mistake *after* the allowance is spent.
+  const allowance = question.level === 3 ? 1 : 2
+
   const [index, setIndex] = useState(0)
+  const [mistakes, setMistakes] = useState(0)
+  // Optional hint: briefly light the whole scale with its RH/LH fingering (the
+  // same diagram the reveal shows) for when you're stuck. It flashes for 3 s,
+  // and any key hides it again. Peeking taints the run — a clean completion that
+  // used the hint is still graded as failed (recorded done, but not "passed").
+  const [showFingering, setShowFingering] = useState(false)
+  const hintUsed = useRef(false)
+  // True once the whole scale was played in order (vs. a mistake/timeout fail),
+  // so the reveal can distinguish a hint-tainted completion from a real miss.
+  const completedClean = useRef(false)
   const [status, setStatus] = useState<'playing' | 'passed' | 'failed'>('playing')
   const [remaining, setRemaining] = useState(sp.seconds * 1000)
   const [pressed, setPressed] = useState<number | null>(null)
   const resolved = useRef(false)
   const pressTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const hintTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   useEffect(
     () => () => {
       if (pressTimer.current) clearTimeout(pressTimer.current)
+      if (hintTimer.current) clearTimeout(hintTimer.current)
     },
     []
   )
+
+  // Flash the fingering for 3 s (any key, below, hides it sooner) and mark the
+  // run as hinted so a correct completion still grades as failed.
+  const flashFingering = () => {
+    hintUsed.current = true
+    setShowFingering(true)
+    if (hintTimer.current) clearTimeout(hintTimer.current)
+    hintTimer.current = setTimeout(() => setShowFingering(false), 3000)
+  }
+  const hideFingering = () => {
+    if (hintTimer.current) clearTimeout(hintTimer.current)
+    setShowFingering(false)
+  }
 
   const finish = (passed: boolean) => {
     if (resolved.current) return
@@ -61,6 +91,8 @@ export default function ScalePlayCard({
 
   const handleNote = (midi: number) => {
     if (resolved.current) return
+    // Any key hides a lingering fingering hint.
+    if (showFingering) hideFingering()
     playNote(midi)
     // Momentary depress cue (clears shortly after the strike).
     setPressed(midi)
@@ -69,9 +101,18 @@ export default function ScalePlayCard({
     if (mod(midi, 12) === pcs[index]) {
       const next = index + 1
       setIndex(next)
-      if (next >= sp.notes.length) finish(true)
+      // Played the whole scale in order — but a completion that leaned on the
+      // hint is recorded as failed (graded done, not passed).
+      if (next >= sp.notes.length) {
+        completedClean.current = true
+        finish(!hintUsed.current)
+      }
     } else {
-      finish(false)
+      // A miss: spend a mistake. The expected note stays put (still play it in
+      // order); only once the allowance is exceeded does the run fail.
+      const used = mistakes + 1
+      setMistakes(used)
+      if (used > allowance) finish(false)
     }
   }
   // Stable callback for the MIDI listener (avoids re-subscribing each render).
@@ -105,9 +146,10 @@ export default function ScalePlayCard({
     label: String(sp.rh[i]),
     sublabel: String(sp.lh[i]),
   })
-  // Lit so far while playing; the whole scale once it's resolved.
+  // Lit so far while playing; the whole scale once it's resolved — or the whole
+  // scale early if the fingering hint is on.
   const marks =
-    status === 'playing'
+    status === 'playing' && !showFingering
       ? sp.notes.slice(0, index).map((_, i) => mark(i))
       : sp.notes.map((_, i) => mark(i))
 
@@ -159,8 +201,28 @@ export default function ScalePlayCard({
               ? '🎹 MIDI connected'
               : '🎹 connect a MIDI keyboard, or tap the keys'}
         </span>
+        {playing && (
+          <span
+            className={mistakes > 0 ? 'text-wrong' : 'text-ink-3'}
+            aria-label="mistakes used"
+          >
+            · ✕ {mistakes}/{allowance}
+          </span>
+        )}
         {isMuted() && <span className="text-wrong">· ♪ sound off</span>}
       </p>
+
+      {playing && (
+        <button
+          type="button"
+          onClick={flashFingering}
+          disabled={showFingering}
+          className="marking mt-3 text-ink-3 transition-colors hover:text-ink disabled:text-accent"
+          title="Flash the fingering for 3 s — but this counts the exercise as failed"
+        >
+          {showFingering ? 'fingering shown…' : 'show fingering (3 s · counts as failed)'}
+        </button>
+      )}
 
       <div className="mt-5">
         <PianoKeyboard
@@ -178,6 +240,10 @@ export default function ScalePlayCard({
             <p className="font-display text-lg italic">
               {status === 'passed' ? (
                 <span className="text-correct">Just so.</span>
+              ) : completedClean.current ? (
+                <span className="text-wrong">
+                  Played — but the fingering hint counts it as missed.
+                </span>
               ) : (
                 <span className="text-wrong">
                   Not quite — here’s the {sp.keyName} scale.
