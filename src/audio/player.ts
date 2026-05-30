@@ -118,7 +118,9 @@ export function play(p: Playable): void {
 export function playEar(
   reference: number[][],
   target: number[][],
-  style: 'melodic' | 'block'
+  style: 'melodic' | 'block',
+  /** Fired as each target event sounds (for in-sync UI, e.g. solfège). */
+  onStep?: (index: number) => void
 ): void {
   if (muted) return
   stop()
@@ -127,7 +129,7 @@ export function playEar(
     try {
       await ensureSynth()
       if (muted || g !== generation) return
-      scheduleEar(reference, target, style)
+      scheduleEar(reference, target, style, onStep)
     } catch {
       /* audio unavailable — ignore */
     }
@@ -137,19 +139,27 @@ export function playEar(
 function scheduleEar(
   reference: number[][],
   target: number[][],
-  style: 'melodic' | 'block'
+  style: 'melodic' | 'block',
+  onStep?: (index: number) => void
 ): void {
   if (!Tone || !synth) return
-  const fire = (event: number[], hold: number, at: number) => {
+  const fire = (event: number[], hold: number, at: number, cb?: () => void) => {
     const freqs = event.map((m) => Tone!.Frequency(m, 'midi').toFrequency())
-    scheduled.push(setTimeout(() => synth?.triggerAttackRelease(freqs, hold), at))
+    scheduled.push(
+      setTimeout(() => {
+        synth?.triggerAttackRelease(freqs, hold)
+        cb?.()
+      }, at)
+    )
   }
   let t = 0
   reference.forEach((ev, i) => fire(ev, 0.9, i * 640))
   if (reference.length > 0) t = reference.length * 640 + 700 // gap before target
   const step = style === 'melodic' ? 460 : 640
   const hold = style === 'melodic' ? 0.5 : 0.72
-  target.forEach((ev, i) => fire(ev, hold, t + i * step))
+  target.forEach((ev, i) => fire(ev, hold, t + i * step, () => onStep?.(i)))
+  // A final tick so callers can clear any "current note" highlight.
+  if (onStep) scheduled.push(setTimeout(() => onStep(-1), t + target.length * step))
 }
 
 const BASE_BEATS: Record<RhythmEvent['dur'], number> = {

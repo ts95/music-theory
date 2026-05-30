@@ -6,6 +6,7 @@ import {
   noteToString,
   progressionTonics,
   realizeEar,
+  solfege,
   voicedMidi,
 } from '../theory'
 import Staff from './Staff'
@@ -143,6 +144,9 @@ export default function QuestionCard({
   // each question (the card remounts per question id).
   const intervalSemis = ear?.kind === 'interval' ? ear.semitones : null
   const [revealQuality, setRevealQuality] = useState(false)
+  // Melodic-dictation "hear scale" hint: null = not shown; -1 = shown, no note
+  // lit; 0..7 = the scale degree currently sounding (for the solfège readout).
+  const [scaleStep, setScaleStep] = useState<number | null>(null)
 
   function playPrompt() {
     if (ear?.kind === 'rhythm') {
@@ -168,7 +172,13 @@ export default function QuestionCard({
       { kind: 'melody', mode: ear.mode, degrees: [0, 1, 2, 3, 4, 5, 6, 7] },
       earRoot,
     )
-    playEar([], scale.target.map((ev) => ev.map(voicedMidi)), 'melodic')
+    setScaleStep(-1)
+    playEar(
+      [],
+      scale.target.map((ev) => ev.map(voicedMidi)),
+      'melodic',
+      (i) => setScaleStep(i),
+    )
   }
   // Intervals only: sound both notes at once (one block event).
   function playHarmonic() {
@@ -284,19 +294,35 @@ export default function QuestionCard({
                 {earIsInterval ? 'hear lower note' : 'hear tonic'}
               </button>
             )}
-            {earIsMelody && (
+            {ear?.kind === 'melody' && earRoot && (
               <button
                 type="button"
                 onClick={playScale}
                 className="marking text-ink-3 transition-colors hover:text-ink"
               >
-                hear scale
+                ▶ hear {noteToString(earRoot.note)} {ear.mode} scale
               </button>
             )}
             {isMuted() && (
               <span className="marking text-wrong">♪ Sound is off</span>
             )}
           </div>
+          {ear?.kind === 'melody' && scaleStep !== null && (
+            // Solfège readout for the scale hint — each syllable lights as its
+            // note sounds, so you can anchor the sound to the name.
+            <div className="mt-3 flex flex-wrap gap-1.5 font-mono text-sm">
+              {[0, 1, 2, 3, 4, 5, 6, 7].map((d) => (
+                <span
+                  key={d}
+                  className={`rounded px-2 py-1 transition-colors ${
+                    d === scaleStep ? 'bg-accent text-paper' : 'text-ink-2'
+                  }`}
+                >
+                  {solfege(ear.mode, d % 7)}
+                </span>
+              ))}
+            </div>
+          )}
           {earIsInterval && earRoot && (
             <p className="mt-3 text-ink-2">
               The lower note is{' '}
