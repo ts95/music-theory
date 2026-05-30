@@ -12,9 +12,12 @@ import {
 } from './srs'
 import ReviewSession from './components/ReviewSession'
 import EtudeMenu from './components/EtudeMenu'
+import InfoBox from './components/InfoBox'
+import { etudeReference } from './components/references'
 import Button from './components/Button'
 import { isMuted, setMuted } from './audio/player'
 import { formatMinutes, getTodaySeconds } from './time'
+import { getSavedLevel, saveLevel } from './levels'
 import { useEtudeTimer } from './useEtudeTimer'
 
 // ---- URL routing: one clean path per étude under the Vite base ------------
@@ -235,8 +238,16 @@ function EtudeScreen({
   ioButtons,
   noticeBanner,
 }: EtudeScreenProps) {
-  // Difficulty level (for études that define `levels`); 1-based.
-  const [level, setLevel] = useState(1)
+  // Difficulty level (for études that define `levels`); 1-based, remembered
+  // per étude across visits.
+  const [level, setLevelState] = useState(() => {
+    const saved = getSavedLevel(etude.id)
+    return etude.levels ? Math.min(saved, etude.levels.length) : 1
+  })
+  const setLevel = (n: number) => {
+    setLevelState(n)
+    saveLevel(etude.id, n)
+  }
   const fullBank = useMemo(
     () => allQuestions.filter((q) => q.etudeId === etude.id),
     [allQuestions, etude.id],
@@ -254,6 +265,7 @@ function EtudeScreen({
     (q) => (getState(data, q.id)?.reps ?? 0) > 0,
   ).length
   const practiceSeconds = useEtudeTimer(etude.id)
+  const reference = etudeReference(etude.id)
 
   return (
     <>
@@ -341,6 +353,17 @@ function EtudeScreen({
       </header>
 
       <main className="rise" style={{ animationDelay: '200ms' }}>
+        {reference && (
+          <div className="mb-5">
+            <InfoBox
+              title={reference.title}
+              defaultOpen={reference.defaultOpen}
+              storageKey={`infobox:${etude.id}`}
+            >
+              {reference.body}
+            </InfoBox>
+          </div>
+        )}
         <ReviewSession
           key={`${etude.id}:${level}:${sessionKey}`}
           bank={bank}
