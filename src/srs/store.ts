@@ -6,13 +6,16 @@
 import type { SrsData, SrsState } from '../contracts'
 
 export const STORAGE_KEY = 'music-theory-srs'
-export const SCHEMA_VERSION = 1
+export const SCHEMA_VERSION = 2
+
+const MS_PER_DAY = 86_400_000
 
 function fresh(): SrsData {
   return { version: SCHEMA_VERSION, items: {} }
 }
 
-function isSrsState(value: unknown): value is SrsState {
+/** The pre-v2 per-item shape (no `updatedAt`). */
+function isV1State(value: unknown): boolean {
   if (typeof value !== 'object' || value === null) return false
   const s = value as Record<string, unknown>
   return (
@@ -23,12 +26,39 @@ function isSrsState(value: unknown): value is SrsState {
   )
 }
 
-function isSrsData(value: unknown): value is SrsData {
-  if (typeof value !== 'object' || value === null) return false
+function isSrsState(value: unknown): value is SrsState {
+  return isV1State(value) && typeof (value as SrsState).updatedAt === 'number'
+}
+
+/**
+ * Coerce any stored/imported blob to current-version `SrsData`, or null if it's
+ * unrecognizable. v1 → v2 reconstructs each item's last-review time from
+ * `dueAt − intervalDays` (exactly the `now` at which it was graded).
+ */
+function migrate(value: unknown): SrsData | null {
+  if (typeof value !== 'object' || value === null) return null
   const d = value as Record<string, unknown>
-  if (d.version !== SCHEMA_VERSION) return false
-  if (typeof d.items !== 'object' || d.items === null) return false
-  return Object.values(d.items).every(isSrsState)
+  if (typeof d.items !== 'object' || d.items === null) return null
+  const entries = Object.entries(d.items as Record<string, unknown>)
+
+  if (d.version === SCHEMA_VERSION) {
+    return entries.every(([, s]) => isSrsState(s)) ? (value as SrsData) : null
+  }
+  if (d.version === 1) {
+    if (!entries.every(([, s]) => isV1State(s))) return null
+    const items: Record<string, SrsState> = {}
+    for (const [id, s] of entries) {
+      const v1 = s as Omit<SrsState, 'updatedAt'>
+      items[id] = { ...v1, updatedAt: v1.dueAt - v1.intervalDays * MS_PER_DAY }
+    }
+    return { version: SCHEMA_VERSION, items }
+  }
+  return null
+}
+
+/** Validate/upgrade an arbitrary value to current `SrsData`, or null if invalid. */
+export function coerceSrsData(value: unknown): SrsData | null {
+  return migrate(value)
 }
 
 /** Read + parse localStorage. Never throws; returns fresh data on any problem. */
@@ -41,8 +71,7 @@ export function load(): SrsData {
   }
   if (raw === null) return fresh()
   try {
-    const parsed: unknown = JSON.parse(raw)
-    return isSrsData(parsed) ? parsed : fresh()
+    return migrate(JSON.parse(raw)) ?? fresh()
   } catch {
     return fresh()
   }
@@ -62,7 +91,7 @@ export function exportJson(data: SrsData): string {
   return JSON.stringify(data, null, 2)
 }
 
-/** Parse + validate an imported JSON string. Throws on invalid shape/version. */
+/** Parse + validate an imported JSON string (migrating older versions forward). */
 export function importJson(json: string): SrsData {
   let parsed: unknown
   try {
@@ -70,22 +99,11 @@ export function importJson(json: string): SrsData {
   } catch {
     throw new Error('Invalid JSON: could not parse.')
   }
-  if (typeof parsed !== 'object' || parsed === null) {
-    throw new Error('Invalid SRS data: expected an object.')
+  const migrated = migrate(parsed)
+  if (!migrated) {
+    throw new Error('Invalid or unsupported SRS data.')
   }
-  const d = parsed as Record<string, unknown>
-  if (d.version !== SCHEMA_VERSION) {
-    throw new Error(
-      `Unsupported SRS version: expected ${SCHEMA_VERSION}, got ${String(d.version)}.`,
-    )
-  }
-  if (typeof d.items !== 'object' || d.items === null) {
-    throw new Error('Invalid SRS data: "items" must be an object.')
-  }
-  if (!Object.values(d.items).every(isSrsState)) {
-    throw new Error('Invalid SRS data: one or more items are malformed.')
-  }
-  return parsed as SrsData
+  return migrated
 }
 
 export function getState(data: SrsData, id: string): SrsState | undefined {

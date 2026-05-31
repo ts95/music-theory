@@ -13,7 +13,7 @@ const MIN_EASE = 1.3
 
 /** Fresh state for a never-seen item: due immediately at `now`. */
 export function initialState(now: number): SrsState {
-  return { ease: 2.5, intervalDays: 0, reps: 0, dueAt: now }
+  return { ease: 2.5, intervalDays: 0, reps: 0, dueAt: now, updatedAt: now }
 }
 
 /** Grade a review (quality 0–5) and return the next state. Immutable. */
@@ -36,7 +36,13 @@ export function grade(state: SrsState, quality: number, now: number): SrsState {
     state.ease + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02)),
   )
 
-  return { ease, intervalDays, reps, dueAt: now + intervalDays * MS_PER_DAY }
+  return {
+    ease,
+    intervalDays,
+    reps,
+    dueAt: now + intervalDays * MS_PER_DAY,
+    updatedAt: now,
+  }
 }
 
 /** True when the item is due for review (dueAt at or before `now`). */

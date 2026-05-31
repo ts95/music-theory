@@ -33,8 +33,19 @@ function installLocalStorage(): void {
 describe('scheduler', () => {
   it('initialState is due immediately', () => {
     const s = initialState(NOW)
-    expect(s).toEqual({ ease: 2.5, intervalDays: 0, reps: 0, dueAt: NOW })
+    expect(s).toEqual({
+      ease: 2.5,
+      intervalDays: 0,
+      reps: 0,
+      dueAt: NOW,
+      updatedAt: NOW,
+    })
     expect(isDue(s, NOW)).toBe(true)
+  })
+
+  it('grade stamps updatedAt with the review time', () => {
+    const s = grade(initialState(NOW - DAY), 5, NOW)
+    expect(s.updatedAt).toBe(NOW)
   })
 
   it('first correct grade (q=5): interval 1 day, reps 1, not due at now', () => {
@@ -137,10 +148,41 @@ describe('store', () => {
     expect(load()).toEqual(data)
   })
 
-  it('load returns fresh data on corrupt or wrong-version storage', () => {
+  it('load returns fresh data on corrupt or unknown-version storage', () => {
     globalThis.localStorage.setItem(STORAGE_KEY, '{ corrupt')
     expect(load()).toEqual({ version: SCHEMA_VERSION, items: {} })
-    globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 2, items: {} }))
+    globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 999, items: {} }))
     expect(load()).toEqual({ version: SCHEMA_VERSION, items: {} })
+  })
+
+  it('load migrates a v1 blob forward, reconstructing updatedAt from dueAt', () => {
+    // A v1 item: graded once, 6-day interval, due 6 days after it was reviewed.
+    const reviewedAt = NOW
+    const v1 = {
+      version: 1,
+      items: {
+        'rel-minor:Eb': { ease: 2.5, intervalDays: 6, reps: 2, dueAt: reviewedAt + 6 * DAY },
+      },
+    }
+    globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify(v1))
+    const loaded = load()
+    expect(loaded.version).toBe(SCHEMA_VERSION)
+    expect(loaded.items['rel-minor:Eb']).toEqual({
+      ease: 2.5,
+      intervalDays: 6,
+      reps: 2,
+      dueAt: reviewedAt + 6 * DAY,
+      updatedAt: reviewedAt, // dueAt − intervalDays == the original review time
+    })
+  })
+
+  it('importJson migrates a v1 export forward', () => {
+    const v1 = JSON.stringify({
+      version: 1,
+      items: { x: { ease: 2.5, intervalDays: 1, reps: 1, dueAt: NOW + DAY } },
+    })
+    const imported = importJson(v1)
+    expect(imported.version).toBe(SCHEMA_VERSION)
+    expect(imported.items.x.updatedAt).toBe(NOW)
   })
 })

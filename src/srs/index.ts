@@ -8,6 +8,7 @@ export {
   save,
   exportJson,
   importJson,
+  coerceSrsData,
   getState,
   setState,
 } from './store'

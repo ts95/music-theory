@@ -59,6 +59,12 @@ export interface SrsState {
   reps: number
   /** Epoch ms when this item is next due. */
   dueAt: number
+  /**
+   * Epoch ms of the last grade (or item creation). The recency signal used to
+   * reconcile the same item across devices: most-recently-reviewed wins, so a
+   * fresh lapse is never overwritten by a stale "I knew it". Added in schema v2.
+   */
+  updatedAt: number
 }
 
 /** The full persisted blob (localStorage + JSON export/import). */
