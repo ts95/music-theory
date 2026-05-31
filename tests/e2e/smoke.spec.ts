@@ -134,8 +134,9 @@ test('Chord Recognition: inversions get 15 s, root position 10 s', async ({
   for (let i = 0; i < 10 && (rootStart === null || inversionStart === null); i++) {
     await expect(seconds).toBeVisible()
     const shown = Number((await seconds.textContent())!.replace(/\D/g, ''))
-    // Answer immediately (keyboard, ahead of the timer), then read the reveal.
-    await page.keyboard.press('1')
+    // Press "I don't know" (0) ahead of the timer — it always reveals the answer
+    // and its explanation (which names the inversion), regardless of shuffle.
+    await page.keyboard.press('0')
     await expect(explanation).toBeVisible()
     const text = (await explanation.textContent())!
     if (/in root position/.test(text)) rootStart ??= shown

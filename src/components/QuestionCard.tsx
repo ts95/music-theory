@@ -165,6 +165,24 @@ export default function QuestionCard({
     )
     return scale.target.map((ev) => voicedMidi(ev[0]))
   }, [ear, earRoot])
+  // The melody's scale (degrees 0..7) as spelled notes, so a solfège choice can
+  // be shown in concrete letter names (relative to this presentation's root).
+  const melodyLetters = useMemo(() => {
+    if (ear?.kind !== 'melody' || !earRoot) return null
+    const scale = realizeEar(
+      { kind: 'melody', mode: ear.mode, degrees: [0, 1, 2, 3, 4, 5, 6, 7] },
+      earRoot,
+    )
+    const names = scale.target.map((ev) => noteToString(ev[0].note))
+    const letterFor = (syllable: string) => {
+      for (let d = 0; d < 7; d++) if (solfege(ear.mode, d) === syllable) return names[d]
+      return syllable
+    }
+    // One letter-name string per choice, aligned to question.choices.
+    return question.choices.map((c) =>
+      c.split('–').map(letterFor).join('–'),
+    )
+  }, [ear, earRoot, question.choices])
   // Key signature for the reveal staff — melody/progression are in a key (drawn
   // under its signature); intervals are relative-pitch, so no signature.
   const revealKeySignature =
@@ -196,6 +214,9 @@ export default function QuestionCard({
   const [armed, setArmed] = useState<number | null>(null)
   const armedRef = useRef<number | null>(null)
   const pressingRef = useRef(false)
+  // Melodic dictation: the choice currently hovered, whose solfège is shown in
+  // concrete letter names alongside it (null = none).
+  const [letterHover, setLetterHover] = useState<number | null>(null)
 
   function playPrompt() {
     if (ear?.kind === 'rhythm') {
@@ -516,10 +537,14 @@ export default function QuestionCard({
               // Mouse hover previews; touch preview is handled by the list's
               // pointer-down/move (drag-scrub) above.
               onPointerEnter={(e) => {
-                if (e.pointerType === 'mouse' && playable) play(playable)
+                if (e.pointerType !== 'mouse') return
+                if (playable) play(playable)
+                if (melodyLetters) setLetterHover(choiceIndex)
               }}
               onPointerLeave={(e) => {
-                if (e.pointerType === 'mouse') stop()
+                if (e.pointerType !== 'mouse') return
+                stop()
+                if (melodyLetters) setLetterHover(null)
               }}
             >
               <button
@@ -542,8 +567,15 @@ export default function QuestionCard({
                     />
                   </span>
                 ) : (
-                  <span className="flex-1 whitespace-pre-wrap font-mono text-[1.02rem] leading-relaxed text-ink">
+                  <span className="flex flex-1 flex-wrap items-baseline gap-x-3 gap-y-1 whitespace-pre-wrap font-mono text-[1.02rem] leading-relaxed text-ink">
                     {choiceText}
+                    {/* Melodic dictation: on hover, the equivalent letter-name
+                        melody (relative to this presentation's tonic). */}
+                    {melodyLetters && letterHover === choiceIndex && !answered && (
+                      <span className="text-sm text-ink-3">
+                        {melodyLetters[choiceIndex]}
+                      </span>
+                    )}
                   </span>
                 )}
                 {state === 'armed' ? (
