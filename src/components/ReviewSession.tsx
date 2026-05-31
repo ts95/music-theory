@@ -137,10 +137,12 @@ export default function ReviewSession({
     if (!practiceAll) recordDue(etudeId, Date.now())
   }
 
-  function handleSelect(choiceIndex: number) {
+  function handleSelect(choiceIndex: number, forceWrong = false) {
     if (selected !== null || timedOut) return
     const q = queue[index]
-    const wasCorrect = choiceIndex === q.answerIndex
+    // forceWrong: a disallowed hint was taken (melodic dictation note-sampling),
+    // so the answer is graded as missed regardless of the choice.
+    const wasCorrect = choiceIndex === q.answerIndex && !forceWrong
     setSelected(choiceIndex)
     setAnswered((n) => n + 1)
     if (wasCorrect) setCorrect((n) => n + 1)

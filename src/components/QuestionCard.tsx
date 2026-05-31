@@ -33,7 +33,12 @@ interface QuestionCardProps {
   timedOut?: boolean
   /** If set, the question must be answered within this many ms. */
   timeLimitMs?: number
-  onSelect: (choiceIndex: number) => void
+  /**
+   * Commit an answer. `forceWrong` grades it as incorrect regardless of the
+   * choice — used when the student took a disallowed hint (melodic dictation:
+   * sampling an individual scale note).
+   */
+  onSelect: (choiceIndex: number, forceWrong?: boolean) => void
   /** The user gave up — graded as the strongest lapse (resurface soon). */
   onDontKnow: () => void
   onNext: () => void
@@ -105,7 +110,11 @@ export default function QuestionCard({
   )
 
   const answered = selected !== null || timedOut
-  const isCorrect = selected === question.answerIndex
+  // Melodic dictation: set once the student samples an individual scale note (a
+  // disallowed crutch — see playScaleNote). It taints the answer, so a tainted
+  // pick is graded and shown as wrong even if the chosen solfège was right.
+  const cheated = useRef(false)
+  const isCorrect = selected === question.answerIndex && !cheated.current
 
   // Keep onTimeout in a ref so an ancestor re-render (e.g. the per-second
   // practice-time tick) that changes its identity doesn't restart the
@@ -243,9 +252,13 @@ export default function QuestionCard({
   }
   // Hovering a syllable plays that scale note — but only while the scale itself
   // isn't mid-playback (scaleStep >= 0 means a note is currently sounding).
+  // Sampling individual notes this way is a crutch that gives the melody away,
+  // so it taints the answer: the question is then graded wrong (see `cheated`).
+  // Playing the whole scale (playScale) is a fair hint and does NOT taint.
   const scaleIdle = scaleStep === -1
   function playScaleNote(degree: number) {
     if (!scaleMidis || !scaleIdle) return
+    cheated.current = true
     playEar([], [[scaleMidis[degree]]], 'melodic')
   }
   // Intervals only: sound both notes at once (one block event).
@@ -304,16 +317,20 @@ export default function QuestionCard({
     pressingRef.current = false
     const i = choiceAtPoint(e)
     arm(null)
-    if (i !== null && !answered) onSelect(i)
+    if (i !== null && !answered) commit(i)
   }
   const cancelPress = () => {
     pressingRef.current = false
     arm(null)
   }
+  // Commit an answer, forcing a wrong grade if a disallowed hint was taken.
+  function commit(choiceIndex: number) {
+    onSelect(choiceIndex, cheated.current)
+  }
   // Click answers on mouse; on touch the release above already chose, so the
   // trailing synthetic click is ignored.
   function onChoiceClick(choiceIndex: number) {
-    if (!answered && !wasTouch()) onSelect(choiceIndex)
+    if (!answered && !wasTouch()) commit(choiceIndex)
   }
 
   // Auto-play once when an ear question mounts (audio is already unlocked by the
@@ -328,7 +345,9 @@ export default function QuestionCard({
     function onKey(e: KeyboardEvent) {
       if (!answered && /^[1-9]$/.test(e.key)) {
         const pos = Number(e.key) - 1
-        if (pos < order.length) onSelect(order[pos])
+        // cheated is a ref, so reading it here stays current despite the effect's
+        // captured closure.
+        if (pos < order.length) onSelect(order[pos], cheated.current)
       } else if (!answered && e.key === '0') {
         onDontKnow()
       } else if (answered && e.key === 'Enter') {
@@ -519,7 +538,10 @@ export default function QuestionCard({
 
           let state: ChoiceState = 'idle'
           if (answered) {
-            if (isAnswer) state = 'correct'
+            // A tainted pick of the right solfège (cheated by sampling scale
+            // notes) is shown as wrong, not green — the crutch isn't rewarded.
+            if (cheated.current && isChosen && isAnswer) state = 'wrong'
+            else if (isAnswer) state = 'correct'
             else if (isChosen) state = 'wrong'
             else state = 'muted'
           } else if (armed === choiceIndex) {
@@ -636,6 +658,12 @@ export default function QuestionCard({
             <p className="font-display text-lg italic">
               {isCorrect ? (
                 <span className="text-correct">Just so.</span>
+              ) : cheated.current && selected === question.answerIndex ? (
+                // Right solfège, but sampling individual scale notes gave it
+                // away — counted as missed.
+                <span className="text-wrong">
+                  Right — but sampling the scale notes counts it as missed.
+                </span>
               ) : earIsRhythm ? (
                 <span className="text-wrong">
                   {timedOut ? 'Time’s up' : 'Not quite'} — it’s the highlighted bar.
