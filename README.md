@@ -28,7 +28,7 @@ progress, chosen from a table-of-contents home screen. Ten études today, in thr
 - **No. 4 — Chords by Degree.** Recall the diatonic chord on a scale degree ("In C major, what is the
   IV chord?" → F), across every major and minor key — the common triads plus V7. Timed (5 s).
 - **No. 5 — Chord Recognition.** Read a chord drawn on the staff (under its key signature) and name it
-  as a symbol, with slash notation for inversions. Timed (10 s).
+  as a symbol, with slash notation for inversions. Timed (10 s, +5 s when the chord is in an inversion).
 - **No. 6 — Progressions.** Map a Roman-numeral progression to concrete chords ("In G major, spell
   ii–V–I" → Am – D – G), including ii–V–I seventh forms. The spelled chords are shown on a treble staff
   under the key's signature on reveal. Timed (15 s).
@@ -110,8 +110,8 @@ dropped further the more confidently you blanked.
 
 - **Levels** partition or widen an étude's material into Easy / Medium / Hard; each level keeps its own
   scheduling, so progress on one doesn't leak into another.
-- **Timed recall** is sudden-death: Relative Minors and Chords by Degree (5 s), Chord Recognition (10 s),
-  Progressions (15 s). Other categories are untimed.
+- **Timed recall** is sudden-death: Relative Minors and Chords by Degree (5 s), Chord Recognition (10 s,
+  +5 s for inversions), Progressions (15 s). Other categories are untimed.
 - **Pacing** caps each étude at 10 due cards per rolling 5-hour window.
 - **Backup & sync:** progress lives in the browser's `localStorage`. **Export** downloads a versioned
   JSON snapshot; **Import** restores it on a new browser or device.

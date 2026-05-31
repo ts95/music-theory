@@ -193,7 +193,9 @@ export default function ReviewSession({
     const q = queue[index]
     const resolved = selected !== null || timedOut || scaleResolved
     const progress = total > 0 ? ((index + (resolved ? 1 : 0)) / total) * 100 : 0
-    const timeLimitMs = TIMED_LIMITS[q.category]
+    // A question may override the category default (e.g. extra time for an
+    // inverted chord in chord recognition).
+    const timeLimitMs = q.timeLimitMs ?? TIMED_LIMITS[q.category]
     return (
       <div className="space-y-4">
         <div className="flex items-end justify-between gap-4">

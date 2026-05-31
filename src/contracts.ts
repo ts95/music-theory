@@ -189,6 +189,12 @@ export interface Question {
   /** 1-based difficulty level, for études that define `levels` (else absent). */
   level?: number
   /**
+   * Per-question sudden-death answer limit (ms), overriding the category default
+   * in ReviewSession. Used to grant extra time to harder instances — e.g. a
+   * chord-recognition question whose chord is in an inversion.
+   */
+  timeLimitMs?: number
+  /**
    * One rhythm pattern per choice, aligned to `choices` (rhythm-dictation étude):
    * the choices are rendered as notation rather than text.
    */

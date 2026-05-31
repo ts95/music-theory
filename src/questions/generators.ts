@@ -671,6 +671,9 @@ function chordRecognitionQuestions(): Question[] {
             )
           )
           q.level = level.n
+          // Inversions take longer to read (re-stack the notes in thirds to
+          // find the root), so grant 5 s on top of the 10 s category default.
+          if (inversion !== 0) q.timeLimitMs = 15000
           q.notation = {
             groups: [voiceInversion(tones, inversion, octave)],
             clef,

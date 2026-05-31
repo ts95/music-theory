@@ -113,3 +113,37 @@ test('Play the Scale: fingering hint flashes, any key hides it, taints the grade
   ).toBeVisible()
   await expect(card.getByText('Just so.')).toHaveCount(0)
 })
+
+test('Chord Recognition: inversions get 15 s, root position 10 s', async ({
+  page,
+}) => {
+  await page.goto('/chord-recognition')
+  // Medium is the first level with inversions.
+  await page.getByRole('button', { name: 'Medium', exact: true }).click()
+
+  const card = page.getByRole('article')
+  const seconds = card.getByLabel('seconds remaining')
+  const explanation = page.getByText(/in (root position|first inversion|second inversion)/)
+  const nextButton = page.getByRole('button', { name: /^Next$/ })
+
+  let rootStart: number | null = null
+  let inversionStart: number | null = null
+
+  // Walk the session, reading each question's starting countdown (ceil of the
+  // limit, so 10 s or 15 s at mount) and classifying it from the reveal text.
+  for (let i = 0; i < 10 && (rootStart === null || inversionStart === null); i++) {
+    await expect(seconds).toBeVisible()
+    const shown = Number((await seconds.textContent())!.replace(/\D/g, ''))
+    // Answer immediately (keyboard, ahead of the timer), then read the reveal.
+    await page.keyboard.press('1')
+    await expect(explanation).toBeVisible()
+    const text = (await explanation.textContent())!
+    if (/in root position/.test(text)) rootStart ??= shown
+    else inversionStart ??= shown
+    await expect(nextButton).toBeVisible()
+    await page.keyboard.press('Enter')
+  }
+
+  expect(rootStart).toBe(10)
+  expect(inversionStart).toBe(15)
+})
