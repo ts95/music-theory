@@ -16,6 +16,24 @@ interface EtudeMenuProps {
   onResetAll: () => void
 }
 
+/**
+ * Descriptive labels for the copied practice-time log — clearer than the étude
+ * titles about the *skill* being trained (e.g. reading vs. reproducing a scale).
+ * Falls back to the étude title for any id not listed.
+ */
+const PRACTICE_LABELS: Record<string, string> = {
+  'relative-minors': 'Relative Minor Recall',
+  scales: 'Scale Recognition',
+  'scale-play': 'Scale Reproduction',
+  chords: 'Chord Spelling by Degree',
+  'chord-recognition': 'Chord Recognition',
+  progressions: 'Progression Spelling',
+  'intervals-ear': 'Interval Ear Training',
+  'progressions-ear': 'Progression Ear Training',
+  'melodic-dictation': 'Melodic Dictation',
+  'rhythm-dictation': 'Rhythm Dictation',
+}
+
 /** A score "table of contents": one clickable row per étude. */
 export default function EtudeMenu({
   etudes,
@@ -43,17 +61,20 @@ export default function EtudeMenu({
   }
   const totalMinutes = sectionMinutes.reduce((sum, x) => sum + x.minutes, 0)
 
-  // Copy today's per-étude practice time (roster order) as a comma-separated
-  // list of "Étude title: N minutes" — handy for logging the day's practice.
+  // Copy today's practice time (roster order) as e.g.
+  // "2 min (Scale Recognition) + 1 min (Chords by Degree)". Études with no time
+  // today are omitted; labels describe the skill (see PRACTICE_LABELS).
   const [copied, setCopied] = useState(false)
   function copyPracticeTime() {
-    const csv = etudes
-      .map((e) => {
-        const min = Math.round((practiceSeconds[e.id] ?? 0) / 60)
-        return `${e.title}: ${min} minute${min === 1 ? '' : 's'}`
-      })
-      .join(', ')
-    void navigator.clipboard?.writeText(csv).then(
+    const summary = etudes
+      .map((e) => ({
+        min: Math.round((practiceSeconds[e.id] ?? 0) / 60),
+        label: PRACTICE_LABELS[e.id] ?? e.title,
+      }))
+      .filter(({ min }) => min > 0)
+      .map(({ min, label }) => `${min} min (${label})`)
+      .join(' + ')
+    void navigator.clipboard?.writeText(summary).then(
       () => {
         setCopied(true)
         setTimeout(() => setCopied(false), 1500)
