@@ -22,6 +22,11 @@ let scheduled: ReturnType<typeof setTimeout>[] = []
 let debounce: ReturnType<typeof setTimeout> | null = null
 // Bumped by stop()/play() so an in-flight async start can detect cancellation.
 let generation = 0
+// Epoch ms until which a "protected" prompt (an auto-played / replayed ear
+// prompt) is sounding. While in this window, hover audio is suppressed and a
+// hover-leave won't stop playback — only mute or a deliberate replay/advance
+// (which call stop() directly) may cut it short. 0 ⇒ nothing protected.
+let promptEndsAt = 0
 
 const MUTE_KEY = 'music-theory-muted'
 let muted = readMuted()
@@ -94,9 +99,14 @@ function schedule(p: Playable): void {
   })
 }
 
-/** Play a choice's audio, replacing anything currently sounding. */
+/**
+ * Play a choice's hover audio, replacing anything currently sounding — but never
+ * interrupting a protected prompt (an auto-played/replayed ear prompt): while one
+ * is still sounding, the hover is ignored so the prompt is allowed to finish.
+ */
 export function play(p: Playable): void {
   if (muted) return
+  if (Date.now() < promptEndsAt) return // let the protected prompt finish first
   stop() // cancels prior playback and bumps `generation`
   const g = generation
   debounce = setTimeout(async () => {
@@ -147,22 +157,28 @@ export function playEar(
     try {
       await ensureSynth()
       if (muted || g !== generation) return
-      scheduleEar(reference, target, style, onStep)
+      const durationMs = scheduleEar(reference, target, style, onStep)
+      // Protect the prompt: hover audio/leave can't cut it short (only mute or a
+      // deliberate replay/advance, which call stop() directly).
+      promptEndsAt = Date.now() + durationMs
     } catch {
       /* audio unavailable — ignore */
     }
   }, 70)
 }
 
+/** Schedules an ear prompt; returns its total duration in ms. */
 function scheduleEar(
   reference: number[][],
   target: number[][],
   style: 'melodic' | 'block',
   onStep?: (index: number) => void
-): void {
-  if (!Tone || !synth) return
+): number {
+  if (!Tone || !synth) return 0
+  let endMs = 0
   const fire = (event: number[], hold: number, at: number, cb?: () => void) => {
     const freqs = event.map((m) => Tone!.Frequency(m, 'midi').toFrequency())
+    endMs = Math.max(endMs, at + hold * 1000)
     scheduled.push(
       setTimeout(() => {
         synth?.triggerAttackRelease(freqs, hold)
@@ -178,6 +194,7 @@ function scheduleEar(
   target.forEach((ev, i) => fire(ev, hold, t + i * step, () => onStep?.(i)))
   // A final tick so callers can clear any "current note" highlight.
   if (onStep) scheduled.push(setTimeout(() => onStep(-1), t + target.length * step))
+  return endMs
 }
 
 
@@ -202,15 +219,18 @@ export function playRhythm(
     try {
       await ensureSynth()
       if (muted || g !== generation) return
-      scheduleRhythm(pattern, meter, tempo)
+      const durationMs = scheduleRhythm(pattern, meter, tempo)
+      // Protect the prompt: only mute / replay / advance (which call stop()) cut it.
+      promptEndsAt = Date.now() + durationMs
     } catch {
       /* audio unavailable — ignore */
     }
   }, 70)
 }
 
-function scheduleRhythm(pattern: RhythmEvent[], meter: TimeSig, tempo: number): void {
-  if (!Tone || !synth) return
+/** Schedules a rhythm prompt; returns its total duration in ms. */
+function scheduleRhythm(pattern: RhythmEvent[], meter: TimeSig, tempo: number): number {
+  if (!Tone || !synth) return 0
   const beatMs = 60000 / tempo
   const { countIn, totalBeats } = METERS[meter]
   const fireNote = (holdSec: number, atMs: number) => {
@@ -239,11 +259,17 @@ function scheduleRhythm(pattern: RhythmEvent[], meter: TimeSig, tempo: number): 
     }
     t += beats * beatMs
   }
+  return t // bar end (count-in + the one-bar pattern)
 }
 
-/** Stop all playback immediately. */
+/**
+ * Stop all playback immediately, including a protected prompt. Used by mute, an
+ * explicit replay/advance, and card unmount — anything that legitimately cuts
+ * audio. Hover-leave should use stopHover() instead.
+ */
 export function stop(): void {
   generation++
+  promptEndsAt = 0
   if (debounce) {
     clearTimeout(debounce)
     debounce = null
@@ -251,4 +277,14 @@ export function stop(): void {
   for (const id of scheduled) clearTimeout(id)
   scheduled = []
   synth?.releaseAll()
+}
+
+/**
+ * Stop hover-preview audio when the pointer leaves a choice — but never cut a
+ * protected prompt short (an auto-played/replayed ear prompt is allowed to
+ * finish). A no-op while a prompt is still sounding.
+ */
+export function stopHover(): void {
+  if (Date.now() < promptEndsAt) return
+  stop()
 }

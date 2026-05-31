@@ -6,7 +6,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 import type { Playable, Question } from '../contracts'
-import { isMuted, play, playEar, playRhythm, stop } from '../audio/player'
+import { isMuted, play, playEar, playRhythm, stop, stopHover } from '../audio/player'
 import { useIsTouch, wasTouch } from '../touch'
 import {
   INTERVAL_ROOTS,
@@ -436,7 +436,7 @@ export default function QuestionCard({
                     if (e.pointerType === 'mouse' && scaleIdle) playScaleNote(d)
                   }}
                   onPointerLeave={(e) => {
-                    if (e.pointerType === 'mouse') stop()
+                    if (e.pointerType === 'mouse') stopHover()
                   }}
                   onClick={scaleIdle ? () => playScaleNote(d) : undefined}
                   className={`rounded px-2 py-1 transition-colors ${
@@ -543,7 +543,10 @@ export default function QuestionCard({
               }}
               onPointerLeave={(e) => {
                 if (e.pointerType !== 'mouse') return
-                stop()
+                // stopHover() never cuts a protected prompt short — an
+                // auto-played ear prompt is allowed to finish even as the
+                // pointer moves across the choices.
+                stopHover()
                 if (melodyLetters) setLetterHover(null)
               }}
             >
