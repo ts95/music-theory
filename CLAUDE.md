@@ -123,7 +123,7 @@ src/
 │   └── fingerings.ts# static RH/LH piano fingering tables per scale
 ├── srs/             # Spaced-repetition engine — also framework-free
 │   ├── scheduler.ts # SM-2-lite: per-item ease + interval, grade 0–5
-│   └── store.ts     # localStorage load/save + JSON export/import
+│   └── store.ts     # localStorage load/save + version migration
 ├── supabase/        # Optional sign-in + cross-device sync (no-op when env vars absent)
 │   ├── client.ts    # the ONLY place the Supabase client is built (null when unconfigured)
 │   ├── useSession.ts# auth session hook
@@ -221,9 +221,9 @@ Accuracy matters more than cleverness — a wrong fact teaches the wrong thing.
 - Each schedulable **item** is one atomic fact: a specific key relationship, a specific scale's notes,
   or a specific scale's fingering. Each item carries its own SM-2-lite state (ease, interval, due date,
   repetitions), plus an `updatedAt` timestamp used for sync reconciliation (schema **version 2**).
-- **Persistence:** `localStorage` is the live store. An **Export** button serializes all SRS state to a
-  downloadable JSON file; **Import** reads it back. The JSON schema is **versioned** (a `version` field)
-  so older exports can be migrated forward.
+- **Persistence:** `localStorage` is the live store. The blob is **versioned** (a `version` field); on
+  load, older versions are migrated forward (`migrate` / `coerceSrsData` in `store.ts`). Cross-device
+  continuity is via cloud sync (below), not a manual file export.
 - **Optional cloud sync (Supabase):** auth is **optional** — signed out, the app is local-first exactly
   as above. Signing in (email magic link) layers sync on top; all network side-effects live in
   `src/supabase/sync.ts`, called from the React layer at the existing write choke points so `srs/` and

@@ -2,9 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import type { SrsData } from '../contracts'
 import { grade, initialState, isDue } from './scheduler'
 import {
-  exportJson,
   getState,
-  importJson,
   load,
   save,
   SCHEMA_VERSION,
@@ -96,36 +94,6 @@ describe('store', () => {
     globalThis.localStorage.clear()
   })
 
-  it('exportJson -> importJson round-trips to an equal object', () => {
-    const data = setState(
-      { version: SCHEMA_VERSION, items: {} },
-      'rel-minor:Eb',
-      grade(initialState(NOW), 5, NOW),
-    )
-    expect(importJson(exportJson(data))).toEqual(data)
-  })
-
-  it('exportJson is pretty-printed with 2 spaces', () => {
-    const json = exportJson({ version: SCHEMA_VERSION, items: {} })
-    expect(json).toContain('\n  "version"')
-  })
-
-  it('importJson throws on malformed JSON', () => {
-    expect(() => importJson('{ not json')).toThrow()
-  })
-
-  it('importJson throws on a wrong-version blob', () => {
-    expect(() =>
-      importJson(JSON.stringify({ version: 999, items: {} })),
-    ).toThrow()
-  })
-
-  it('importJson throws on malformed items', () => {
-    expect(() =>
-      importJson(JSON.stringify({ version: SCHEMA_VERSION, items: { x: { ease: 'no' } } })),
-    ).toThrow()
-  })
-
   it('setState returns a new object and does not mutate the original', () => {
     const original: SrsData = { version: SCHEMA_VERSION, items: {} }
     const next = setState(original, 'id1', initialState(NOW))
@@ -148,10 +116,15 @@ describe('store', () => {
     expect(load()).toEqual(data)
   })
 
-  it('load returns fresh data on corrupt or unknown-version storage', () => {
+  it('load returns fresh data on corrupt, unknown-version, or malformed storage', () => {
     globalThis.localStorage.setItem(STORAGE_KEY, '{ corrupt')
     expect(load()).toEqual({ version: SCHEMA_VERSION, items: {} })
     globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 999, items: {} }))
+    expect(load()).toEqual({ version: SCHEMA_VERSION, items: {} })
+    globalThis.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ version: SCHEMA_VERSION, items: { x: { ease: 'no' } } }),
+    )
     expect(load()).toEqual({ version: SCHEMA_VERSION, items: {} })
   })
 
@@ -174,15 +147,5 @@ describe('store', () => {
       dueAt: reviewedAt + 6 * DAY,
       updatedAt: reviewedAt, // dueAt − intervalDays == the original review time
     })
-  })
-
-  it('importJson migrates a v1 export forward', () => {
-    const v1 = JSON.stringify({
-      version: 1,
-      items: { x: { ease: 2.5, intervalDays: 1, reps: 1, dueAt: NOW + DAY } },
-    })
-    const imported = importJson(v1)
-    expect(imported.version).toBe(SCHEMA_VERSION)
-    expect(imported.items.x.updatedAt).toBe(NOW)
   })
 })

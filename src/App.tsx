@@ -1,22 +1,7 @@
-import {
-  useEffect,
-  useMemo,
-  useReducer,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react'
+import { useEffect, useMemo, useReducer, useState, type ReactNode } from 'react'
 import type { Etude, Question, SrsData } from './contracts'
 import { ETUDES, generateAllQuestions } from './questions'
-import {
-  exportJson,
-  getState,
-  importJson,
-  initialState,
-  isDue,
-  load,
-  save,
-} from './srs'
+import { getState, initialState, isDue, load } from './srs'
 import ReviewSession from './components/ReviewSession'
 import EtudeMenu from './components/EtudeMenu'
 import AboutPage from './components/AboutPage'
@@ -77,15 +62,10 @@ export default function App() {
   const [data, setData] = useState<SrsData>(() => load())
   const [route, setRoute] = useState<string | null>(() => routeFromLocation())
   const [soundOn, setSoundOn] = useState(() => !isMuted())
-  // Bumped on import so the session restarts against the new data.
+  // Bumped on sign-in so the session restarts against the merged cloud data.
   const [sessionKey, setSessionKey] = useState(0)
   // Force a re-read of today's practice time after a global reset.
   const [, refreshPractice] = useReducer((n: number) => n + 1, 0)
-  const [notice, setNotice] = useState<{
-    kind: 'ok' | 'error'
-    text: string
-  } | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Cross-device sync (optional). Signed out → everything stays local.
   const session = useSession()
@@ -185,35 +165,6 @@ export default function App() {
     setMuted(!next)
   }
 
-  function handleExport() {
-    const json = exportJson(load())
-    const blob = new Blob([json], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'music-theory-progress.json'
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    URL.revokeObjectURL(url)
-  }
-
-  async function handleImportFile(file: File) {
-    try {
-      const text = await file.text()
-      const imported = importJson(text)
-      save(imported)
-      handleDataChange(imported)
-      setSessionKey((k) => k + 1)
-      setNotice({ kind: 'ok', text: 'Progress imported.' })
-    } catch (err) {
-      setNotice({
-        kind: 'error',
-        text: err instanceof Error ? err.message : 'Import failed.',
-      })
-    }
-  }
-
   const ioButtons = (
     <div className="flex gap-2">
       <Button
@@ -224,40 +175,11 @@ export default function App() {
       >
         {soundOn ? '♪ Sound' : '♪̶ Muted'}
       </Button>
-      <Button variant="secondary" onClick={handleExport}>
-        Export
-      </Button>
-      <Button variant="secondary" onClick={() => fileInputRef.current?.click()}>
-        Import
-      </Button>
       <Button variant="secondary" onClick={() => navigate('about')}>
         About
       </Button>
       <AuthControls session={session} />
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="application/json"
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0]
-          if (file) void handleImportFile(file)
-          e.target.value = ''
-        }}
-      />
     </div>
-  )
-
-  const noticeBanner = notice && (
-    <p
-      className={`ink mt-5 rounded-xl px-4 py-2.5 text-sm ring-1 ${
-        notice.kind === 'ok'
-          ? 'bg-correct/10 text-correct ring-correct/30'
-          : 'bg-wrong/10 text-wrong ring-wrong/30'
-      }`}
-    >
-      {notice.text}
-    </p>
   )
 
   const selectedEtude = ETUDES.find((e) => e.id === route) ?? null
@@ -297,8 +219,6 @@ export default function App() {
                 className="rise staff-rule mt-6"
                 style={{ animationDelay: '80ms' }}
               />
-
-              {noticeBanner}
             </header>
 
             <main>
@@ -328,7 +248,6 @@ export default function App() {
             onBack={() => navigate(null)}
             onNavigate={navigate}
             ioButtons={ioButtons}
-            noticeBanner={noticeBanner}
           />
         )}
 
@@ -350,7 +269,6 @@ interface EtudeScreenProps {
   onBack: () => void
   onNavigate: (route: string | null) => void
   ioButtons: ReactNode
-  noticeBanner: ReactNode
 }
 
 function EtudeScreen({
@@ -362,7 +280,6 @@ function EtudeScreen({
   onBack,
   onNavigate,
   ioButtons,
-  noticeBanner,
 }: EtudeScreenProps) {
   // Difficulty level (for études that define `levels`); 1-based, remembered
   // per étude across visits.
@@ -490,8 +407,6 @@ function EtudeScreen({
         >
           reset today’s time
         </button>
-
-        {noticeBanner}
       </header>
 
       <main className="rise" style={{ animationDelay: '200ms' }}>

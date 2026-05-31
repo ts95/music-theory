@@ -3,9 +3,9 @@
 A personal, custom-built music-theory tutor — a React web app for teaching myself music theory through
 tailored, interactive exercises. Built with [Claude Code](https://claude.com/claude-code).
 
-It's a single-user tool that runs entirely in the browser; progress is stored locally and can be
-exported to a file. Sign-in is optional — without it there's no backend or account, and with it your
-progress syncs across devices. Live at **<https://ts95.github.io/music-theory/>**.
+It's a single-user tool that runs entirely in the browser. Sign-in is optional — without it there's
+no backend or account and progress is stored locally on the device; with it your progress syncs across
+devices. Live at **<https://ts95.github.io/music-theory/>**.
 
 ## Features
 
@@ -76,11 +76,8 @@ progress, chosen from a table-of-contents home screen. Ten études today, in thr
   per-section and overall totals on the home screen; resets at midnight, or on demand per étude or
   globally.
 - 📖 **About page.** A short explainer on how (and why) spaced repetition works.
-- 💾 **Progress that's yours.** Saved to your browser, with versioned JSON **export/import** to back up
-  or move between devices.
 - ☁️ **Optional sync.** Sign in with an **email magic link** to sync your SRS progress and practice time
-  across devices. Signed out, everything stays local on the device exactly as before; the JSON
-  export/import remains as a manual backup either way.
+  across devices. Signed out, everything stays local on the device.
 
 ## Tech stack
 
@@ -117,10 +114,9 @@ dropped further the more confidently you blanked.
 - **Timed recall** is sudden-death: Relative Minors and Chords by Degree (5 s), Chord Recognition (10 s,
   +5 s for inversions), Progressions (15 s). Other categories are untimed.
 - **Pacing** caps each étude at 10 due cards per rolling 5-hour window.
-- **Backup & sync:** progress lives in the browser's `localStorage`. **Export** downloads a versioned
-  JSON snapshot; **Import** restores it on a new browser or device. Optionally **sign in** (email magic
-  link, Supabase-backed) to sync progress and practice time across devices; signed out, the app stays
-  fully local.
+- **Sync:** progress lives in the browser's `localStorage`. Optionally **sign in** (email magic link,
+  Supabase-backed) to sync progress and practice time across devices; signed out, the app stays fully
+  local.
 
 ## Project structure
 

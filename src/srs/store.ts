@@ -86,26 +86,6 @@ export function save(data: SrsData): void {
   }
 }
 
-/** Pretty-printed (2-space) JSON for download. */
-export function exportJson(data: SrsData): string {
-  return JSON.stringify(data, null, 2)
-}
-
-/** Parse + validate an imported JSON string (migrating older versions forward). */
-export function importJson(json: string): SrsData {
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(json)
-  } catch {
-    throw new Error('Invalid JSON: could not parse.')
-  }
-  const migrated = migrate(parsed)
-  if (!migrated) {
-    throw new Error('Invalid or unsupported SRS data.')
-  }
-  return migrated
-}
-
 export function getState(data: SrsData, id: string): SrsState | undefined {
   return data.items[id]
 }

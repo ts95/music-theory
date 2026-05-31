@@ -6,8 +6,6 @@ export {
   SCHEMA_VERSION,
   load,
   save,
-  exportJson,
-  importJson,
   coerceSrsData,
   getState,
   setState,
