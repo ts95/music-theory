@@ -1,4 +1,4 @@
-import { Fragment } from 'react'
+import { Fragment, useState } from 'react'
 import type { Etude, Question, SrsData } from '../contracts'
 import { getState, initialState, isDue } from '../srs'
 import { formatMinutes } from '../time'
@@ -42,6 +42,27 @@ export default function EtudeMenu({
     })
   }
   const totalMinutes = sectionMinutes.reduce((sum, x) => sum + x.minutes, 0)
+
+  // Copy today's per-étude practice time (roster order) as a comma-separated
+  // list of "Étude title: N minutes" — handy for logging the day's practice.
+  const [copied, setCopied] = useState(false)
+  function copyPracticeTime() {
+    const csv = etudes
+      .map((e) => {
+        const min = Math.round((practiceSeconds[e.id] ?? 0) / 60)
+        return `${e.title}: ${min} minute${min === 1 ? '' : 's'}`
+      })
+      .join(', ')
+    void navigator.clipboard?.writeText(csv).then(
+      () => {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 1500)
+      },
+      () => {
+        /* clipboard blocked — no-op */
+      },
+    )
+  }
 
   return (
     <>
@@ -148,13 +169,22 @@ export default function EtudeMenu({
       >
         <div className="flex items-center justify-between gap-4">
           <p className="marking text-ink-3">Practice today</p>
-          <button
-            type="button"
-            onClick={onResetAll}
-            className="marking text-ink-3 transition-colors hover:text-wrong"
-          >
-            reset all
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={copyPracticeTime}
+              className={`marking transition-colors ${copied ? 'text-correct' : 'text-ink-3 hover:text-ink'}`}
+            >
+              {copied ? 'copied' : 'copy'}
+            </button>
+            <button
+              type="button"
+              onClick={onResetAll}
+              className="marking text-ink-3 transition-colors hover:text-wrong"
+            >
+              reset all
+            </button>
+          </div>
         </div>
         <dl className="mt-3 space-y-1.5">
           {sectionMinutes.map(({ section, minutes }) => (
