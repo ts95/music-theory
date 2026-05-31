@@ -30,6 +30,18 @@ import { formatMinutes, getTodaySeconds, resetAllSeconds } from './time'
 import { getSavedLevel, saveLevel } from './levels'
 import { remainingDue } from './dueCap'
 import { useEtudeTimer } from './useEtudeTimer'
+import { useSession } from './supabase/useSession'
+import AuthControls from './components/AuthControls'
+import {
+  flushOnSignOut,
+  flushPracticeBeacon,
+  pullPracticeToday,
+  pushSrs,
+  resetPracticeSync,
+  setSyncAccessToken,
+  setSyncUserId,
+  syncOnSignIn,
+} from './supabase/sync'
 
 // ---- URL routing: one clean path per étude (and /about) under the Vite base -
 const BASE = import.meta.env.BASE_URL // "/music-theory/" in prod, "/" in dev
@@ -74,6 +86,72 @@ export default function App() {
     text: string
   } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Cross-device sync (optional). Signed out → everything stays local.
+  const session = useSession()
+  const uid = session?.user.id ?? null
+  // Today's per-étude seconds summed across devices (cloud); null until pulled.
+  const [cloudPractice, setCloudPractice] = useState<Record<
+    string,
+    number
+  > | null>(null)
+
+  /** Persist + propagate an SRS change, and push it to the cloud when signed in. */
+  function handleDataChange(next: SrsData) {
+    setData(next)
+    pushSrs(next)
+  }
+
+  // On sign-in: pull + merge cloud progress into local, push the unified set,
+  // and flush practice accrued before signing in. On sign-out: drop cloud totals.
+  useEffect(() => {
+    if (!uid) {
+      void flushOnSignOut() // flush pending writes, then detach the user
+      setCloudPractice(null)
+      return
+    }
+    setSyncUserId(uid)
+    let cancelled = false
+    void (async () => {
+      const merged = await syncOnSignIn(load())
+      if (cancelled) return
+      setData(merged)
+      setSessionKey((k) => k + 1)
+      const cloud = await pullPracticeToday()
+      if (!cancelled) setCloudPractice(cloud)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [uid])
+
+  // Refresh cross-device practice totals whenever the home screen is shown.
+  useEffect(() => {
+    if (!uid || route !== null) return
+    void pullPracticeToday().then(setCloudPractice)
+  }, [uid, route])
+
+  // Keep the cached access token (used by the keepalive hide-flush) fresh across
+  // sign-in and token refreshes.
+  useEffect(() => {
+    setSyncAccessToken(session?.access_token ?? null)
+  }, [session])
+
+  // Don't lose the last few seconds when the tab is backgrounded or closed: a
+  // keepalive request survives teardown where an awaited flush would be killed.
+  useEffect(() => {
+    if (!uid) return
+    const onLeave = () => flushPracticeBeacon() // no-op when nothing new accrued
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') onLeave()
+    }
+    window.addEventListener('pagehide', onLeave)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      window.removeEventListener('pagehide', onLeave)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [uid])
 
   // Sync the screen with the URL on browser back/forward.
   useEffect(() => {
@@ -125,7 +203,7 @@ export default function App() {
       const text = await file.text()
       const imported = importJson(text)
       save(imported)
-      setData(imported)
+      handleDataChange(imported)
       setSessionKey((k) => k + 1)
       setNotice({ kind: 'ok', text: 'Progress imported.' })
     } catch (err) {
@@ -155,6 +233,7 @@ export default function App() {
       <Button variant="secondary" onClick={() => navigate('about')}>
         About
       </Button>
+      <AuthControls session={session} />
       <input
         ref={fileInputRef}
         type="file"
@@ -199,8 +278,8 @@ export default function App() {
         ) : selectedEtude === null ? (
           // ---- Home screen: table of contents -----------------------------
           <>
-            <header className="mb-9">
-              <div className="rise flex flex-wrap items-start justify-between gap-4">
+            <header className="relative z-20 mb-9">
+              <div className="rise relative z-10 flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="marking text-accent">Études</p>
                   <h1 className="mt-2 font-display text-[2.75rem] font-medium leading-[0.95] tracking-[-0.02em] text-ink sm:text-5xl">
@@ -227,10 +306,12 @@ export default function App() {
                 etudes={ETUDES}
                 allQuestions={allQuestions}
                 data={data}
-                practiceSeconds={getTodaySeconds()}
+                practiceSeconds={cloudPractice ?? getTodaySeconds()}
                 onSelect={navigate}
                 onResetAll={() => {
                   resetAllSeconds()
+                  resetPracticeSync()
+                  setCloudPractice(null)
                   refreshPractice()
                 }}
               />
@@ -242,7 +323,7 @@ export default function App() {
             etude={selectedEtude}
             allQuestions={allQuestions}
             data={data}
-            setData={setData}
+            setData={handleDataChange}
             sessionKey={sessionKey}
             onBack={() => navigate(null)}
             onNavigate={navigate}
@@ -252,7 +333,8 @@ export default function App() {
         )}
 
         <footer className="marking mt-10 text-center text-ink-3">
-          ♪ practice daily · progress saved on this device
+          ♪ practice daily ·{' '}
+          {session ? 'progress synced to your account' : 'progress saved on this device'}
         </footer>
       </div>
     </div>
@@ -320,7 +402,7 @@ function EtudeScreen({
 
   return (
     <>
-      <header className="mb-9">
+      <header className="relative z-20 mb-9">
         <button
           type="button"
           onClick={onBack}
@@ -329,7 +411,7 @@ function EtudeScreen({
           ← All études
         </button>
 
-        <div className="rise mt-4 flex flex-wrap items-start justify-between gap-4">
+        <div className="rise relative z-10 mt-4 flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="marking text-accent">Étude · No. {etude.number}</p>
             <h1 className="mt-2 font-display text-[2.75rem] font-medium leading-[0.95] tracking-[-0.02em] text-ink sm:text-5xl">

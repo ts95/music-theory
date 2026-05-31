@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { addSeconds, getTodaySeconds, resetEtudeSeconds } from './time'
+import { resetPracticeSync, schedulePracticeFlush } from './supabase/sync'
 
 const IDLE_MS = 60_000 // pause after a minute with no interaction
 const MAX_DELTA_MS = 2_000 // cap per-tick accrual (absorbs tab-throttle/sleep)
@@ -55,6 +56,7 @@ export function useEtudeTimer(
         if (allowed > 0) {
           addSeconds(etudeRef.current, allowed / 1000)
           accruedMs.current += allowed
+          schedulePracticeFlush() // pushes to the cloud (no-op when signed out)
         }
       }
       setSeconds(getTodaySeconds()[etudeRef.current] ?? 0)
@@ -68,6 +70,7 @@ export function useEtudeTimer(
 
   const reset = () => {
     resetEtudeSeconds(etudeRef.current)
+    resetPracticeSync(etudeRef.current)
     accruedMs.current = 0
     setSeconds(0)
   }

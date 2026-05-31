@@ -124,6 +124,10 @@ src/
 ├── srs/             # Spaced-repetition engine — also framework-free
 │   ├── scheduler.ts # SM-2-lite: per-item ease + interval, grade 0–5
 │   └── store.ts     # localStorage load/save + JSON export/import
+├── supabase/        # Optional sign-in + cross-device sync (no-op when env vars absent)
+│   ├── client.ts    # the ONLY place the Supabase client is built (null when unconfigured)
+│   ├── useSession.ts# auth session hook
+│   └── sync.ts      # ALL progress network side-effects (srs/ + time.ts stay pure)
 ├── audio/
 │   └── player.ts    # the ONLY Tone.js consumer — hover-to-play (lazy-loaded)
 ├── questions/
@@ -133,6 +137,7 @@ src/
     ├── EtudeMenu.tsx     # table-of-contents home screen; picks an étude
     ├── ReviewSession.tsx  # drives a study session: pick due item → render → grade
     ├── QuestionCard.tsx   # renders one MC question + answer feedback
+    ├── AuthControls.tsx   # magic-link sign-in / sign-out UI
     └── Staff.tsx         # VexFlow staff notation (lazy-loaded; ear-training reveal)
 
 tests/e2e/           # Playwright browser tests (smoke.spec.ts). Config: playwright.config.ts (root).
@@ -215,10 +220,23 @@ Accuracy matters more than cleverness — a wrong fact teaches the wrong thing.
 
 - Each schedulable **item** is one atomic fact: a specific key relationship, a specific scale's notes,
   or a specific scale's fingering. Each item carries its own SM-2-lite state (ease, interval, due date,
-  repetitions).
+  repetitions), plus an `updatedAt` timestamp used for sync reconciliation (schema **version 2**).
 - **Persistence:** `localStorage` is the live store. An **Export** button serializes all SRS state to a
   downloadable JSON file; **Import** reads it back. The JSON schema is **versioned** (a `version` field)
   so older exports can be migrated forward.
+- **Optional cloud sync (Supabase):** auth is **optional** — signed out, the app is local-first exactly
+  as above. Signing in (email magic link) layers sync on top; all network side-effects live in
+  `src/supabase/sync.ts`, called from the React layer at the existing write choke points so `srs/` and
+  `time.ts` stay pure. The client is constructed only in `src/supabase/client.ts` and is `null` when env
+  vars are absent (so the app still works offline / local-only).
+  - **Env:** `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (the public *publishable* anon key — safe
+    to ship because Row-Level Security protects the data). Kept in `.env.local` locally and as GitHub
+    Actions secrets for the Pages deploy (`.github/workflows/deploy.yml` passes them into the build);
+    a committed `.env.example` documents them.
+  - **Server data model (both tables RLS-scoped to the signed-in user):** SRS state is **one JSONB blob
+    per user** in a `srs_state` table; reconciliation is **per-item last-write-wins** by each item's
+    `updatedAt`. Practice time is a **permanent per-(day, étude) log** in a `practice_time` table,
+    written via an **additive `add_practice_seconds` RPC** so multiple devices SUM correctly.
 
 ## Design system ("Engraved")
 

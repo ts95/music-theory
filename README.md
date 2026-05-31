@@ -3,8 +3,9 @@
 A personal, custom-built music-theory tutor — a React web app for teaching myself music theory through
 tailored, interactive exercises. Built with [Claude Code](https://claude.com/claude-code).
 
-It's a single-user tool with no backend and no accounts. Everything runs in the browser; progress is
-stored locally and can be exported to a file. Live at **<https://ts95.github.io/music-theory/>**.
+It's a single-user tool that runs entirely in the browser; progress is stored locally and can be
+exported to a file. Sign-in is optional — without it there's no backend or account, and with it your
+progress syncs across devices. Live at **<https://ts95.github.io/music-theory/>**.
 
 ## Features
 
@@ -77,6 +78,9 @@ progress, chosen from a table-of-contents home screen. Ten études today, in thr
 - 📖 **About page.** A short explainer on how (and why) spaced repetition works.
 - 💾 **Progress that's yours.** Saved to your browser, with versioned JSON **export/import** to back up
   or move between devices.
+- ☁️ **Optional sync.** Sign in with an **email magic link** to sync your SRS progress and practice time
+  across devices. Signed out, everything stays local on the device exactly as before; the JSON
+  export/import remains as a manual backup either way.
 
 ## Tech stack
 
@@ -114,7 +118,9 @@ dropped further the more confidently you blanked.
   +5 s for inversions), Progressions (15 s). Other categories are untimed.
 - **Pacing** caps each étude at 10 due cards per rolling 5-hour window.
 - **Backup & sync:** progress lives in the browser's `localStorage`. **Export** downloads a versioned
-  JSON snapshot; **Import** restores it on a new browser or device.
+  JSON snapshot; **Import** restores it on a new browser or device. Optionally **sign in** (email magic
+  link, Supabase-backed) to sync progress and practice time across devices; signed out, the app stays
+  fully local.
 
 ## Project structure
 
@@ -123,10 +129,11 @@ src/
 ├── theory/          # Pure music-theory domain (no React/DOM): notes, keys, scales,
 │                    #   chords, recognition, fingerings, MIDI, ear-training realization
 ├── srs/             # SM-2-lite scheduler + localStorage / versioned-JSON persistence
+├── supabase/        # Optional sign-in + cross-device sync (client, session, sync side-effects)
 ├── audio/           # The only Tone.js consumer (hover/ear playback, lazy-loaded)
 ├── questions/       # ETUDES registry + builds MC questions, explanations, distractors
 ├── components/      # React UI: review session, question card, staves, keyboard,
-│                    #   circle of fifths, interval-song pages, about page, info box
+│                    #   circle of fifths, interval-song pages, about page, info box, auth controls
 ├── intervalSongs.ts # Reference tunes + notes for each ascending interval
 ├── levels.ts · prefs.ts · dueCap.ts · time.ts · useEtudeTimer.ts · rhythm.ts
 └── App.tsx          # Routing (one path per étude, /about, /interval-songs) + shell
