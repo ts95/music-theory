@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { addSeconds, getTodaySeconds, resetEtudeSeconds } from './time'
+import { addSeconds, getTodaySeconds, resetEtudeAnswers, resetEtudeSeconds } from './time'
 import { resetPracticeSync, schedulePracticeFlush } from './supabase/sync'
 
 const IDLE_MS = 60_000 // pause after a minute with no interaction
@@ -70,6 +70,7 @@ export function useEtudeTimer(
 
   const reset = () => {
     resetEtudeSeconds(etudeRef.current)
+    resetEtudeAnswers(etudeRef.current)
     resetPracticeSync(etudeRef.current)
     accruedMs.current = 0
     setSeconds(0)

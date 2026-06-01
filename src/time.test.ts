@@ -1,9 +1,13 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import {
+  addAnswer,
   addSeconds,
+  getTodayAnswers,
   getTodaySeconds,
   localDate,
+  resetAllAnswers,
   resetAllSeconds,
+  resetEtudeAnswers,
   resetEtudeSeconds,
 } from './time'
 
@@ -72,5 +76,43 @@ describe('practice time store', () => {
     addSeconds('chords', 30, DAY)
     resetAllSeconds(DAY)
     expect(getTodaySeconds(DAY)).toEqual({})
+  })
+})
+
+describe('answer tally store', () => {
+  it('accumulates answered/correct per étude for the day', () => {
+    addAnswer('keys', true, DAY)
+    addAnswer('keys', false, DAY)
+    addAnswer('keys', true, DAY)
+    addAnswer('chords', false, DAY)
+    expect(getTodayAnswers(DAY)).toEqual({
+      keys: { answered: 3, correct: 2 },
+      chords: { answered: 1, correct: 0 },
+    })
+  })
+
+  it('resets at local midnight (a different day reads as empty)', () => {
+    addAnswer('keys', true, DAY)
+    expect(getTodayAnswers(NEXT)).toEqual({})
+  })
+
+  it('starts fresh on the new day, discarding the old day', () => {
+    addAnswer('keys', true, DAY)
+    addAnswer('keys', false, NEXT)
+    expect(getTodayAnswers(NEXT)).toEqual({ keys: { answered: 1, correct: 0 } })
+  })
+
+  it('resets one étude, leaving the others', () => {
+    addAnswer('keys', true, DAY)
+    addAnswer('chords', true, DAY)
+    resetEtudeAnswers('keys', DAY)
+    expect(getTodayAnswers(DAY)).toEqual({ chords: { answered: 1, correct: 1 } })
+  })
+
+  it('resets all études for today', () => {
+    addAnswer('keys', true, DAY)
+    addAnswer('chords', false, DAY)
+    resetAllAnswers(DAY)
+    expect(getTodayAnswers(DAY)).toEqual({})
   })
 })

@@ -80,3 +80,76 @@ export function resetEtudeSeconds(etudeId: string, today: string = localDate()):
 export function resetAllSeconds(today: string = localDate()): void {
   write({ date: today, seconds: {} })
 }
+
+// ---------------------------------------------------------------------------
+// Answer tally (accuracy) — a parallel today-only store, same midnight reset.
+// ---------------------------------------------------------------------------
+
+const ANSWERS_KEY = 'music-theory-practice-answers'
+
+export interface AnswerTally {
+  answered: number
+  correct: number
+}
+
+interface DayAnswers {
+  date: string
+  answers: Record<string, AnswerTally>
+}
+
+function readAnswers(): DayAnswers | null {
+  try {
+    const raw = globalThis.localStorage?.getItem(ANSWERS_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as DayAnswers
+    if (typeof parsed?.date === 'string' && parsed.answers && typeof parsed.answers === 'object') {
+      return parsed
+    }
+  } catch {
+    /* corrupt/unavailable — treated as empty */
+  }
+  return null
+}
+
+function writeAnswers(data: DayAnswers): void {
+  try {
+    globalThis.localStorage?.setItem(ANSWERS_KEY, JSON.stringify(data))
+  } catch {
+    /* storage unavailable — no-op */
+  }
+}
+
+/** Today's answered/correct tally per étude (resets if the stored day rolled over). */
+export function getTodayAnswers(today: string = localDate()): Record<string, AnswerTally> {
+  const stored = readAnswers()
+  return stored && stored.date === today ? stored.answers : {}
+}
+
+/** Record one graded answer for an étude (answered +1, correct +1 if right). */
+export function addAnswer(
+  etudeId: string,
+  correct: boolean,
+  today: string = localDate()
+): void {
+  const stored = readAnswers()
+  const answers = stored && stored.date === today ? { ...stored.answers } : {}
+  const prev = answers[etudeId] ?? { answered: 0, correct: 0 }
+  answers[etudeId] = {
+    answered: prev.answered + 1,
+    correct: prev.correct + (correct ? 1 : 0),
+  }
+  writeAnswers({ date: today, answers })
+}
+
+/** Clear one étude's answer tally for today. */
+export function resetEtudeAnswers(etudeId: string, today: string = localDate()): void {
+  const stored = readAnswers()
+  const answers = stored && stored.date === today ? { ...stored.answers } : {}
+  delete answers[etudeId]
+  writeAnswers({ date: today, answers })
+}
+
+/** Clear all answer tallies for today. */
+export function resetAllAnswers(today: string = localDate()): void {
+  writeAnswers({ date: today, answers: {} })
+}

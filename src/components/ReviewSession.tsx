@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Question, SrsData } from '../contracts'
 import { getState, grade, initialState, isDue, save, setState } from '../srs'
 import { remainingDue, recordDue, windowResetAt } from '../dueCap'
+import { addAnswer } from '../time'
+import { schedulePracticeFlush } from '../supabase/sync'
 import QuestionCard from './QuestionCard'
 import ScalePlayCard from './ScalePlayCard'
 import Button from './Button'
@@ -133,6 +135,9 @@ export default function ReviewSession({
     const updated = setState(dataRef.current, q.id, next)
     save(updated)
     onDataChange(updated)
+    // Track accuracy (correct iff recalled, quality >= 3) and sync it like time.
+    addAnswer(etudeId, quality >= 3)
+    schedulePracticeFlush()
     // Each answered due exercise counts against the étude's 5-hour batch.
     if (!practiceAll) recordDue(etudeId, Date.now())
   }

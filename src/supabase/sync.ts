@@ -15,7 +15,8 @@
 
 import type { SrsData } from '../contracts'
 import { coerceSrsData, save } from '../srs'
-import { getTodaySeconds, localDate } from '../time'
+import { getTodayAnswers, getTodaySeconds, localDate } from '../time'
+import type { PracticeHistoryRow } from '../practiceHistory'
 import { SUPABASE_ANON_KEY, SUPABASE_URL, supabase } from './client'
 import { mergeSrs } from './merge'
 
@@ -97,19 +98,23 @@ interface Baseline {
   date: string
   /** Integer seconds already pushed to the cloud today, per étude. */
   seconds: Record<string, number>
+  /** Answered/correct counts already pushed to the cloud today, per étude. */
+  answers: Record<string, { answered: number; correct: number }>
 }
 
 function readBaseline(today: string): Baseline {
   try {
     const raw = globalThis.localStorage?.getItem(BASELINE_KEY)
     if (raw) {
-      const b = JSON.parse(raw) as Baseline
-      if (b?.date === today && b.seconds) return b
+      const b = JSON.parse(raw) as Partial<Baseline>
+      if (b?.date === today && b.seconds) {
+        return { date: today, seconds: b.seconds, answers: b.answers ?? {} }
+      }
     }
   } catch {
     /* corrupt/unavailable */
   }
-  return { date: today, seconds: {} }
+  return { date: today, seconds: {}, answers: {} }
 }
 
 function writeBaseline(b: Baseline): void {
@@ -120,12 +125,13 @@ function writeBaseline(b: Baseline): void {
   }
 }
 
-/** Push the seconds accrued since the last flush as additive deltas. */
+/** Push the seconds and answers accrued since the last flush as additive deltas. */
 export async function flushPractice(): Promise<void> {
   if (!supabase || !userId) return
   const today = localDate()
-  const local = getTodaySeconds(today)
   const baseline = readBaseline(today)
+
+  const local = getTodaySeconds(today)
   for (const [etudeId, secs] of Object.entries(local)) {
     const pushed = baseline.seconds[etudeId] ?? 0
     const delta = Math.floor(secs) - pushed
@@ -137,6 +143,27 @@ export async function flushPractice(): Promise<void> {
     })
     if (!error) baseline.seconds[etudeId] = pushed + delta
   }
+
+  const localAnswers = getTodayAnswers(today)
+  for (const [etudeId, tally] of Object.entries(localAnswers)) {
+    const pushed = baseline.answers[etudeId] ?? { answered: 0, correct: 0 }
+    const dAnswered = tally.answered - pushed.answered
+    const dCorrect = tally.correct - pushed.correct
+    if (dAnswered <= 0) continue
+    const { error } = await supabase.rpc('add_practice_answers', {
+      p_day: today,
+      p_etude: etudeId,
+      p_answered: dAnswered,
+      p_correct: dCorrect,
+    })
+    if (!error) {
+      baseline.answers[etudeId] = {
+        answered: pushed.answered + dAnswered,
+        correct: pushed.correct + dCorrect,
+      }
+    }
+  }
+
   writeBaseline(baseline)
 }
 
@@ -151,28 +178,52 @@ export async function flushPractice(): Promise<void> {
  */
 export function flushPracticeBeacon(): void {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !userId || !accessToken) return
+  const token = accessToken
   const today = localDate()
-  const local = getTodaySeconds(today)
   const baseline = readBaseline(today)
-  const endpoint = `${SUPABASE_URL}/rest/v1/rpc/add_practice_seconds`
   let dirty = false
+
+  const beacon = (rpc: string, body: object) =>
+    void fetch(`${SUPABASE_URL}/rest/v1/rpc/${rpc}`, {
+      method: 'POST',
+      keepalive: true,
+      headers: {
+        apikey: SUPABASE_ANON_KEY as string,
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    }).catch(() => {})
+
+  const local = getTodaySeconds(today)
   for (const [etudeId, secs] of Object.entries(local)) {
     const pushed = baseline.seconds[etudeId] ?? 0
     const delta = Math.floor(secs) - pushed
     if (delta <= 0) continue
-    void fetch(endpoint, {
-      method: 'POST',
-      keepalive: true,
-      headers: {
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ p_day: today, p_etude: etudeId, p_secs: delta }),
-    }).catch(() => {})
+    beacon('add_practice_seconds', { p_day: today, p_etude: etudeId, p_secs: delta })
     baseline.seconds[etudeId] = pushed + delta
     dirty = true
   }
+
+  const localAnswers = getTodayAnswers(today)
+  for (const [etudeId, tally] of Object.entries(localAnswers)) {
+    const pushed = baseline.answers[etudeId] ?? { answered: 0, correct: 0 }
+    const dAnswered = tally.answered - pushed.answered
+    const dCorrect = tally.correct - pushed.correct
+    if (dAnswered <= 0) continue
+    beacon('add_practice_answers', {
+      p_day: today,
+      p_etude: etudeId,
+      p_answered: dAnswered,
+      p_correct: dCorrect,
+    })
+    baseline.answers[etudeId] = {
+      answered: pushed.answered + dAnswered,
+      correct: pushed.correct + dCorrect,
+    }
+    dirty = true
+  }
+
   if (dirty) writeBaseline(baseline)
 }
 
@@ -199,6 +250,17 @@ export async function pullPracticeToday(): Promise<Record<string, number>> {
   const out: Record<string, number> = {}
   for (const row of data) out[row.etude_id as string] = row.seconds as number
   return out
+}
+
+/** The full per-(day, étude) practice log for the signed-in user (all time). */
+export async function pullPracticeHistory(): Promise<PracticeHistoryRow[]> {
+  if (!supabase || !userId) return []
+  const { data, error } = await supabase
+    .from('practice_time')
+    .select('day, etude_id, seconds, answered, correct')
+    .eq('user_id', userId)
+  if (error || !data) return []
+  return data as PracticeHistoryRow[]
 }
 
 // --- Orchestration --------------------------------------------------------
@@ -231,8 +293,13 @@ export async function syncOnSignIn(local: SrsData): Promise<SrsData> {
 export function resetPracticeSync(etudeId?: string): void {
   const today = localDate()
   const baseline = readBaseline(today)
-  if (etudeId) delete baseline.seconds[etudeId]
-  else baseline.seconds = {}
+  if (etudeId) {
+    delete baseline.seconds[etudeId]
+    delete baseline.answers[etudeId]
+  } else {
+    baseline.seconds = {}
+    baseline.answers = {}
+  }
   writeBaseline(baseline)
   void clearCloudPractice(today, etudeId)
 }
