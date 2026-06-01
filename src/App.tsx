@@ -326,6 +326,8 @@ function EtudeScreen({
   const [currentQid, setCurrentQid] = useState<string | null>(null)
   const { seconds: practiceSeconds, reset: resetPractice } = useEtudeTimer(
     etude.id,
+    etude.levels ? level : 0,
+    etude.version ?? 1,
     currentQid,
   )
   const reference = etudeReference(etude.id)
@@ -447,6 +449,7 @@ function EtudeScreen({
           key={`${etude.id}:${level}:${sessionKey}`}
           bank={bank}
           etudeId={etude.id}
+          version={etude.version ?? 1}
           data={data}
           onDataChange={setData}
           onQuestionChange={setCurrentQid}

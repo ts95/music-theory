@@ -15,7 +15,12 @@
 
 import type { SrsData } from '../contracts'
 import { coerceSrsData, save } from '../srs'
-import { getTodayAnswers, getTodaySeconds, localDate } from '../time'
+import {
+  getTodayAnswersByLevel,
+  getTodaySecondsByLevel,
+  localDate,
+  practiceKey,
+} from '../time'
 import type { PracticeHistoryRow } from '../practiceHistory'
 import { SUPABASE_ANON_KEY, SUPABASE_URL, supabase } from './client'
 import { mergeSrs } from './merge'
@@ -131,33 +136,37 @@ export async function flushPractice(): Promise<void> {
   const today = localDate()
   const baseline = readBaseline(today)
 
-  const local = getTodaySeconds(today)
-  for (const [etudeId, secs] of Object.entries(local)) {
-    const pushed = baseline.seconds[etudeId] ?? 0
-    const delta = Math.floor(secs) - pushed
+  for (const e of getTodaySecondsByLevel(today)) {
+    const key = practiceKey(e.etudeId, e.level, e.version)
+    const pushed = baseline.seconds[key] ?? 0
+    const delta = Math.floor(e.seconds) - pushed
     if (delta <= 0) continue
     const { error } = await supabase.rpc('add_practice_seconds', {
       p_day: today,
-      p_etude: etudeId,
+      p_etude: e.etudeId,
+      p_level: e.level,
+      p_version: e.version,
       p_secs: delta,
     })
-    if (!error) baseline.seconds[etudeId] = pushed + delta
+    if (!error) baseline.seconds[key] = pushed + delta
   }
 
-  const localAnswers = getTodayAnswers(today)
-  for (const [etudeId, tally] of Object.entries(localAnswers)) {
-    const pushed = baseline.answers[etudeId] ?? { answered: 0, correct: 0 }
-    const dAnswered = tally.answered - pushed.answered
-    const dCorrect = tally.correct - pushed.correct
+  for (const e of getTodayAnswersByLevel(today)) {
+    const key = practiceKey(e.etudeId, e.level, e.version)
+    const pushed = baseline.answers[key] ?? { answered: 0, correct: 0 }
+    const dAnswered = e.answered - pushed.answered
+    const dCorrect = e.correct - pushed.correct
     if (dAnswered <= 0) continue
     const { error } = await supabase.rpc('add_practice_answers', {
       p_day: today,
-      p_etude: etudeId,
+      p_etude: e.etudeId,
+      p_level: e.level,
+      p_version: e.version,
       p_answered: dAnswered,
       p_correct: dCorrect,
     })
     if (!error) {
-      baseline.answers[etudeId] = {
+      baseline.answers[key] = {
         answered: pushed.answered + dAnswered,
         correct: pushed.correct + dCorrect,
       }
@@ -195,29 +204,37 @@ export function flushPracticeBeacon(): void {
       body: JSON.stringify(body),
     }).catch(() => {})
 
-  const local = getTodaySeconds(today)
-  for (const [etudeId, secs] of Object.entries(local)) {
-    const pushed = baseline.seconds[etudeId] ?? 0
-    const delta = Math.floor(secs) - pushed
+  for (const e of getTodaySecondsByLevel(today)) {
+    const key = practiceKey(e.etudeId, e.level, e.version)
+    const pushed = baseline.seconds[key] ?? 0
+    const delta = Math.floor(e.seconds) - pushed
     if (delta <= 0) continue
-    beacon('add_practice_seconds', { p_day: today, p_etude: etudeId, p_secs: delta })
-    baseline.seconds[etudeId] = pushed + delta
+    beacon('add_practice_seconds', {
+      p_day: today,
+      p_etude: e.etudeId,
+      p_level: e.level,
+      p_version: e.version,
+      p_secs: delta,
+    })
+    baseline.seconds[key] = pushed + delta
     dirty = true
   }
 
-  const localAnswers = getTodayAnswers(today)
-  for (const [etudeId, tally] of Object.entries(localAnswers)) {
-    const pushed = baseline.answers[etudeId] ?? { answered: 0, correct: 0 }
-    const dAnswered = tally.answered - pushed.answered
-    const dCorrect = tally.correct - pushed.correct
+  for (const e of getTodayAnswersByLevel(today)) {
+    const key = practiceKey(e.etudeId, e.level, e.version)
+    const pushed = baseline.answers[key] ?? { answered: 0, correct: 0 }
+    const dAnswered = e.answered - pushed.answered
+    const dCorrect = e.correct - pushed.correct
     if (dAnswered <= 0) continue
     beacon('add_practice_answers', {
       p_day: today,
-      p_etude: etudeId,
+      p_etude: e.etudeId,
+      p_level: e.level,
+      p_version: e.version,
       p_answered: dAnswered,
       p_correct: dCorrect,
     })
-    baseline.answers[etudeId] = {
+    baseline.answers[key] = {
       answered: pushed.answered + dAnswered,
       correct: pushed.correct + dCorrect,
     }
@@ -247,17 +264,21 @@ export async function pullPracticeToday(): Promise<Record<string, number>> {
     .eq('user_id', userId)
     .eq('day', localDate())
   if (error || !data) return {}
+  // Multiple rows per étude now (one per level/version) — sum them.
   const out: Record<string, number> = {}
-  for (const row of data) out[row.etude_id as string] = row.seconds as number
+  for (const row of data) {
+    const id = row.etude_id as string
+    out[id] = (out[id] ?? 0) + (row.seconds as number)
+  }
   return out
 }
 
-/** The full per-(day, étude) practice log for the signed-in user (all time). */
+/** The full per-(day, étude, level, version) practice log for the user (all time). */
 export async function pullPracticeHistory(): Promise<PracticeHistoryRow[]> {
   if (!supabase || !userId) return []
   const { data, error } = await supabase
     .from('practice_time')
-    .select('day, etude_id, seconds, answered, correct')
+    .select('day, etude_id, level, version, seconds, answered, correct')
     .eq('user_id', userId)
   if (error || !data) return []
   return data as PracticeHistoryRow[]

@@ -90,6 +90,12 @@ export interface Etude {
    * `level` (1-based) matches the chosen level.
    */
   levels?: string[]
+  /**
+   * Content version (default 1). **Bump this whenever the étude's questions or
+   * difficulty change**, so recorded practice/accuracy stays interpretable — a
+   * given level can mean something different across versions.
+   */
+  version?: number
   /** Display number, e.g. 1. */
   number: number
   /** Title, e.g. "Scales & Fingerings". */

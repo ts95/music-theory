@@ -7,6 +7,8 @@
 export interface PracticeHistoryRow {
   day: string // 'YYYY-MM-DD'
   etude_id: string
+  level: number // 0 = unleveled / pre-versioning
+  version: number
   seconds: number
   answered: number
   correct: number
@@ -138,36 +140,54 @@ function csvField(value: string): string {
 }
 
 /**
- * One month of practice as CSV: a row per (day, étude) with ≥ 1 min of practice
- * AND at least one correct answer — Date, Étude, Minutes, Answered, Correct,
- * Accuracy %. Sub-minute études and études with no correct answer (including
- * time-only practice) are dropped to keep it compact; days left with no rows are
- * omitted. `etudeLabel` resolves the same descriptive labels used elsewhere.
- * UTF-8 BOM + CRLF for Excel.
+ * One month of practice as CSV: a row per (day, étude, level, version) with ≥ 1
+ * min of practice AND at least one correct answer — Date, Étude, Level, Version,
+ * Minutes, Answered, Correct, Accuracy %. Sub-minute and no-correct-answer rows
+ * (incl. time-only practice) are dropped to keep it compact. `etudeLabel` and
+ * `levelLabel` resolve display names ('' level for unleveled). UTF-8 BOM + CRLF.
  */
 export function monthCsv(
-  byDay: Record<string, DayStat>,
+  rows: PracticeHistoryRow[],
   year: number,
   month0: number,
   etudeLabel: (id: string) => string,
+  levelLabel: (etudeId: string, level: number) => string,
 ): string {
-  const lines = ['Date,Étude,Minutes,Answered,Correct,Accuracy %']
-  const days = new Date(year, month0 + 1, 0).getDate()
-  for (let d = 1; d <= days; d++) {
-    const date = `${year}-${pad2(month0 + 1)}-${pad2(d)}`
-    const stat = byDay[date]
-    if (!stat) continue
-    const entries = Object.entries(stat.perEtude)
-      .filter(([, e]) => e.seconds >= 60 && e.correct >= 1)
-      .map(([id, e]) => ({ label: etudeLabel(id), e }))
-      .sort((a, b) => a.label.localeCompare(b.label))
-    for (const { label, e } of entries) {
-      // The filter guarantees answered >= correct >= 1, so accuracy is defined.
-      const acc = accuracyPct(e.correct, e.answered)
-      lines.push(
-        [date, csvField(label), Math.round(e.seconds / 60), e.answered, e.correct, acc].join(','),
-      )
-    }
+  const prefix = `${year}-${pad2(month0 + 1)}-`
+  const out = rows
+    .filter((r) => r.day.startsWith(prefix) && r.seconds >= 60 && r.correct >= 1)
+    .map((r) => ({
+      day: r.day,
+      label: etudeLabel(r.etude_id),
+      levelLabel: levelLabel(r.etude_id, r.level),
+      level: r.level,
+      version: r.version,
+      minutes: Math.round(r.seconds / 60),
+      answered: r.answered,
+      correct: r.correct,
+      accuracy: accuracyPct(r.correct, r.answered), // defined: filter ⇒ answered ≥ correct ≥ 1
+    }))
+    .sort(
+      (a, b) =>
+        a.day.localeCompare(b.day) ||
+        a.label.localeCompare(b.label) ||
+        a.level - b.level ||
+        a.version - b.version,
+    )
+  const lines = ['Date,Étude,Level,Version,Minutes,Answered,Correct,Accuracy %']
+  for (const r of out) {
+    lines.push(
+      [
+        r.day,
+        csvField(r.label),
+        csvField(r.levelLabel),
+        r.version,
+        r.minutes,
+        r.answered,
+        r.correct,
+        r.accuracy,
+      ].join(','),
+    )
   }
   return '﻿' + lines.join('\r\n')
 }

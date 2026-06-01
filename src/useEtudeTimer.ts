@@ -18,6 +18,8 @@ const ACTIVITY_EVENTS = ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touc
  */
 export function useEtudeTimer(
   etudeId: string,
+  level: number,
+  version: number,
   exerciseKey?: string | null
 ): { seconds: number; reset: () => void } {
   const [seconds, setSeconds] = useState(() => getTodaySeconds()[etudeId] ?? 0)
@@ -29,9 +31,13 @@ export function useEtudeTimer(
     lastKey.current = exerciseKey
     accruedMs.current = 0
   }
-  // Keep the interval stable across question changes; read latest id via a ref.
+  // Keep the interval stable across question changes; read latest values via refs.
   const etudeRef = useRef(etudeId)
   etudeRef.current = etudeId
+  const levelRef = useRef(level)
+  levelRef.current = level
+  const versionRef = useRef(version)
+  versionRef.current = version
   const capped = exerciseKey !== undefined
 
   useEffect(() => {
@@ -54,7 +60,7 @@ export function useEtudeTimer(
         let allowed = Math.min(delta, MAX_DELTA_MS)
         if (capped) allowed = Math.min(allowed, PER_EXERCISE_CAP_MS - accruedMs.current)
         if (allowed > 0) {
-          addSeconds(etudeRef.current, allowed / 1000)
+          addSeconds(etudeRef.current, allowed / 1000, levelRef.current, versionRef.current)
           accruedMs.current += allowed
           schedulePracticeFlush() // pushes to the cloud (no-op when signed out)
         }

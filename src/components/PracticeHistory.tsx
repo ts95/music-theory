@@ -30,6 +30,8 @@ const pad = (n: number) => String(n).padStart(2, '0')
 const dayStr = (y: number, m: number, d: number) => `${y}-${pad(m + 1)}-${pad(d)}`
 const etudeLabel = (id: string) =>
   PRACTICE_LABELS[id] ?? ETUDES.find((e) => e.id === id)?.title ?? id
+const levelLabel = (etudeId: string, level: number): string =>
+  level === 0 ? '' : (ETUDES.find((e) => e.id === etudeId)?.levels?.[level - 1] ?? `Level ${level}`)
 
 function shortDate(day: string): string {
   const [y, m, d] = day.split('-').map(Number)
@@ -213,7 +215,7 @@ export default function PracticeHistory({
   const exportMonth = () =>
     downloadCsv(
       `music-theory-${view.y}-${pad(view.m + 1)}.csv`,
-      monthCsv(byDay, view.y, view.m, etudeLabel),
+      monthCsv(rows ?? [], view.y, view.m, etudeLabel, levelLabel),
     )
 
   return (

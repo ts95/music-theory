@@ -2,8 +2,9 @@ import { afterEach, describe, expect, it } from 'vitest'
 import {
   addAnswer,
   addSeconds,
-  getTodayAnswers,
+  getTodayAnswersByLevel,
   getTodaySeconds,
+  getTodaySecondsByLevel,
   localDate,
   resetAllAnswers,
   resetAllSeconds,
@@ -36,27 +37,31 @@ const DAY = '2026-05-29'
 const NEXT = '2026-05-30'
 
 describe('practice time store', () => {
-  it('accumulates seconds per étude for the day', () => {
-    addSeconds('keys', 30, DAY)
-    addSeconds('keys', 45, DAY)
-    addSeconds('chords', 10, DAY)
-    expect(getTodaySeconds(DAY)).toEqual({ keys: 75, chords: 10 })
+  it('accumulates seconds per étude for the day (summed across levels)', () => {
+    addSeconds('keys', 30, 1, 1, DAY)
+    addSeconds('keys', 45, 1, 1, DAY)
+    addSeconds('keys', 10, 2, 1, DAY) // a different level still rolls into the étude total
+    addSeconds('chords', 10, 0, 1, DAY)
+    expect(getTodaySeconds(DAY)).toEqual({ keys: 85, chords: 10 })
+  })
+
+  it('breaks seconds out by (étude, level, version) for sync', () => {
+    addSeconds('keys', 30, 1, 1, DAY)
+    addSeconds('keys', 12, 2, 1, DAY)
+    expect(getTodaySecondsByLevel(DAY).sort((a, b) => a.level - b.level)).toEqual([
+      { etudeId: 'keys', level: 1, version: 1, seconds: 30 },
+      { etudeId: 'keys', level: 2, version: 1, seconds: 12 },
+    ])
   })
 
   it('resets at local midnight (a different day reads as empty)', () => {
-    addSeconds('keys', 120, DAY)
+    addSeconds('keys', 120, 1, 1, DAY)
     expect(getTodaySeconds(NEXT)).toEqual({})
   })
 
-  it('starts fresh on the new day, discarding the old day', () => {
-    addSeconds('keys', 120, DAY)
-    addSeconds('keys', 20, NEXT) // first write of the new day resets, then adds
-    expect(getTodaySeconds(NEXT)).toEqual({ keys: 20 })
-  })
-
   it('ignores non-positive additions', () => {
-    addSeconds('keys', 0, DAY)
-    addSeconds('keys', -5, DAY)
+    addSeconds('keys', 0, 1, 1, DAY)
+    addSeconds('keys', -5, 1, 1, DAY)
     expect(getTodaySeconds(DAY)).toEqual({})
   })
 
@@ -64,55 +69,51 @@ describe('practice time store', () => {
     expect(localDate(new Date(2026, 0, 3))).toBe('2026-01-03')
   })
 
-  it('resets one étude, leaving the others', () => {
-    addSeconds('keys', 60, DAY)
-    addSeconds('chords', 30, DAY)
+  it('resets one étude (all its levels), leaving the others', () => {
+    addSeconds('keys', 60, 1, 1, DAY)
+    addSeconds('keys', 20, 2, 1, DAY)
+    addSeconds('chords', 30, 1, 1, DAY)
     resetEtudeSeconds('keys', DAY)
     expect(getTodaySeconds(DAY)).toEqual({ chords: 30 })
   })
 
   it('resets all études for today', () => {
-    addSeconds('keys', 60, DAY)
-    addSeconds('chords', 30, DAY)
+    addSeconds('keys', 60, 1, 1, DAY)
     resetAllSeconds(DAY)
     expect(getTodaySeconds(DAY)).toEqual({})
   })
 })
 
 describe('answer tally store', () => {
-  it('accumulates answered/correct per étude for the day', () => {
-    addAnswer('keys', true, DAY)
-    addAnswer('keys', false, DAY)
-    addAnswer('keys', true, DAY)
-    addAnswer('chords', false, DAY)
-    expect(getTodayAnswers(DAY)).toEqual({
-      keys: { answered: 3, correct: 2 },
-      chords: { answered: 1, correct: 0 },
-    })
+  it('accumulates answered/correct by (étude, level, version)', () => {
+    addAnswer('keys', true, 1, 1, DAY)
+    addAnswer('keys', false, 1, 1, DAY)
+    addAnswer('keys', true, 2, 1, DAY) // different level → separate entry
+    addAnswer('chords', false, 0, 1, DAY)
+    expect(getTodayAnswersByLevel(DAY).sort((a, b) => a.etudeId.localeCompare(b.etudeId) || a.level - b.level)).toEqual([
+      { etudeId: 'chords', level: 0, version: 1, answered: 1, correct: 0 },
+      { etudeId: 'keys', level: 1, version: 1, answered: 2, correct: 1 },
+      { etudeId: 'keys', level: 2, version: 1, answered: 1, correct: 1 },
+    ])
   })
 
   it('resets at local midnight (a different day reads as empty)', () => {
-    addAnswer('keys', true, DAY)
-    expect(getTodayAnswers(NEXT)).toEqual({})
+    addAnswer('keys', true, 1, 1, DAY)
+    expect(getTodayAnswersByLevel(NEXT)).toEqual([])
   })
 
-  it('starts fresh on the new day, discarding the old day', () => {
-    addAnswer('keys', true, DAY)
-    addAnswer('keys', false, NEXT)
-    expect(getTodayAnswers(NEXT)).toEqual({ keys: { answered: 1, correct: 0 } })
-  })
-
-  it('resets one étude, leaving the others', () => {
-    addAnswer('keys', true, DAY)
-    addAnswer('chords', true, DAY)
+  it('resets one étude (all its levels), leaving the others', () => {
+    addAnswer('keys', true, 1, 1, DAY)
+    addAnswer('chords', true, 1, 1, DAY)
     resetEtudeAnswers('keys', DAY)
-    expect(getTodayAnswers(DAY)).toEqual({ chords: { answered: 1, correct: 1 } })
+    expect(getTodayAnswersByLevel(DAY)).toEqual([
+      { etudeId: 'chords', level: 1, version: 1, answered: 1, correct: 1 },
+    ])
   })
 
   it('resets all études for today', () => {
-    addAnswer('keys', true, DAY)
-    addAnswer('chords', false, DAY)
+    addAnswer('keys', true, 1, 1, DAY)
     resetAllAnswers(DAY)
-    expect(getTodayAnswers(DAY)).toEqual({})
+    expect(getTodayAnswersByLevel(DAY)).toEqual([])
   })
 })

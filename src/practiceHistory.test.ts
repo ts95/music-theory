@@ -10,10 +10,10 @@ import {
 } from './practiceHistory'
 
 const rows: PracticeHistoryRow[] = [
-  { day: '2026-05-04', etude_id: 'scales', seconds: 120, answered: 4, correct: 3 },
-  { day: '2026-05-04', etude_id: 'chords', seconds: 60, answered: 2, correct: 1 },
-  { day: '2026-05-06', etude_id: 'scales', seconds: 90, answered: 2, correct: 2 },
-  { day: '2026-05-11', etude_id: 'scales', seconds: 30, answered: 1, correct: 0 },
+  { day: '2026-05-04', etude_id: 'scales', level: 1, version: 1, seconds: 120, answered: 4, correct: 3 },
+  { day: '2026-05-04', etude_id: 'chords', level: 1, version: 1, seconds: 60, answered: 2, correct: 1 },
+  { day: '2026-05-06', etude_id: 'scales', level: 1, version: 1, seconds: 90, answered: 2, correct: 2 },
+  { day: '2026-05-11', etude_id: 'scales', level: 1, version: 1, seconds: 30, answered: 1, correct: 0 },
 ]
 
 describe('accuracyPct', () => {
@@ -55,7 +55,7 @@ describe('summarize', () => {
   it('does not count a day that has answers but no time', () => {
     const s = summarize(
       aggregateByDay([
-        { day: '2026-05-04', etude_id: 'scales', seconds: 0, answered: 2, correct: 1 },
+        { day: '2026-05-04', etude_id: 'scales', level: 1, version: 1, seconds: 0, answered: 2, correct: 1 },
       ]),
     )
     expect(s.daysPracticed).toBe(0)
@@ -80,7 +80,7 @@ describe('weeklyAccuracy', () => {
   })
   it('omits weeks with no answers', () => {
     const none = weeklyAccuracy(
-      [{ day: '2026-05-04', etude_id: 'scales', seconds: 120, answered: 0, correct: 0 }],
+      [{ day: '2026-05-04', etude_id: 'scales', level: 1, version: 1, seconds: 120, answered: 0, correct: 0 }],
       () => true,
     )
     expect(none).toEqual([])
@@ -99,48 +99,56 @@ describe('etudeAccuracy', () => {
 describe('monthCsv', () => {
   const label = (id: string): string =>
     ({ scales: 'Scale Recognition', chords: 'Chord Recognition' })[id] ?? id
+  const lvl = (_id: string, level: number): string =>
+    level === 0 ? '' : ['Easy', 'Medium', 'Hard'][level - 1] ?? `Level ${level}`
   const may: PracticeHistoryRow[] = [
-    { day: '2026-05-04', etude_id: 'scales', seconds: 480, answered: 5, correct: 4 },
-    { day: '2026-05-04', etude_id: 'chords', seconds: 30, answered: 2, correct: 1 }, // <1min → excluded
-    { day: '2026-05-06', etude_id: 'scales', seconds: 120, answered: 0, correct: 0 }, // time only, 0 correct → excluded
-    { day: '2026-05-07', etude_id: 'chords', seconds: 180, answered: 4, correct: 0 }, // practiced, 0 correct → excluded
-    { day: '2026-06-01', etude_id: 'scales', seconds: 300, answered: 3, correct: 3 }, // other month → excluded
+    // same étude/day at two levels → two rows; also a second version of Easy.
+    { day: '2026-05-04', etude_id: 'chords', level: 1, version: 1, seconds: 480, answered: 5, correct: 4 },
+    { day: '2026-05-04', etude_id: 'chords', level: 3, version: 1, seconds: 240, answered: 3, correct: 1 },
+    { day: '2026-05-04', etude_id: 'chords', level: 1, version: 2, seconds: 120, answered: 2, correct: 2 },
+    { day: '2026-05-05', etude_id: 'scales', level: 0, version: 1, seconds: 120, answered: 4, correct: 3 }, // unleveled → blank
+    { day: '2026-05-06', etude_id: 'chords', level: 1, version: 1, seconds: 30, answered: 2, correct: 1 }, // <1min → excluded
+    { day: '2026-05-07', etude_id: 'chords', level: 2, version: 1, seconds: 180, answered: 4, correct: 0 }, // 0 correct → excluded
+    { day: '2026-06-01', etude_id: 'scales', level: 0, version: 1, seconds: 300, answered: 3, correct: 3 }, // other month → excluded
   ]
-  const lines = () =>
-    monthCsv(aggregateByDay(may), 2026, 4, label)
-      .replace(/^﻿/, '')
-      .split('\r\n')
+  const lines = () => monthCsv(may, 2026, 4, label, lvl).replace(/^﻿/, '').split('\r\n')
 
   it('starts with the header and a BOM', () => {
-    expect(monthCsv(aggregateByDay(may), 2026, 4, label).startsWith('﻿')).toBe(true)
-    expect(lines()[0]).toBe('Date,Étude,Minutes,Answered,Correct,Accuracy %')
+    expect(monthCsv(may, 2026, 4, label, lvl).startsWith('﻿')).toBe(true)
+    expect(lines()[0]).toBe('Date,Étude,Level,Version,Minutes,Answered,Correct,Accuracy %')
   })
 
-  it('emits only the requested month, ≥1min and ≥1 correct answer', () => {
+  it('splits a day/étude into per-(level, version) rows; blank level for unleveled', () => {
     expect(lines()).toEqual([
-      'Date,Étude,Minutes,Answered,Correct,Accuracy %',
-      '2026-05-04,Scale Recognition,8,5,4,80',
+      'Date,Étude,Level,Version,Minutes,Answered,Correct,Accuracy %',
+      '2026-05-04,Chord Recognition,Easy,1,8,5,4,80',
+      '2026-05-04,Chord Recognition,Easy,2,2,2,2,100',
+      '2026-05-04,Chord Recognition,Hard,1,4,3,1,33',
+      '2026-05-05,Scale Recognition,,1,2,4,3,75',
     ])
   })
 
-  it('omits études practiced with no correct answers', () => {
-    // 2026-05-07 chords had 4 answers, 0 correct → not in the output at all.
-    expect(lines().some((l) => l.startsWith('2026-05-07'))).toBe(false)
+  it('omits sub-minute, no-correct-answer, and other-month rows', () => {
+    const body = lines().slice(1)
+    expect(body.some((l) => l.startsWith('2026-05-06'))).toBe(false) // <1min
+    expect(body.some((l) => l.startsWith('2026-05-07'))).toBe(false) // 0 correct
+    expect(body.some((l) => l.startsWith('2026-06'))).toBe(false) // other month
   })
 
-  it('omits a month with no qualifying practice (header only)', () => {
-    expect(monthCsv(aggregateByDay(may), 2026, 0, label).replace(/^﻿/, '')).toBe(
-      'Date,Étude,Minutes,Answered,Correct,Accuracy %',
+  it('returns header only for a month with no qualifying practice', () => {
+    expect(monthCsv(may, 2026, 0, label, lvl).replace(/^﻿/, '')).toBe(
+      'Date,Étude,Level,Version,Minutes,Answered,Correct,Accuracy %',
     )
   })
 
   it('quotes labels containing commas', () => {
     const out = monthCsv(
-      aggregateByDay([{ day: '2026-05-04', etude_id: 'x', seconds: 120, answered: 1, correct: 1 }]),
+      [{ day: '2026-05-04', etude_id: 'x', level: 0, version: 1, seconds: 120, answered: 1, correct: 1 }],
       2026,
       4,
       () => 'A, B',
+      () => '',
     ).replace(/^﻿/, '')
-    expect(out.split('\r\n')[1]).toBe('2026-05-04,"A, B",2,1,1,100')
+    expect(out.split('\r\n')[1]).toBe('2026-05-04,"A, B",,1,2,1,1,100')
   })
 })

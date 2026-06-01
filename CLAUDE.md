@@ -145,7 +145,9 @@ tests/e2e/           # Playwright browser tests (smoke.spec.ts). Config: playwri
 
 **Études:** the app is organised into selectable études (exercises). `ETUDES` (in `questions/etudes.ts`)
 lists them; every `Question` carries an `etudeId`, and the UI scopes a session + its progress to one
-étude. To add an étude: add an `ETUDES` entry, generate questions tagged with its id, done.
+étude. To add an étude: add an `ETUDES` entry, generate questions tagged with its id, done. Étude
+definitions per content version are documented in `docs/etude-versions.md` — bump `Etude.version` and
+append a new version subsection there whenever an étude's questions/difficulty change.
 
 **Interactive (non-MC) études:** most études are multiple-choice (`QuestionCard`). "Play the Scale"
 (`scale-play`) is interactive — `Question.scalePlay` holds the expected ascending `notes` + per-note

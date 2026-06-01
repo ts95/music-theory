@@ -31,6 +31,8 @@ interface ReviewSessionProps {
   bank: Question[]
   /** The étude id, for the per-étude due-batch cap. */
   etudeId: string
+  /** The étude's content version, recorded with each answer. */
+  version: number
   /** The current SRS store, owned by App (so import/export stay in sync). */
   data: SrsData
   /** Persist + lift store changes back to App. */
@@ -83,6 +85,7 @@ function formatRelative(dueAt: number, now: number): string {
 export default function ReviewSession({
   bank,
   etudeId,
+  version,
   data,
   onDataChange,
   onQuestionChange,
@@ -135,8 +138,8 @@ export default function ReviewSession({
     const updated = setState(dataRef.current, q.id, next)
     save(updated)
     onDataChange(updated)
-    // Track accuracy (correct iff recalled, quality >= 3) and sync it like time.
-    addAnswer(etudeId, quality >= 3)
+    // Track accuracy (correct iff recalled, quality >= 3) by level + version.
+    addAnswer(etudeId, quality >= 3, q.level ?? 0, version)
     schedulePracticeFlush()
     // Each answered due exercise counts against the étude's 5-hour batch.
     if (!practiceAll) recordDue(etudeId, Date.now())
