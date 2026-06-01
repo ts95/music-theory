@@ -150,7 +150,8 @@ untimed.
   qualities; ninths the other clean ninth types (9 / maj9 / m9 / m(maj9)). Spelled via `spellChord`; any
   out-of-range spelling is skipped.
 - **Audio:** each choice (a note set) sounds as a block chord, voiced ascending from C4 (hover-to-play).
-- **Reveal:** the chord on a **staff** (no key signature — accidentals print inline) **beside** a piano
+- **Reveal:** the chord on a **staff** under the **key signature it's diatonic to** (the key it was
+  generated from; borrowed leading tones print as accidentals, as in Chord Recognition) **beside** a piano
   keyboard with RH/LH fingerings (`q.notation` on-reveal + `q.keyboard`).
 - **Timing:** category `Chord spelling` — **untimed** (a deliberate reading/reveal exercise).
 

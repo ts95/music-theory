@@ -778,7 +778,8 @@ function chordSpellingQuestions(): Question[] {
             chordSpellingExplanation(symbol, tones)
           )
           q.level = level.n
-          // Reveal: the chord on a staff (no key signature, accidentals inline)
+          // Reveal: the chord on a staff under the key signature it's diatonic to
+          // (borrowed leading tones print as accidentals, as in Chord Recognition)
           // beside the keyboard, each key labelled with both fingerings.
           const voiced = voiceScaleAscending(tones, 4)
           const rhFng = chordFingering(voiced.length, 'RH')
@@ -786,7 +787,7 @@ function chordSpellingQuestions(): Question[] {
           q.notation = {
             groups: [voiced],
             clef: 'treble',
-            keySignature: 'C',
+            keySignature: keySignatureSpec(tonic, mode),
             onReveal: true,
           }
           q.keyboard = {
