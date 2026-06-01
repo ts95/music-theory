@@ -8,8 +8,9 @@
  * Records are keyed by (étude, difficulty level, étude version) so the practice
  * history can attribute time/accuracy to a specific level + content version.
  * Display accessors (`getTodaySeconds`) still aggregate per étude; the sync
- * layer uses the `*ByLevel` accessors to push each dimension separately. Legacy
- * plain-étude keys parse as level 0 / version 1.
+ * layer uses the `*ByLevel` accessors to push each dimension separately. Level 0
+ * means the étude has no difficulty selector (no `levels` array); études with a
+ * selector use a 1-based level. Legacy plain-étude keys parse as level 0 / version 1.
  */
 
 const KEY = 'music-theory-practice-time'

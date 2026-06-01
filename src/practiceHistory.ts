@@ -7,7 +7,7 @@
 export interface PracticeHistoryRow {
   day: string // 'YYYY-MM-DD'
   etude_id: string
-  level: number // 0 = unleveled / pre-versioning
+  level: number // 1-based difficulty; 0 = étude has no difficulty selector (also legacy/pre-versioning rows)
   version: number
   seconds: number
   answered: number
