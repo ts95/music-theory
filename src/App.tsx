@@ -5,13 +5,14 @@ import { getState, initialState, isDue, load } from './srs'
 import ReviewSession from './components/ReviewSession'
 import EtudeMenu from './components/EtudeMenu'
 import AboutPage from './components/AboutPage'
+import PracticeHistory from './components/PracticeHistory'
 import IntervalSongs from './components/IntervalSongs'
 import { intervalSongBySemitones } from './intervalSongs'
 import InfoBox from './components/InfoBox'
 import { etudeReference } from './components/references'
 import Button from './components/Button'
 import { isMuted, setMuted } from './audio/player'
-import { formatMinutes, getTodaySeconds, resetAllSeconds } from './time'
+import { formatMinutes, getTodaySeconds, resetAllAnswers, resetAllSeconds } from './time'
 import { getSavedLevel, saveLevel } from './levels'
 import { remainingDue } from './dueCap'
 import { useEtudeTimer } from './useEtudeTimer'
@@ -35,6 +36,7 @@ const BASE = import.meta.env.BASE_URL // "/music-theory/" in prod, "/" in dev
 const ROUTES = new Set<string>([
   ...ETUDES.map((e) => e.id),
   'about',
+  'history',
   'interval-songs',
 ])
 
@@ -147,7 +149,9 @@ export default function App() {
       ? `${etude.title} · Music Theory`
       : route === 'about'
         ? 'About · Music Theory'
-        : route?.startsWith('interval-songs')
+        : route === 'history'
+          ? 'History · Music Theory'
+          : route?.startsWith('interval-songs')
           ? 'Interval songs · Music Theory'
           : 'Music Theory'
   }, [route])
@@ -178,6 +182,11 @@ export default function App() {
       <Button variant="secondary" onClick={() => navigate('about')}>
         About
       </Button>
+      {session && (
+        <Button variant="secondary" onClick={() => navigate('history')}>
+          History
+        </Button>
+      )}
       <AuthControls session={session} />
     </div>
   )
@@ -191,7 +200,10 @@ export default function App() {
   return (
     <div className="min-h-screen">
       <div className="mx-auto max-w-2xl px-5 py-12 sm:py-16">
-        {route === 'about' ? (
+        {route === 'history' ? (
+          // ---- Practice history dashboard ----------------------------------
+          <PracticeHistory onBack={() => navigate(null)} signedIn={!!uid} />
+        ) : route === 'about' ? (
           // ---- About page --------------------------------------------------
           <AboutPage onBack={() => navigate(null)} />
         ) : songRoute ? (
@@ -230,6 +242,7 @@ export default function App() {
                 onSelect={navigate}
                 onResetAll={() => {
                   resetAllSeconds()
+                  resetAllAnswers()
                   resetPracticeSync()
                   setCloudPractice(null)
                   refreshPractice()

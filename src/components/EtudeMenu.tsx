@@ -21,7 +21,7 @@ interface EtudeMenuProps {
  * titles about the *skill* being trained (e.g. reading vs. reproducing a scale).
  * Falls back to the étude title for any id not listed.
  */
-const PRACTICE_LABELS: Record<string, string> = {
+export const PRACTICE_LABELS: Record<string, string> = {
   'relative-minors': 'Relative Minor Recall',
   scales: 'Scale Recognition',
   'scale-play': 'Scale Reproduction',
