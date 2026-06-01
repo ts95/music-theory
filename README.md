@@ -10,7 +10,7 @@ devices. Live at **<https://ts95.github.io/music-theory/>**.
 ## Features
 
 Lessons are organised into **selectable études**, each its own spaced-repetition session with its own
-progress, chosen from a table-of-contents home screen. Ten études today, in three sections:
+progress, chosen from a table-of-contents home screen. Eleven études today, in three sections:
 
 ### 🎹 Keys & Scales
 
@@ -30,21 +30,25 @@ progress, chosen from a table-of-contents home screen. Ten études today, in thr
   IV chord?" → F), across every major and minor key — the common triads plus V7. Timed (5 s).
 - **No. 5 — Chord Recognition.** Read a chord drawn on the staff (under its key signature) and name it
   as a symbol, with slash notation for inversions. Timed (10 s, +5 s when the chord is in an inversion).
-- **No. 6 — Progressions.** Map a Roman-numeral progression to concrete chords ("In G major, spell
+- **No. 6 — Spell the Chord.** The inverse of Chord Recognition: read a chord **symbol** and pick its
+  notes ("Spell the chord Cm7" → C – E♭ – G – B♭), drawn from the diatonic chords of every key. Choices
+  share the root and differ only in quality. On reveal the chord is shown on a staff **beside** a piano
+  keyboard with RH/LH fingerings. Untimed. Levels add sevenths then ninths and widen the key range.
+- **No. 7 — Progressions.** Map a Roman-numeral progression to concrete chords ("In G major, spell
   ii–V–I" → Am – D – G), including ii–V–I seventh forms. The spelled chords are shown on a treble staff
   under the key's signature on reveal. Timed (15 s).
 
 ### 👂 Ear Training
 
-- **No. 7 — Intervals by Ear.** Hear an interval and name it; the lower note is randomized each time
+- **No. 8 — Intervals by Ear.** Hear an interval and name it; the lower note is randomized each time
   (relative-pitch training). Optional hints — *step up to it* (walks the distance a semitone at a time)
   and *consonant or dissonant?* — plus a set of **reference songs**: a familiar tune for every interval,
   notated, that you can play to recognise the leap.
-- **No. 8 — Progressions by Ear.** Hear the tonic, then a progression, and name it in Roman numerals.
-- **No. 9 — Melodic Dictation.** Hear a short motif over its tonic and name it in **solfège**. A
+- **No. 9 — Progressions by Ear.** Hear the tonic, then a progression, and name it in Roman numerals.
+- **No. 10 — Melodic Dictation.** Hear a short motif over its tonic and name it in **solfège**. A
   **hear-scale** hint plays the whole scale with a synced solfège readout (and you can hover a syllable
   to play just that note); the melody is shown on the staff, in key, on reveal.
-- **No. 10 — Rhythm Dictation.** Hear a one-bar rhythm and pick the matching notation. A wide vocabulary
+- **No. 11 — Rhythm Dictation.** Hear a one-bar rhythm and pick the matching notation. A wide vocabulary
   of common patterns — sixteenth cells (ti-tika / tika-ti), dotted-eighth and Scotch-snap figures, the
   tresillo (3+3+2), eighth-note triplets, ties, rests and off-beat syncopation. The metres accumulate
   with difficulty: Easy adds **2/4** (to 4/4, 3/4, 6/8), Medium adds **cut time (₵)** and **12/8**, Hard

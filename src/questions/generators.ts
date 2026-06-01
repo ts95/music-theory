@@ -30,16 +30,18 @@ import {
   romanToChord,
   scaleEvents,
   solfege,
+  spellChord,
   voiceChordRootPosition,
   voiceInversion,
   voiceScaleAscending,
   voicedMidi,
   withInversion,
 } from '../theory'
-import type { Chord, ChordSize, Mode, Voiced } from '../theory'
+import type { Chord, ChordSize, Mode, Quality, Voiced } from '../theory'
 import {
   chordExplanation,
   chordRecognitionExplanation,
+  chordSpellingExplanation,
   intervalEarExplanation,
   melodicDictationExplanation,
   progressionEarExplanation,
@@ -687,6 +689,121 @@ function chordRecognitionQuestions(): Question[] {
   return questions
 }
 
+/** The three Chord-Spelling levels (chord complexity + key range); no inversions. */
+const SPELL_LEVELS: { n: number; sizes: ChordSize[]; maxAccidentals: number }[] = [
+  { n: 1, sizes: ['triad'], maxAccidentals: 1 }, // Easy
+  { n: 2, sizes: ['triad', 'seventh'], maxAccidentals: 3 }, // Medium
+  { n: 3, sizes: ['triad', 'seventh', 'ninth'], maxAccidentals: 12 }, // Hard
+]
+
+/** Same-root distractor qualities by size (the root is given by the symbol). */
+const TRIAD_QUALITIES: Quality[] = ['maj', 'min', 'dim', 'aug']
+const SEVENTH_QUALITIES: Quality[] = ['dom7', 'maj7', 'min7', 'm7b5', 'dim7', 'mMaj7']
+/** Base sevenths for clean ninths (9 / maj9 / m9 / m(maj9)). */
+const NINTH_BASES: Quality[] = ['dom7', 'maj7', 'min7', 'mMaj7']
+
+/**
+ * 7. Chord spelling — the inverse of Chord Recognition: show a chord symbol and
+ * pick its notes. Diatonic chords of every key supply the symbols (so spellings
+ * are always correct); three levels (SPELL_LEVELS) scale chord size and key
+ * range, each its own SRS set. Choices share the answer's root and differ only
+ * in quality (the symbol already gives the root), so the test is decoding the
+ * quality. Reveal shows the chord on a staff beside a fingered keyboard.
+ */
+function chordSpellingQuestions(): Question[] {
+  const modes: Mode[] = ['major', 'minor']
+  const questions: Question[] = []
+  for (const level of SPELL_LEVELS) {
+    let idx = 0
+    for (const key of KEYS) {
+      if (accidentalCount(key.majorTonic) > level.maxAccidentals) continue
+      for (const mode of modes) {
+        const { tonic } = keyForMode(key, mode)
+        for (let degree = 0; degree < 7; degree++) {
+          // Deterministic size; demote an exotic ninth to its seventh.
+          let size = level.sizes[idx % level.sizes.length]
+          let tones = recChordTones(tonic, mode, degree, size)
+          if (size === 'ninth' && !isCleanNinth(tones)) {
+            size = 'seventh'
+            tones = recChordTones(tonic, mode, degree, size)
+          }
+          idx++
+
+          const symbol = recChordSymbol(tones)
+          const root = tones[0]
+
+          // Each choice is a note-set string; register its block playback.
+          const audio: Record<string, Playable> = {}
+          const offer = (notes: Note[]): string => {
+            const s = renderScale(notes)
+            audio[s] = {
+              kind: 'chord',
+              events: [voiceScaleAscending(notes, 4).map(voicedMidi)],
+            }
+            return s
+          }
+          const correct = offer(tones)
+
+          // Same-root, different-quality distractors (buildQuestion drops the
+          // one that equals the correct spelling). Skip any out-of-range spelling.
+          const distractors: string[] = []
+          if (size === 'ninth') {
+            const ninth = tones[4] // the clean major-9th, shared by all bases
+            for (const base of NINTH_BASES) {
+              try {
+                distractors.push(offer([...spellChord(root, base), ninth]))
+              } catch {
+                continue
+              }
+            }
+          } else {
+            const pool = size === 'triad' ? TRIAD_QUALITIES : SEVENTH_QUALITIES
+            for (const q of pool) {
+              try {
+                distractors.push(offer(spellChord(root, q)))
+              } catch {
+                continue
+              }
+            }
+          }
+
+          const q = buildQuestion(
+            'chord-spelling',
+            `chord-spell:L${level.n}:${asciiTonicId(tonic)}${mode === 'minor' ? 'm' : 'M'}:${degree}:${size}`,
+            'Chord spelling',
+            `Spell the chord ${symbol}.`,
+            correct,
+            distractors,
+            audio,
+            chordSpellingExplanation(symbol, tones)
+          )
+          q.level = level.n
+          // Reveal: the chord on a staff (no key signature, accidentals inline)
+          // beside the keyboard, each key labelled with both fingerings.
+          const voiced = voiceScaleAscending(tones, 4)
+          const rhFng = chordFingering(voiced.length, 'RH')
+          const lhFng = chordFingering(voiced.length, 'LH')
+          q.notation = {
+            groups: [voiced],
+            clef: 'treble',
+            keySignature: 'C',
+            onReveal: true,
+          }
+          q.keyboard = {
+            marks: voiced.map((v, i) => ({
+              midi: voicedMidi(v),
+              label: String(rhFng[i]),
+              sublabel: String(lhFng[i]),
+            })),
+          }
+          questions.push(q)
+        }
+      }
+    }
+  }
+  return questions
+}
+
 // ── Melodic dictation ───────────────────────────────────────────────────────
 // Diatonic motifs as 0-based scale degrees (0 = tonic … 7 = octave), per level.
 const MELODY_LEVELS: number[][][] = [
@@ -1166,6 +1283,7 @@ export function generateAllQuestions(): Question[] {
     ...scaleSpellingQuestions(),
     ...chordDegreeQuestions(),
     ...chordRecognitionQuestions(),
+    ...chordSpellingQuestions(),
     ...progressionQuestions(),
     ...intervalEarQuestions(),
     ...progressionEarQuestions(),

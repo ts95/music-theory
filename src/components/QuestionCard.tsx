@@ -707,15 +707,32 @@ export default function QuestionCard({
               {question.caption}
             </p>
           )}
-          {question.notation?.onReveal && (
-            <Staff
-              groups={question.notation.groups}
-              clef={question.notation.clef}
-              keySignature={question.notation.keySignature}
-            />
-          )}
-          {!ear && question.keyboard && (
-            <PianoKeyboard marks={question.keyboard.marks} />
+          {question.notation?.onReveal && !ear && question.keyboard ? (
+            // Chord-spelling reveal: staff and fingered keyboard, side by side.
+            // The keyboard scales down (fit) to share the row with the staff.
+            <div className="flex flex-nowrap items-end gap-4">
+              <Staff
+                groups={question.notation.groups}
+                clef={question.notation.clef}
+                keySignature={question.notation.keySignature}
+              />
+              <div className="min-w-0 flex-1">
+                <PianoKeyboard marks={question.keyboard.marks} fit />
+              </div>
+            </div>
+          ) : (
+            <>
+              {question.notation?.onReveal && (
+                <Staff
+                  groups={question.notation.groups}
+                  clef={question.notation.clef}
+                  keySignature={question.notation.keySignature}
+                />
+              )}
+              {!ear && question.keyboard && (
+                <PianoKeyboard marks={question.keyboard.marks} />
+              )}
+            </>
           )}
           {!ear && question.circle && <CircleOfFifths major={question.circle.major} />}
           {!isCorrect && question.explanation && (

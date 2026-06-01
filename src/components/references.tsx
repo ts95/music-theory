@@ -197,6 +197,22 @@ const REFERENCES: Record<string, EtudeReference> = {
       </div>
     ),
   },
+  'chord-spelling': {
+    title: 'Spelling chords',
+    body: (
+      <div className="space-y-2">
+        <p>
+          Read the root from the letter, then the suffix for the quality. Stack
+          the right 3rd, 5th (and 7th/9th) above it — one note letter per tone.
+        </p>
+        <Legend items={[...CHORD_SYMS, ['9', 'dom 9'], ['maj9', 'major 9'], ['m9', 'minor 9']]} />
+        <p className="text-ink-3">
+          e.g. {mono('Cm7')} = {mono('C – E♭ – G – B♭')} (minor 3rd, perfect 5th,
+          minor 7th).
+        </p>
+      </div>
+    ),
+  },
   progressions: {
     title: 'Roman numerals',
     body: (

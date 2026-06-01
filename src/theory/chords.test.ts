@@ -6,8 +6,10 @@ import {
   diatonicTriads,
   diatonicSevenths,
   romanToChord,
+  spellChord,
   type Quality,
 } from './chords'
+import { noteToString } from './notes'
 
 const nat = (letter: Note['letter']): Note => ({ letter, accidental: 0 })
 const flat = (letter: Note['letter']): Note => ({ letter, accidental: -1 })
@@ -138,6 +140,46 @@ describe('romanToChord', () => {
     expect(chordSymbol(romanToChord(nat('C'), 'major', 4, true))).toBe('G7')
     expect(chordSymbol(romanToChord(nat('A'), 'minor', 1, true))).toBe('Bø7')
     expect(chordSymbol(romanToChord(nat('A'), 'minor', 6, true))).toBe('G♯°7')
+  })
+})
+
+describe('spellChord', () => {
+  const spell = (root: Note, q: Quality) =>
+    spellChord(root, q).map(noteToString).join(' ')
+
+  it('spells triads with one letter per tone', () => {
+    expect(spell(nat('C'), 'maj')).toBe('C E G')
+    expect(spell(nat('C'), 'min')).toBe('C E♭ G')
+    expect(spell(nat('C'), 'dim')).toBe('C E♭ G♭')
+    expect(spell(nat('C'), 'aug')).toBe('C E G♯')
+  })
+
+  it('spells sevenths, including flat roots and double accidentals', () => {
+    expect(spell(flat('E'), 'maj7')).toBe('E♭ G B♭ D')
+    expect(spell(nat('C'), 'min7')).toBe('C E♭ G B♭')
+    expect(spell(nat('C'), 'dom7')).toBe('C E G B♭')
+    expect(spell(nat('C'), 'm7b5')).toBe('C E♭ G♭ B♭')
+    expect(spell(nat('C'), 'dim7')).toBe('C E♭ G♭ B𝄫')
+  })
+
+  it('never repeats a letter and stays within double accidentals', () => {
+    const ALL: Quality[] = [
+      'maj', 'min', 'dim', 'aug',
+      'maj7', 'dom7', 'min7', 'm7b5', 'dim7', 'mMaj7',
+    ]
+    for (const key of KEYS) {
+      for (const root of [key.majorTonic, key.minorTonic]) {
+        for (const q of ALL) {
+          const tones = spellChord(root, q)
+          const letters = tones.map((t) => t.letter)
+          expect(new Set(letters).size).toBe(letters.length)
+          for (const t of tones) {
+            expect(t.accidental).toBeGreaterThanOrEqual(-2)
+            expect(t.accidental).toBeLessThanOrEqual(2)
+          }
+        }
+      }
+    }
   })
 })
 

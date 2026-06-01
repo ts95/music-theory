@@ -1,6 +1,6 @@
 import type { Note, RhythmEvent, ScaleType, TimeSig } from '../contracts'
 import type { Chord, Mode, Quality } from '../theory'
-import { chordSymbol, majorScale, minorScale, noteToString, romanLabel } from '../theory'
+import { chordSymbol, majorScale, minorScale, noteToString, pitchClass, romanLabel } from '../theory'
 
 /**
  * Memory tips shown when a question is missed: a rule/pattern plus the worked
@@ -85,6 +85,33 @@ export function chordRecognitionExplanation(
 ): string {
   const spelled = tones.map(noteToString).join('–')
   return `Re-stack the notes in thirds to find the root, read the 3rd and 5th (plus any 7th/9th) for the quality, and take the lowest note for the inversion. Here it's ${symbol} — the ${roman} of ${keyName}, in ${inversionName}: ${spelled}.`
+}
+
+/** Semitones (0–11) from a chord tone up to another. */
+const semisAbove = (root: Note, tone: Note): number =>
+  (((pitchClass(tone) - pitchClass(root)) % 12) + 12) % 12
+
+/** Interval of each chord tone above the root, named for the explanation. */
+const CHORD_INTERVAL_NAME: Record<number, string> = {
+  2: 'a major 9th',
+  3: 'a minor 3rd',
+  4: 'a major 3rd',
+  6: 'a diminished 5th',
+  7: 'a perfect 5th',
+  8: 'an augmented 5th',
+  9: 'a diminished 7th',
+  10: 'a minor 7th',
+  11: 'a major 7th',
+}
+
+/** "Spell the chord Cm7" (chord-spelling étude). */
+export function chordSpellingExplanation(symbol: string, tones: Note[]): string {
+  const root = tones[0]
+  const intervals = tones
+    .slice(1)
+    .map((t) => CHORD_INTERVAL_NAME[semisAbove(root, t)])
+    .join(', ')
+  return `Read the root (${noteToString(root)}) from the letter, then the suffix for the quality. Stack ${intervals} above it, one letter per tone: ${symbol} = ${spell(tones)}.`
 }
 
 const INTERVAL_MNEMONIC: Record<string, string> = {

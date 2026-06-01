@@ -20,6 +20,8 @@ describe('generateAllQuestions', () => {
     //   (trimmed triads + V7) = (3 + 7 + 12 keys) × 2 × 7 = 308.
     // chord recognition: 3 levels by key range × 2 modes × 7 degrees
     //   = (3 + 7 + 12 keys) × 2 × 7 = 42 + 98 + 168 = 308.
+    // chord spelling (inverse of recognition, no inversions): same enumeration
+    //   = (3 + 7 + 12 keys) × 2 × 7 = 308.
     // progressions: 13 progression-variants (6 major + 5 minor triad + 2
     // seventh forms) across three cumulative key-range levels (3 + 7 + 12 keys
     // per mode) = 13 × (3 + 7 + 12) = 286.
@@ -27,7 +29,7 @@ describe('generateAllQuestions', () => {
     //   + 64 melodic (3 levels × 2 modes) + 142 rhythm (3 levels × metres)
     //   + 75 scale-play (Easy 10 + Medium 17 + Hard 48).
     expect(questions.length).toBe(
-      12 + 36 + 308 + 308 + 286 + 24 + 11 + 64 + 142 + 75
+      12 + 36 + 308 + 308 + 308 + 286 + 24 + 11 + 64 + 142 + 75
     )
   })
 
@@ -41,6 +43,7 @@ describe('generateAllQuestions', () => {
     expect(count('scales')).toBe(36)
     expect(count('chords')).toBe(308) // 3 levels × (3+7+12) keys × 2 × 7
     expect(count('chord-recognition')).toBe(308)
+    expect(count('chord-spelling')).toBe(308) // inverse of recognition
     expect(count('progressions')).toBe(286) // 13 variants × (3+7+12) keys
     expect(count('intervals-ear')).toBe(24) // cumulative levels: 4 + 8 + 12
     expect(count('progressions-ear')).toBe(11)
@@ -89,6 +92,21 @@ describe('generateAllQuestions', () => {
     expect(correctFor('In C major, what is the IV chord?')).toBe('F')
     expect(correctFor('In A minor, what is the V chord?')).toBe('E')
     expect(correctFor('In E♭ major, what is the V7 chord?')).toBe('B♭7')
+  })
+
+  it('spot-checks: chord spelling (symbol → notes)', () => {
+    const dm = questions.find((x) => x.id === 'chord-spell:L1:CM:1:triad')
+    expect(dm).toBeDefined()
+    expect(dm!.prompt).toBe('Spell the chord Dm.')
+    expect(dm!.choices[dm!.answerIndex]).toBe('D – F – A')
+    // Distractors share the root D, differing only in quality.
+    for (const c of dm!.choices) expect(c.startsWith('D')).toBe(true)
+
+    // A flat-spelled seventh: C minor i7 = Cm7 = C – E♭ – G – B♭ (never A♯).
+    const cm7 = questions.find((x) => x.id === 'chord-spell:L2:Cm:0:seventh')
+    expect(cm7).toBeDefined()
+    expect(cm7!.prompt).toBe('Spell the chord Cm7.')
+    expect(cm7!.choices[cm7!.answerIndex]).toBe('C – E♭ – G – B♭')
   })
 
   it('spot-checks: progressions', () => {

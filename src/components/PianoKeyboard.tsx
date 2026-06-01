@@ -24,6 +24,12 @@ interface PianoKeyboardProps {
   onPress?: (midi: number) => void
   /** A key (MIDI) to render momentarily "pressed" (struck via tap or MIDI). */
   pressed?: number | null
+  /**
+   * Shrink the keyboard to fit its (flex) container instead of scrolling — the
+   * SVG scales down via its viewBox, never up past natural size. Used to sit it
+   * beside the staff in the chord-spelling reveal.
+   */
+  fit?: boolean
 }
 
 const WW = 28 // white-key width
@@ -44,6 +50,7 @@ export default function PianoKeyboard({
   octaves,
   onPress,
   pressed,
+  fit,
 }: PianoKeyboardProps) {
   // Nothing to draw if there are no marks and no explicit range (read-only use).
   if (marks.length === 0 && (from === undefined || octaves === undefined)) {
@@ -106,14 +113,16 @@ export default function PianoKeyboard({
   }
 
   return (
-    <div className="mt-3 flex justify-center overflow-x-auto">
+    <div
+      className={`mt-3 flex justify-center${fit ? ' min-w-0' : ' overflow-x-auto'}`}
+    >
       <svg
         viewBox={`0 0 ${width} ${WH}`}
         width={width}
         height={WH}
         role="img"
         aria-label="Piano keyboard"
-        className="shrink-0"
+        className={fit ? 'h-auto max-w-full' : 'shrink-0'}
       >
         {/* White keys (base), then their highlight pills. */}
         {whites.map((w) => (

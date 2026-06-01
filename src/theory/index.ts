@@ -10,6 +10,7 @@ export { fingering, majorFingering, chordFingering } from './fingerings'
 export type { Mode, Quality, Chord } from './chords'
 export {
   chordSymbol,
+  spellChord,
   diatonicTriads,
   diatonicSevenths,
   romanLabel,

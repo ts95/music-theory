@@ -1,8 +1,10 @@
-import type { Note } from '../contracts'
-import { pitchClass, noteToString } from './notes'
+import type { Letter, Note } from '../contracts'
+import { LETTER_PC, pitchClass, noteToString } from './notes'
 import { majorScale, minorScale } from './scales'
 
 export type Mode = 'major' | 'minor'
+
+const LETTERS: Letter[] = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
 
 export type Quality =
   | 'maj'
@@ -51,6 +53,28 @@ const QUALITY_SUFFIX: Record<Quality, string> = {
 /** Chord symbol, e.g. {G,dom7} → "G7", {B,m7b5} → "Bø7". */
 export function chordSymbol(c: Chord): string {
   return noteToString(c.root) + QUALITY_SUFFIX[c.quality]
+}
+
+/**
+ * Spell a triad or seventh on any root, one note letter per chord tone (3rd,
+ * 5th, 7th stacked by letter), with the accidental that lands each tone on its
+ * pitch class. Same accidental formula as scales' spellScale. Throws if a tone
+ * needs more than a double accidental, so bad spellings surface loudly.
+ */
+export function spellChord(root: Note, quality: Quality): Note[] {
+  const rootLetterIndex = LETTERS.indexOf(root.letter)
+  const rootPc = pitchClass(root)
+  return QUALITY_INTERVALS[quality].map((semitones, i) => {
+    const letter = LETTERS[(rootLetterIndex + 2 * i) % 7]
+    const target = (rootPc + semitones) % 12
+    const accidental = ((target - LETTER_PC[letter] + 6 + 1200) % 12) - 6
+    if (accidental < -2 || accidental > 2) {
+      throw new Error(
+        `Spelling out of range for ${letter}: accidental ${accidental}`
+      )
+    }
+    return { letter, accidental }
+  })
 }
 
 const ALTERNATE_QUALITY: Record<Quality, Quality> = {
