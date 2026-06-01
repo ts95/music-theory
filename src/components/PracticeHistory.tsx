@@ -6,11 +6,13 @@ import {
   accuracyPct,
   aggregateByDay,
   etudeAccuracy,
+  monthCsv,
   summarize,
   weeklyAccuracy,
   type PracticeHistoryRow,
 } from '../practiceHistory'
 import { PRACTICE_LABELS } from './EtudeMenu'
+import Button from './Button'
 import LineChart, { type ChartSeries } from './LineChart'
 
 const ETUDE_SECTION: Record<string, string> = Object.fromEntries(
@@ -35,6 +37,18 @@ function shortDate(day: string): string {
 }
 function monthLabel(y: number, m: number): string {
   return new Date(y, m, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+}
+
+/** Trigger a client-side file download of `text`. */
+function downloadCsv(filename: string, text: string): void {
+  const url = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' }))
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
 }
 
 /** Claret tint by minutes practiced — the calendar heatmap scale. */
@@ -192,6 +206,15 @@ export default function PracticeHistory({
   const daysInMonth = new Date(view.y, view.m + 1, 0).getDate()
   const lead = new Date(view.y, view.m, 1).getDay()
   const detail = selectedDay ? byDay[selectedDay] : null
+  const monthPrefix = `${view.y}-${pad(view.m + 1)}-`
+  const monthHasData = Object.entries(byDay).some(
+    ([d, s]) => d.startsWith(monthPrefix) && s.totalSeconds > 0,
+  )
+  const exportMonth = () =>
+    downloadCsv(
+      `music-theory-${view.y}-${pad(view.m + 1)}.csv`,
+      monthCsv(byDay, view.y, view.m, etudeLabel),
+    )
 
   return (
     <>
@@ -283,8 +306,13 @@ export default function PracticeHistory({
 
       {/* Month calendar */}
       <section className="rise mt-10" style={{ animationDelay: '200ms' }}>
-        <div className="flex items-center justify-between">
-          <h2 className="marking text-ink-2">Calendar</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <h2 className="marking text-ink-2">Calendar</h2>
+            <Button variant="secondary" onClick={exportMonth} disabled={!monthHasData}>
+              Export CSV
+            </Button>
+          </div>
           <div className="flex items-center gap-3">
             <button
               type="button"

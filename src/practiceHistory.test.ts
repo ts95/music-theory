@@ -3,6 +3,7 @@ import {
   accuracyPct,
   aggregateByDay,
   etudeAccuracy,
+  monthCsv,
   summarize,
   weeklyAccuracy,
   type PracticeHistoryRow,
@@ -92,5 +93,49 @@ describe('etudeAccuracy', () => {
     // scales: correct 3+2+0=5 of 4+2+1=7 -> 71%
     expect(e.scales).toEqual({ correct: 5, answered: 7, accuracy: 71 })
     expect(e.chords).toEqual({ correct: 1, answered: 2, accuracy: 50 })
+  })
+})
+
+describe('monthCsv', () => {
+  const label = (id: string): string =>
+    ({ scales: 'Scale Recognition', chords: 'Chord Recognition' })[id] ?? id
+  const may: PracticeHistoryRow[] = [
+    { day: '2026-05-04', etude_id: 'scales', seconds: 480, answered: 5, correct: 4 },
+    { day: '2026-05-04', etude_id: 'chords', seconds: 30, answered: 2, correct: 1 }, // <1min → excluded
+    { day: '2026-05-06', etude_id: 'scales', seconds: 120, answered: 0, correct: 0 }, // no answers → blank
+    { day: '2026-06-01', etude_id: 'scales', seconds: 300, answered: 3, correct: 3 }, // other month → excluded
+  ]
+  const lines = () =>
+    monthCsv(aggregateByDay(may), 2026, 4, label)
+      .replace(/^﻿/, '')
+      .split('\r\n')
+
+  it('starts with the header and a BOM', () => {
+    expect(monthCsv(aggregateByDay(may), 2026, 4, label).startsWith('﻿')).toBe(true)
+    expect(lines()[0]).toBe('Date,Étude,Minutes,Answered,Correct,Accuracy %')
+  })
+
+  it('emits only the requested month, ≥1min, with blank accuracy when unanswered', () => {
+    expect(lines()).toEqual([
+      'Date,Étude,Minutes,Answered,Correct,Accuracy %',
+      '2026-05-04,Scale Recognition,8,5,4,80',
+      '2026-05-06,Scale Recognition,2,0,0,',
+    ])
+  })
+
+  it('omits a month with no qualifying practice (header only)', () => {
+    expect(monthCsv(aggregateByDay(may), 2026, 0, label).replace(/^﻿/, '')).toBe(
+      'Date,Étude,Minutes,Answered,Correct,Accuracy %',
+    )
+  })
+
+  it('quotes labels containing commas', () => {
+    const out = monthCsv(
+      aggregateByDay([{ day: '2026-05-04', etude_id: 'x', seconds: 120, answered: 1, correct: 1 }]),
+      2026,
+      4,
+      () => 'A, B',
+    ).replace(/^﻿/, '')
+    expect(out.split('\r\n')[1]).toBe('2026-05-04,"A, B",2,1,1,100')
   })
 })
