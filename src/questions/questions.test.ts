@@ -109,6 +109,23 @@ describe('generateAllQuestions', () => {
     expect(cm7!.choices[cm7!.answerIndex]).toBe('C – E♭ – G – B♭')
   })
 
+  it('chord-spelling reveals use the chord’s own tonic key (or a valid fallback)', () => {
+    // Every signature must be one VexFlow accepts: a real key, or the bare "C"
+    // fallback for chords whose root key is unreal (e.g. D♯ major, E♯ minor).
+    const valid = new Set([
+      ...['C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#', 'F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Cb'],
+      ...['Am', 'Em', 'Bm', 'F#m', 'C#m', 'G#m', 'D#m', 'A#m', 'Dm', 'Gm', 'Cm', 'Fm', 'Bbm', 'Ebm', 'Abm'],
+    ])
+    const spelling = questions.filter((q) => q.etudeId === 'chord-spelling')
+    // The major triad C and the minor triad Cm should pick their own keys.
+    expect(spelling.find((q) => q.prompt === 'Spell the chord C.')?.notation?.keySignature).toBe('C')
+    expect(spelling.find((q) => q.prompt === 'Spell the chord Gm.')?.notation?.keySignature).toBe('Gm')
+    for (const q of spelling) {
+      const sig = q.notation?.keySignature ?? ''
+      expect(valid.has(sig), `${q.prompt} → ${sig}`).toBe(true)
+    }
+  })
+
   it('spot-checks: progressions', () => {
     const cMajIIVI = questions.find((x) => x.id === 'prog:L1:C:major:ii-V-I:3')
     expect(cMajIIVI).toBeDefined()

@@ -689,6 +689,26 @@ function chordRecognitionQuestions(): Question[] {
   return questions
 }
 
+// Line-of-fifths position of each natural letter (F=−1 … B=5); a key's signature
+// adds 7 per sharp / subtracts 7 per flat on the tonic's accidental.
+const LETTER_FIFTHS: Record<string, number> = { F: -1, C: 0, G: 1, D: 2, A: 3, E: 4, B: 5 }
+
+/**
+ * The chord's own tonic-key signature: the major key of the root when the chord
+ * has a major 3rd, the minor key when it has a minor 3rd — so the root names the
+ * key and the remaining tones (♭5/♯5/♭7…) print as accidentals. Falls back to no
+ * signature (every alteration inline) when that key isn't a real one — i.e. the
+ * root's spelling would need more than 7 sharps/flats, e.g. D♯ major or E♯ minor.
+ */
+function chordKeySignature(tones: Note[]): string {
+  const root = tones[0]
+  const major = semis(root, tones[1]) === 4
+  const fifths = LETTER_FIFTHS[root.letter] + 7 * root.accidental
+  const sigFifths = major ? fifths : fifths - 3
+  if (sigFifths < -7 || sigFifths > 7) return 'C'
+  return keySignatureSpec(root, major ? 'major' : 'minor')
+}
+
 /** The three Chord-Spelling levels (chord complexity + key range); no inversions. */
 const SPELL_LEVELS: { n: number; sizes: ChordSize[]; maxAccidentals: number }[] = [
   { n: 1, sizes: ['triad'], maxAccidentals: 1 }, // Easy
@@ -778,8 +798,8 @@ function chordSpellingQuestions(): Question[] {
             chordSpellingExplanation(symbol, tones)
           )
           q.level = level.n
-          // Reveal: the chord on a staff under the key signature it's diatonic to
-          // (borrowed leading tones print as accidentals, as in Chord Recognition)
+          // Reveal: the chord on a staff under its own tonic key's signature
+          // (root names the key; the rest of the chord prints as accidentals)
           // beside the keyboard, each key labelled with both fingerings.
           const voiced = voiceScaleAscending(tones, 4)
           const rhFng = chordFingering(voiced.length, 'RH')
@@ -787,7 +807,7 @@ function chordSpellingQuestions(): Question[] {
           q.notation = {
             groups: [voiced],
             clef: 'treble',
-            keySignature: keySignatureSpec(tonic, mode),
+            keySignature: chordKeySignature(tones),
             onReveal: true,
           }
           q.keyboard = {
