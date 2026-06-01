@@ -138,11 +138,12 @@ function csvField(value: string): string {
 }
 
 /**
- * One month of practice as CSV: a row per (day, étude) with ≥ 1 min of practice —
- * Date, Étude, Minutes, Answered, Correct, Accuracy %. Days with no qualifying
- * practice are omitted; sub-minute études are dropped to keep it compact.
- * Accuracy is blank for time-only (unanswered) études. `etudeLabel` resolves the
- * same descriptive labels used elsewhere. UTF-8 BOM + CRLF for Excel.
+ * One month of practice as CSV: a row per (day, étude) with ≥ 1 min of practice
+ * AND at least one correct answer — Date, Étude, Minutes, Answered, Correct,
+ * Accuracy %. Sub-minute études and études with no correct answer (including
+ * time-only practice) are dropped to keep it compact; days left with no rows are
+ * omitted. `etudeLabel` resolves the same descriptive labels used elsewhere.
+ * UTF-8 BOM + CRLF for Excel.
  */
 export function monthCsv(
   byDay: Record<string, DayStat>,
@@ -157,11 +158,12 @@ export function monthCsv(
     const stat = byDay[date]
     if (!stat) continue
     const entries = Object.entries(stat.perEtude)
-      .filter(([, e]) => e.seconds >= 60)
+      .filter(([, e]) => e.seconds >= 60 && e.correct >= 1)
       .map(([id, e]) => ({ label: etudeLabel(id), e }))
       .sort((a, b) => a.label.localeCompare(b.label))
     for (const { label, e } of entries) {
-      const acc = e.answered > 0 ? String(accuracyPct(e.correct, e.answered)) : ''
+      // The filter guarantees answered >= correct >= 1, so accuracy is defined.
+      const acc = accuracyPct(e.correct, e.answered)
       lines.push(
         [date, csvField(label), Math.round(e.seconds / 60), e.answered, e.correct, acc].join(','),
       )

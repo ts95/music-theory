@@ -102,7 +102,8 @@ describe('monthCsv', () => {
   const may: PracticeHistoryRow[] = [
     { day: '2026-05-04', etude_id: 'scales', seconds: 480, answered: 5, correct: 4 },
     { day: '2026-05-04', etude_id: 'chords', seconds: 30, answered: 2, correct: 1 }, // <1min → excluded
-    { day: '2026-05-06', etude_id: 'scales', seconds: 120, answered: 0, correct: 0 }, // no answers → blank
+    { day: '2026-05-06', etude_id: 'scales', seconds: 120, answered: 0, correct: 0 }, // time only, 0 correct → excluded
+    { day: '2026-05-07', etude_id: 'chords', seconds: 180, answered: 4, correct: 0 }, // practiced, 0 correct → excluded
     { day: '2026-06-01', etude_id: 'scales', seconds: 300, answered: 3, correct: 3 }, // other month → excluded
   ]
   const lines = () =>
@@ -115,12 +116,16 @@ describe('monthCsv', () => {
     expect(lines()[0]).toBe('Date,Étude,Minutes,Answered,Correct,Accuracy %')
   })
 
-  it('emits only the requested month, ≥1min, with blank accuracy when unanswered', () => {
+  it('emits only the requested month, ≥1min and ≥1 correct answer', () => {
     expect(lines()).toEqual([
       'Date,Étude,Minutes,Answered,Correct,Accuracy %',
       '2026-05-04,Scale Recognition,8,5,4,80',
-      '2026-05-06,Scale Recognition,2,0,0,',
     ])
+  })
+
+  it('omits études practiced with no correct answers', () => {
+    // 2026-05-07 chords had 4 answers, 0 correct → not in the output at all.
+    expect(lines().some((l) => l.startsWith('2026-05-07'))).toBe(false)
   })
 
   it('omits a month with no qualifying practice (header only)', () => {
