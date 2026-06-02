@@ -328,6 +328,41 @@ untimed.
 
 ---
 
+## No. 12 — Tap the Rhythm (`rhythm-tap`) — current version: 1
+
+### v1 — 2026-06-02
+
+- **Question family:** the performance counterpart of Rhythm Dictation. Show a one-bar rhythm as
+  notation; after a one-bar count-in (a metronome click on **every felt beat**, continuing under the
+  bar), the student **taps and holds** the rhythm with Space or by pressing the staff. Interactive
+  (non-MC), graded pass/fail to SRS from a timing-accuracy %. One uniform wooden metronome click runs
+  throughout — count-in and exercise sound identical, with only a slight accent on the first beat of each
+  measure; the count-in counts the felt beats **1·2·3·4** (as many as the metre has) and the downbeat where tapping begins gets a
+  **green** flash of the staff (the colour cue).
+- **Patterns / levels / metres:** reuses Rhythm Dictation's `RHYTHM_LEVELS` verbatim (Easy/Medium/Hard/
+  Expert; tempi 76/100/138/152; the same per-level metre cascade), with the same `audibleSignature`
+  dedupe — one tap exercise per unique-sounding pattern (183 total, mirroring rhythm-dictation). Spec
+  lives on `q.tapAlong` (`{ meter, tempo, pattern }`); ids are `rhythm-tap:L<level>:<metre>:<rhythmKey>`.
+- **Grading (`scoreTaps` in `src/rhythm.ts`):** each struck note (rests/tied-continuations excluded — see
+  `onsets`) expects one tap. **Perfect window** ≈ `clamp(133 + 67·noteBeats, 150, 200)` ms — ~200 ms for a
+  quarter, tightening to 150 ms for sixteenths (smaller window for faster notes; forgiving overall). Score
+  decays linearly to zero at `min(3× perfect, 0.45× gap-to-neighbour)`; a missed onset scores 0 and each
+  **extra** tap costs half an onset. A matched tap must also be **held ≥ 70 %** (`HOLD_MIN`) of the note's
+  sounding length (ties included) — a clipped tap scores 0 and is flagged *too short*. Accuracy = mean
+  per-onset score (minus extras), 0–100; **≥ 80 % passes**.
+- **Feedback:** the results screen re-renders the notation with each note coloured by how it was hit
+  (viridian on-beat / gold off-but-counted / vermilion missed, via `RhythmStaff`'s `eventColors`), plus a
+  per-note signed offset (+late / −early / missed) and an extra-tap count; **Hear it** plays the rhythm.
+- **Audio:** count-in/beat clicks via `playClick`; the "Hear it" reveal reuses `playRhythm`. Untimed (no
+  sudden-death clock).
+- **Tempo:** user-adjustable on the ready screen — a slider **50–150 BPM in 5-BPM steps** (default = the
+  level's built-in tempo snapped into range), remembered per (étude, level) in `src/tempos.ts`. The tempo a
+  session is performed at is recorded on the practice log (`addAnswer`'s `tempo`) and synced to the
+  `practice_time.tempo` column, so the calendar CSV export carries it. (Pattern set/levels unchanged → still
+  v1; tempo is a recorded dimension, not a difficulty redefinition.)
+
+---
+
 ## Updating this file
 
 This file is **append-only**. When you change an étude's questions or difficulty:

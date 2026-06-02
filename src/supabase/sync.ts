@@ -164,6 +164,7 @@ export async function flushPractice(): Promise<void> {
       p_version: e.version,
       p_answered: dAnswered,
       p_correct: dCorrect,
+      p_tempo: e.tempo ?? null,
     })
     if (!error) {
       baseline.answers[key] = {
@@ -233,6 +234,7 @@ export function flushPracticeBeacon(): void {
       p_version: e.version,
       p_answered: dAnswered,
       p_correct: dCorrect,
+      p_tempo: e.tempo ?? null,
     })
     baseline.answers[key] = {
       answered: pushed.answered + dAnswered,
@@ -278,7 +280,7 @@ export async function pullPracticeHistory(): Promise<PracticeHistoryRow[]> {
   if (!supabase || !userId) return []
   const { data, error } = await supabase
     .from('practice_time')
-    .select('day, etude_id, level, version, seconds, answered, correct')
+    .select('day, etude_id, level, version, seconds, answered, correct, tempo')
     .eq('user_id', userId)
   if (error || !data) return []
   return data as PracticeHistoryRow[]

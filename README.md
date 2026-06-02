@@ -10,7 +10,7 @@ devices. Live at **<https://ts95.github.io/music-theory/>**.
 ## Features
 
 Lessons are organised into **selectable études**, each its own spaced-repetition session with its own
-progress, chosen from a table-of-contents home screen. Eleven études today, in three sections:
+progress, chosen from a table-of-contents home screen. Twelve études today, in three sections:
 
 ### 🎹 Keys & Scales
 
@@ -54,6 +54,15 @@ progress, chosen from a table-of-contents home screen. Eleven études today, in 
   with difficulty: Easy adds **2/4** (to 4/4, 3/4, 6/8), Medium adds **cut time (₵)** and **12/8**, Hard
   adds **5/4**, and **Expert** keeps the metres but pushes the tempo and density (full 32nd runs,
   continuous triplets, heavy syncopation); a count-in sets the tempo and metre.
+- **No. 12 — Tap the Rhythm.** The performance flip side of Rhythm Dictation: **read** a one-bar rhythm
+  and **tap-and-hold it in time** (Space or press the screen) over a count-in and a steady metronome click
+  on every beat. The **tempo is adjustable** (a 50–150 BPM slider, remembered per level); a count-in with a
+  beat count (**1·2·3·4**) sets it, then the staff flashes **green** to mark the downbeat where your bar begins.
+  You're scored on timing accuracy — a little early or late still counts (the window tightens for faster
+  notes) — and each note must be **held for ~70% of its length** to count, so a quarter is sustained, not
+  clipped. The result colours each note
+  **on the beat / a little off / missed or too short**, with **Hear it** to compare and **Try again** for a
+  practice run (your first attempt is the one that's graded). Same metres and four levels as Rhythm Dictation.
 
 ### Across the études
 

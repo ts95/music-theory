@@ -12,6 +12,9 @@ export interface PracticeHistoryRow {
   seconds: number
   answered: number
   correct: number
+  /** BPM the session was practiced at, for études with a tempo (tap-along,
+   *  rhythm-dictation); null/absent otherwise. */
+  tempo?: number | null
 }
 
 export interface EtudeDayStat {
@@ -142,9 +145,10 @@ function csvField(value: string): string {
 /**
  * One month of practice as CSV: a row per (day, étude, level, version) with ≥ 1
  * min of practice AND at least one correct answer — Date, Étude, Level, Version,
- * Minutes, Answered, Correct, Accuracy %. Sub-minute and no-correct-answer rows
- * (incl. time-only practice) are dropped to keep it compact. `etudeLabel` and
- * `levelLabel` resolve display names ('' level for unleveled). UTF-8 BOM + CRLF.
+ * Tempo (BPM), Minutes, Answered, Correct, Accuracy %. The tempo column is blank
+ * for études with no tempo. Sub-minute and no-correct-answer rows (incl. time-only
+ * practice) are dropped to keep it compact. `etudeLabel` and `levelLabel` resolve
+ * display names ('' level for unleveled). UTF-8 BOM + CRLF.
  */
 export function monthCsv(
   rows: PracticeHistoryRow[],
@@ -162,6 +166,7 @@ export function monthCsv(
       levelLabel: levelLabel(r.etude_id, r.level),
       level: r.level,
       version: r.version,
+      tempo: r.tempo ?? '',
       minutes: Math.round(r.seconds / 60),
       answered: r.answered,
       correct: r.correct,
@@ -174,7 +179,7 @@ export function monthCsv(
         a.level - b.level ||
         a.version - b.version,
     )
-  const lines = ['Date,Étude,Level,Version,Minutes,Answered,Correct,Accuracy %']
+  const lines = ['Date,Étude,Level,Version,Tempo (BPM),Minutes,Answered,Correct,Accuracy %']
   for (const r of out) {
     lines.push(
       [
@@ -182,6 +187,7 @@ export function monthCsv(
         csvField(r.label),
         csvField(r.levelLabel),
         r.version,
+        r.tempo,
         r.minutes,
         r.answered,
         r.correct,

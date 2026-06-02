@@ -5,8 +5,11 @@ Guidance for Claude (and any AI agent) working in this repository.
 ## What this project is
 
 A **personal, single-user music-theory tutor** — a React web app that Toni uses to teach himself music
-theory. It is vibe-coded with Claude Code. There is no backend, no accounts, no other users: optimize
-for Toni's learning, not for generality.
+theory. It is vibe-coded with Claude Code. It is **local-first and single-user** — no other users to
+design for; optimize for Toni's learning, not for generality. There *is* an **optional Supabase backend**:
+signing in with an email magic link layers cross-device sync on top, but it's a no-op when the env vars
+are absent, so by default the app runs fully offline against `localStorage` (see "Optional cloud sync
+(Supabase)" below).
 
 Toni already knows the basics (notes, the major scale) and wants to go deeper.
 
@@ -145,9 +148,11 @@ tests/e2e/           # Playwright browser tests (smoke.spec.ts). Config: playwri
 
 **Études:** the app is organised into selectable études (exercises). `ETUDES` (in `questions/etudes.ts`)
 lists them; every `Question` carries an `etudeId`, and the UI scopes a session + its progress to one
-étude. To add an étude: add an `ETUDES` entry, generate questions tagged with its id, done. Étude
-definitions per content version are documented in `docs/etude-versions.md` — bump `Etude.version` and
-append a new version subsection there whenever an étude's questions/difficulty change.
+étude. To add an étude: add an `ETUDES` entry, generate questions tagged with its id, and add a **reference
+box** for it in `components/references.tsx` (the `REFERENCES` registry — a per-étude collapsible InfoBox of
+context shown on the étude screen; a unit test enforces that **every** étude has one). Étude definitions per
+content version are documented in `docs/etude-versions.md` — bump `Etude.version` and append a new version
+subsection there whenever an étude's questions/difficulty change.
 
 **Interactive (non-MC) études:** most études are multiple-choice (`QuestionCard`). "Play the Scale"
 (`scale-play`) is interactive — `Question.scalePlay` holds the expected ascending `notes` + per-note
@@ -237,8 +242,11 @@ Accuracy matters more than cleverness — a wrong fact teaches the wrong thing.
     a committed `.env.example` documents them.
   - **Server data model (both tables RLS-scoped to the signed-in user):** SRS state is **one JSONB blob
     per user** in a `srs_state` table; reconciliation is **per-item last-write-wins** by each item's
-    `updatedAt`. Practice time is a **permanent per-(day, étude) log** in a `practice_time` table,
-    written via an **additive `add_practice_seconds` RPC** so multiple devices SUM correctly.
+    `updatedAt`. Practice time is a **permanent per-(day, étude, level, version) log** in a `practice_time`
+    table, written via **additive RPCs** (`add_practice_seconds`, `add_practice_answers`) so multiple
+    devices SUM correctly. The row also carries a **`tempo`** column (BPM): the latest tempo a tempo-bearing
+    étude was practiced at that day — set by `add_practice_answers`'s `p_tempo` (null for études with no
+    tempo), recorded from `time.ts addAnswer`'s `tempo` arg and surfaced in the calendar CSV export.
 
 ## Design system ("Engraved")
 

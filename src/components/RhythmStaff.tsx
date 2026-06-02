@@ -18,9 +18,19 @@ const vexDuration = (e: RhythmEvent): string =>
 interface RhythmStaffProps {
   pattern: RhythmEvent[]
   meter?: TimeSig
+  /**
+   * Optional per-event notehead colours (CSS colour strings), aligned to
+   * `pattern` — an `undefined` entry keeps the default ink. Used by the
+   * tap-along results screen to show, note by note, how each onset was hit.
+   */
+  eventColors?: (string | undefined)[]
 }
 
-export default function RhythmStaff({ pattern, meter = '4/4' }: RhythmStaffProps) {
+export default function RhythmStaff({
+  pattern,
+  meter = '4/4',
+  eventColors,
+}: RhythmStaffProps) {
   const ref = useRef<HTMLDivElement>(null)
   const [failed, setFailed] = useState(false)
   const [num, den] = meter.split('/').map(Number)
@@ -64,6 +74,13 @@ export default function RhythmStaff({ pattern, meter = '4/4' }: RhythmStaffProps
         // Stems up: beams and tuplet brackets then sit in the space above the
         // staff (VexFlow reserves it) instead of being clipped off the bottom.
         notes.forEach((n) => n.setStemDirection(Stem.UP))
+        // Optional per-note feedback colouring (tap-along results).
+        if (eventColors) {
+          notes.forEach((note, i) => {
+            const c = eventColors[i]
+            if (c) note.setStyle({ fillStyle: c, strokeStyle: c })
+          })
+        }
         // Draw augmentation dots (ticks already come from the 'd' in the duration).
         notes.forEach((note, i) => {
           for (let d = 0; d < (pattern[i].dots ?? 0); d++) {
@@ -108,7 +125,7 @@ export default function RhythmStaff({ pattern, meter = '4/4' }: RhythmStaffProps
       cancelled = true
       if (host) host.innerHTML = ''
     }
-  }, [width, meter, num, den, JSON.stringify(pattern)])
+  }, [width, meter, num, den, JSON.stringify(pattern), JSON.stringify(eventColors)])
 
   if (failed) return null
   return <div ref={ref} className="overflow-x-auto" />

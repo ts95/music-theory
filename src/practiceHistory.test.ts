@@ -115,16 +115,16 @@ describe('monthCsv', () => {
 
   it('starts with the header and a BOM', () => {
     expect(monthCsv(may, 2026, 4, label, lvl).startsWith('﻿')).toBe(true)
-    expect(lines()[0]).toBe('Date,Étude,Level,Version,Minutes,Answered,Correct,Accuracy %')
+    expect(lines()[0]).toBe('Date,Étude,Level,Version,Tempo (BPM),Minutes,Answered,Correct,Accuracy %')
   })
 
   it('splits a day/étude into per-(level, version) rows; blank level for unleveled', () => {
     expect(lines()).toEqual([
-      'Date,Étude,Level,Version,Minutes,Answered,Correct,Accuracy %',
-      '2026-05-04,Chord Recognition,Easy,1,8,5,4,80',
-      '2026-05-04,Chord Recognition,Easy,2,2,2,2,100',
-      '2026-05-04,Chord Recognition,Hard,1,4,3,1,33',
-      '2026-05-05,Scale Recognition,,1,2,4,3,75',
+      'Date,Étude,Level,Version,Tempo (BPM),Minutes,Answered,Correct,Accuracy %',
+      '2026-05-04,Chord Recognition,Easy,1,,8,5,4,80',
+      '2026-05-04,Chord Recognition,Easy,2,,2,2,2,100',
+      '2026-05-04,Chord Recognition,Hard,1,,4,3,1,33',
+      '2026-05-05,Scale Recognition,,1,,2,4,3,75',
     ])
   })
 
@@ -137,7 +137,7 @@ describe('monthCsv', () => {
 
   it('returns header only for a month with no qualifying practice', () => {
     expect(monthCsv(may, 2026, 0, label, lvl).replace(/^﻿/, '')).toBe(
-      'Date,Étude,Level,Version,Minutes,Answered,Correct,Accuracy %',
+      'Date,Étude,Level,Version,Tempo (BPM),Minutes,Answered,Correct,Accuracy %',
     )
   })
 
@@ -149,6 +149,22 @@ describe('monthCsv', () => {
       () => 'A, B',
       () => '',
     ).replace(/^﻿/, '')
-    expect(out.split('\r\n')[1]).toBe('2026-05-04,"A, B",,1,2,1,1,100')
+    expect(out.split('\r\n')[1]).toBe('2026-05-04,"A, B",,1,,2,1,1,100')
+  })
+
+  it('emits the practised tempo (BPM) when present, blank otherwise', () => {
+    const out = monthCsv(
+      [
+        { day: '2026-05-04', etude_id: 'rhythm-tap', level: 1, version: 1, seconds: 120, answered: 3, correct: 3, tempo: 90 },
+        { day: '2026-05-04', etude_id: 'scales', level: 0, version: 1, seconds: 120, answered: 2, correct: 2 },
+      ],
+      2026,
+      4,
+      (id) => id,
+      () => '',
+    ).replace(/^﻿/, '')
+    const body = out.split('\r\n').slice(1)
+    expect(body).toContain('2026-05-04,rhythm-tap,,1,90,2,3,3,100')
+    expect(body).toContain('2026-05-04,scales,,1,,2,2,2,100')
   })
 })

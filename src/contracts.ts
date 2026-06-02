@@ -231,4 +231,11 @@ export interface Question {
     rh: number[]
     lh: number[]
   }
+  /**
+   * Interactive "tap the rhythm" étude: the student reads the one-bar pattern and
+   * taps it (Space / screen) against a count-in plus a steady metronome on every
+   * felt beat. Graded as an accuracy % (mapped to pass/fail for SRS). Present
+   * instead of the multiple-choice fields.
+   */
+  tapAlong?: { meter: TimeSig; tempo: number; pattern: RhythmEvent[] }
 }

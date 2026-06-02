@@ -1321,6 +1321,48 @@ function rhythmDictationQuestions(): Question[] {
   return questions
 }
 
+/**
+ * Tap the Rhythm (interactive): show a one-bar rhythm as notation; the student
+ * taps it in time after a count-in. Reuses the rhythm-dictation vocabulary
+ * (`RHYTHM_LEVELS`) and the same per-audible-signature dedup, but each pattern is
+ * its own non-MC question graded by tap accuracy (no distractors).
+ */
+function rhythmTapQuestions(): Question[] {
+  const questions: Question[] = []
+  RHYTHM_LEVELS.forEach((def, levelIndex) => {
+    const level = levelIndex + 1
+    for (const meter of Object.keys(def.pools) as TimeSig[]) {
+      const rawPool = def.pools[meter]!
+      // Keep the simplest notation per audible signature (same as dictation).
+      const repBySig = new Map<string, RhythmEvent[]>()
+      for (const p of rawPool) {
+        const s = audibleSignature(p)
+        const cur = repBySig.get(s)
+        if (!cur || p.length < cur.length) repBySig.set(s, p)
+      }
+      const seen = new Set<string>()
+      for (const p of rawPool) {
+        const s = audibleSignature(p)
+        if (seen.has(s)) continue
+        seen.add(s)
+        const pattern = repBySig.get(s)!
+        const key = rhythmKey(pattern).replace(/[\s.~]/g, '_')
+        questions.push({
+          id: `rhythm-tap:L${level}:${meter.replace('/', '-')}:${key}`,
+          etudeId: 'rhythm-tap',
+          category: 'Tap the rhythm',
+          prompt: `Tap this rhythm (${meter}).`,
+          choices: [],
+          answerIndex: -1,
+          level,
+          tapAlong: { meter, tempo: def.tempo, pattern },
+        })
+      }
+    }
+  })
+  return questions
+}
+
 // ── Play the Scale (interactive) ─────────────────────────────────────────────
 // Sudden-death; cumulative ABRSM-grade key scope. Easy = 1 octave / 15 s;
 // Medium = 2 oct / 20 s; Hard = 2 oct / 15 s. Each in-scope minor key appears
@@ -1431,6 +1473,7 @@ export function generateAllQuestions(): Question[] {
     ...progressionEarQuestions(),
     ...melodicDictationQuestions(),
     ...rhythmDictationQuestions(),
+    ...rhythmTapQuestions(),
     ...scalePlayQuestions(),
   ]
 }

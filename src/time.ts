@@ -143,6 +143,9 @@ export function resetAllSeconds(today: string = localDate()): void {
 interface AnswerTally {
   answered: number
   correct: number
+  /** The tempo (BPM) most recently practiced for this key, if the étude has one
+   *  (tap-along slider, rhythm-dictation's per-level tempo); undefined otherwise. */
+  tempo?: number
 }
 
 export interface AnswerEntry extends AnswerTally {
@@ -157,12 +160,15 @@ export function getTodayAnswersByLevel(today: string = localDate()): AnswerEntry
   return Object.entries(values).map(([key, tally]) => ({ ...parseKey(key), ...tally }))
 }
 
-/** Record one graded answer (answered +1, correct +1 if right). */
+/** Record one graded answer (answered +1, correct +1 if right). `tempo`, when
+ *  given, is the BPM the exercise was practiced at — kept as the latest value so
+ *  the practice log (and calendar export) can attribute a tempo to the session. */
 export function addAnswer(
   etudeId: string,
   correct: boolean,
   level: number,
   version: number,
+  tempo?: number,
   today: string = localDate()
 ): void {
   const values = todayValues<AnswerTally>(ANSWERS_KEY, today)
@@ -171,6 +177,7 @@ export function addAnswer(
   values[key] = {
     answered: prev.answered + 1,
     correct: prev.correct + (correct ? 1 : 0),
+    tempo: tempo ?? prev.tempo,
   }
   write(ANSWERS_KEY, { date: today, values })
 }

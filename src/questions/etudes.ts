@@ -95,4 +95,13 @@ export const ETUDES: Etude[] = [
     levels: ['Easy', 'Medium', 'Hard', 'Expert'],
     version: 2,
   },
+  {
+    id: 'rhythm-tap',
+    section: 'Ear Training',
+    number: 12,
+    title: 'Tap the Rhythm',
+    subtitle: 'Read a one-bar rhythm and tap it in time',
+    levels: ['Easy', 'Medium', 'Hard', 'Expert'],
+    version: 1,
+  },
 ]

@@ -262,6 +262,32 @@ function scheduleRhythm(pattern: RhythmEvent[], meter: TimeSig, tempo: number): 
   return t // bar end (count-in + the one-bar pattern)
 }
 
+/** Warm up / unlock the audio synth from a user gesture (e.g. a "Begin" click),
+ *  so a click train scheduled via timers right after has its AudioContext ready. */
+export function prime(): void {
+  void ensureSynth().catch(() => {})
+}
+
+/**
+ * Fire a single metronome tick immediately (the percussive woodblock). Used by
+ * the tap-along étude, which schedules its own click train on every felt beat.
+ * One uniform wooden click throughout — count-in and exercise sound identical;
+ * the first beat of a measure (`accent`) is only slightly louder. Unlike
+ * playRhythm it does NOT cancel other playback or protect a prompt.
+ */
+export function playClick(accent = false): void {
+  if (muted) return
+  void (async () => {
+    try {
+      await ensureSynth()
+      if (muted || !clickSynth) return
+      clickSynth.triggerAttackRelease(COUNT_PITCH, 0.05, undefined, accent ? 1 : 0.8)
+    } catch {
+      /* audio unavailable — ignore */
+    }
+  })()
+}
+
 /**
  * Stop all playback immediately, including a protected prompt. Used by mute, an
  * explicit replay/advance, and card unmount — anything that legitimately cuts

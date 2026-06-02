@@ -306,6 +306,42 @@ const REFERENCES: Record<string, EtudeReference> = {
       </div>
     ),
   },
+  'rhythm-tap': {
+    title: 'How to tap it',
+    body: (
+      <div className="space-y-2">
+        <p>
+          Read the rhythm, then perform it. A <span className="text-ink">count-in</span>{' '}
+          sets the tempo first, counting the beats <span className="text-accent">1·2·3·4</span>;
+          the same steady metronome then carries on under your bar. The instant the
+          staff flashes <span style={{ color: '#2f6b4e' }}>green</span> is your cue
+          to start.
+        </p>
+        <p>
+          <span className="text-ink">Press and hold</span> each note with{' '}
+          <span className="text-ink">Space</span> or by pressing the staff — hold
+          for <span className="text-ink">at least ~70% of the note's length</span>,
+          so a quarter is sustained, not just clipped. Release, then press the next
+          note. Rests are silent — don't tap them.
+        </p>
+        <p>
+          You're scored on timing accuracy — it's forgiving, so a little early or
+          late still counts as 100% (the window is a touch tighter for faster
+          notes). The result colours each note{' '}
+          <span style={{ color: '#2f6b4e' }}>on the beat</span> /{' '}
+          <span style={{ color: '#b08d57' }}>a little off</span> /{' '}
+          <span style={{ color: '#bb4430' }}>missed or held too short</span>, and{' '}
+          <span className="text-ink">Hear it</span> plays the rhythm back.
+        </p>
+        <p className="text-ink-3">
+          <span className="text-ink">Try again</span> is a practice run — your
+          first attempt is the one that counts, so a retry can't turn a miss into a
+          pass. Same metres and levels as Rhythm Dictation — the tempo rises with
+          the level.
+        </p>
+      </div>
+    ),
+  },
 }
 
 export function etudeReference(etudeId: string): EtudeReference | null {

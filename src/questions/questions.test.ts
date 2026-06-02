@@ -22,10 +22,11 @@ describe('generateAllQuestions', () => {
     // chord spelling: same key ladder as chords = 462.
     // progressions: 13 variants × (3+7+11+12) keys = 429.
     // ear: 40 intervals (4+8+12+16) + 11 progression types + 84 melodic
-    //   (10+12+10+10 motifs × 2 modes) + 183 rhythm (31+54+56+42) + 123 scale-play
+    //   (10+12+10+10 motifs × 2 modes) + 183 rhythm-dictation (31+54+56+42) +
+    //   183 rhythm-tap (same patterns, one tap exercise each) + 123 scale-play
     //   (10+17+48+48).
     expect(questions.length).toBe(
-      12 + 36 + 123 + 462 + 602 + 462 + 429 + 40 + 11 + 84 + 183
+      12 + 36 + 123 + 462 + 602 + 462 + 429 + 40 + 11 + 84 + 183 + 183
     )
   })
 
@@ -45,6 +46,7 @@ describe('generateAllQuestions', () => {
     expect(count('progressions-ear')).toBe(11)
     expect(count('melodic-dictation')).toBe(84) // (10+12+10+10) motifs × 2 modes
     expect(count('rhythm-dictation')).toBe(183) // L1 31 + L2 54 + L3 56 + L4 42
+    expect(count('rhythm-tap')).toBe(183) // same patterns, one tap exercise each
     expect(count('scale-play')).toBe(123) // 10 + 17 + 48 + 48
   })
 
@@ -54,8 +56,8 @@ describe('generateAllQuestions', () => {
   })
 
   it('every multiple-choice question is well-formed', () => {
-    // Scale-play is interactive (no choices) — checked separately.
-    for (const q of questions.filter((x) => !x.scalePlay)) {
+    // Scale-play and tap-the-rhythm are interactive (no choices) — checked separately.
+    for (const q of questions.filter((x) => !x.scalePlay && !x.tapAlong)) {
       expect(q.choices.length).toBeGreaterThanOrEqual(3)
       // Most questions have 4 choices; harder interval levels show up to 6.
       expect(q.choices.length).toBeLessThanOrEqual(6)
@@ -142,7 +144,7 @@ describe('generateAllQuestions', () => {
   })
 
   it('every choices[answerIndex] equals the documented correct answer', () => {
-    for (const q of questions.filter((x) => !x.scalePlay)) {
+    for (const q of questions.filter((x) => !x.scalePlay && !x.tapAlong)) {
       expect(q.choices[q.answerIndex]).toBeDefined()
     }
   })
@@ -255,8 +257,8 @@ describe('generateAllQuestions', () => {
 
   describe('memory tips (explanations)', () => {
     it('every question has a non-empty explanation', () => {
-      // Scale-play is interactive; it reveals the scale itself, not a tip.
-      for (const q of questions.filter((x) => !x.scalePlay)) {
+      // Scale-play and tap-the-rhythm are interactive; they have no MC tip.
+      for (const q of questions.filter((x) => !x.scalePlay && !x.tapAlong)) {
         expect(q.explanation, q.id).toBeTruthy()
         expect(q.explanation!.length).toBeGreaterThan(10)
       }

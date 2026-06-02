@@ -6,6 +6,7 @@ import { addAnswer } from '../time'
 import { schedulePracticeFlush } from '../supabase/sync'
 import QuestionCard from './QuestionCard'
 import ScalePlayCard from './ScalePlayCard'
+import TapAlongCard from './TapAlongCard'
 import Button from './Button'
 
 const CORRECT_QUALITY = 5
@@ -131,15 +132,22 @@ export default function ReviewSession({
     setCorrect(0)
   }
 
-  /** Grade the current question and persist. `quality` per SM-2. */
-  function resolve(q: Question, quality: number) {
+  /**
+   * Grade the current question and persist. `quality` per SM-2. `tempo` is the
+   * BPM the exercise was practiced at when the étude has one — the tap-along
+   * slider value (passed in), else the question's own tempo (rhythm-dictation's
+   * `ear.tempo`); recorded on the practice log for the calendar/export.
+   */
+  function resolve(q: Question, quality: number, tempo?: number) {
     const current = getState(dataRef.current, q.id) ?? initialState(Date.now())
     const next = grade(current, quality, Date.now())
     const updated = setState(dataRef.current, q.id, next)
     save(updated)
     onDataChange(updated)
+    const usedTempo =
+      tempo ?? q.tapAlong?.tempo ?? (q.ear?.kind === 'rhythm' ? q.ear.tempo : undefined)
     // Track accuracy (correct iff recalled, quality >= 3) by level + version.
-    addAnswer(etudeId, quality >= 3, q.level ?? 0, version)
+    addAnswer(etudeId, quality >= 3, q.level ?? 0, version, usedTempo)
     schedulePracticeFlush()
     // Each answered due exercise counts against the étude's 5-hour batch.
     if (!practiceAll) recordDue(etudeId, Date.now())
@@ -173,13 +181,17 @@ export default function ReviewSession({
     resolve(queue[index], INCORRECT_QUALITY)
   }
 
-  /** Interactive scale-play étude: graded once when the run passes or fails. */
-  function handleScaleResult(passed: boolean) {
+  /**
+   * Interactive études (scale-play, tap-along): graded once when the run passes
+   * or fails. `tempo` is supplied by tap-along (the slider value it was performed
+   * at) so it's recorded on the practice log.
+   */
+  function handleScaleResult(passed: boolean, tempo?: number) {
     if (scaleResolved) return
     setScaleResolved(true)
     setAnswered((n) => n + 1)
     if (passed) setCorrect((n) => n + 1)
-    resolve(queue[index], passed ? CORRECT_QUALITY : INCORRECT_QUALITY)
+    resolve(queue[index], passed ? CORRECT_QUALITY : INCORRECT_QUALITY, tempo)
   }
 
   function handleNext() {
@@ -231,6 +243,13 @@ export default function ReviewSession({
         </div>
         {q.scalePlay ? (
           <ScalePlayCard
+            key={q.id}
+            question={q}
+            onResolve={handleScaleResult}
+            onNext={handleNext}
+          />
+        ) : q.tapAlong ? (
+          <TapAlongCard
             key={q.id}
             question={q}
             onResolve={handleScaleResult}

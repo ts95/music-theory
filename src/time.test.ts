@@ -86,10 +86,10 @@ describe('practice time store', () => {
 
 describe('answer tally store', () => {
   it('accumulates answered/correct by (étude, level, version)', () => {
-    addAnswer('keys', true, 1, 1, DAY)
-    addAnswer('keys', false, 1, 1, DAY)
-    addAnswer('keys', true, 2, 1, DAY) // different level → separate entry
-    addAnswer('chords', false, 0, 1, DAY)
+    addAnswer('keys', true, 1, 1, undefined, DAY)
+    addAnswer('keys', false, 1, 1, undefined, DAY)
+    addAnswer('keys', true, 2, 1, undefined, DAY) // different level → separate entry
+    addAnswer('chords', false, 0, 1, undefined, DAY)
     expect(getTodayAnswersByLevel(DAY).sort((a, b) => a.etudeId.localeCompare(b.etudeId) || a.level - b.level)).toEqual([
       { etudeId: 'chords', level: 0, version: 1, answered: 1, correct: 0 },
       { etudeId: 'keys', level: 1, version: 1, answered: 2, correct: 1 },
@@ -98,13 +98,13 @@ describe('answer tally store', () => {
   })
 
   it('resets at local midnight (a different day reads as empty)', () => {
-    addAnswer('keys', true, 1, 1, DAY)
+    addAnswer('keys', true, 1, 1, undefined, DAY)
     expect(getTodayAnswersByLevel(NEXT)).toEqual([])
   })
 
   it('resets one étude (all its levels), leaving the others', () => {
-    addAnswer('keys', true, 1, 1, DAY)
-    addAnswer('chords', true, 1, 1, DAY)
+    addAnswer('keys', true, 1, 1, undefined, DAY)
+    addAnswer('chords', true, 1, 1, undefined, DAY)
     resetEtudeAnswers('keys', DAY)
     expect(getTodayAnswersByLevel(DAY)).toEqual([
       { etudeId: 'chords', level: 1, version: 1, answered: 1, correct: 1 },
@@ -112,8 +112,20 @@ describe('answer tally store', () => {
   })
 
   it('resets all études for today', () => {
-    addAnswer('keys', true, 1, 1, DAY)
+    addAnswer('keys', true, 1, 1, undefined, DAY)
     resetAllAnswers(DAY)
     expect(getTodayAnswersByLevel(DAY)).toEqual([])
+  })
+
+  it('records the practised tempo, keeping the latest; absent when never given', () => {
+    addAnswer('rhythm-tap', true, 1, 1, 90, DAY)
+    addAnswer('rhythm-tap', false, 1, 1, 110, DAY) // later tempo wins
+    addAnswer('rhythm-tap', true, 1, 1, undefined, DAY) // no tempo → keeps 110
+    addAnswer('keys', true, 1, 1, undefined, DAY) // never had a tempo
+    const byKey = Object.fromEntries(
+      getTodayAnswersByLevel(DAY).map((e) => [e.etudeId, e]),
+    )
+    expect(byKey['rhythm-tap'].tempo).toBe(110)
+    expect(byKey['keys'].tempo).toBeUndefined()
   })
 })
