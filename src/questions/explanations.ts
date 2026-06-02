@@ -129,8 +129,18 @@ const INTERVAL_MNEMONIC: Record<string, string> = {
   Octave: '"Somewhere" Over the Rainbow',
 }
 
+/** Simple-interval name for the part of a compound interval above the octave. */
+const SIMPLE_PART: Record<number, string> = {
+  1: 'minor 2nd', 2: 'major 2nd', 3: 'minor 3rd', 4: 'major 3rd',
+  5: 'perfect 4th', 7: 'perfect 5th', 9: 'major 6th',
+}
+
 /** Ear-training: identify an interval by sound. */
 export function intervalEarExplanation(name: string, semitones: number): string {
+  if (semitones > 12) {
+    const part = SIMPLE_PART[semitones - 12] ?? 'simple interval'
+    return `${name} = ${semitones} semitones — a compound interval: an octave plus a ${part}. Hear the octave first, then the extra ${part} stacked on top.`
+  }
   const hook = INTERVAL_MNEMONIC[name] ?? 'a familiar tune'
   return `${name} = ${semitones} semitone${semitones === 1 ? '' : 's'}. To anchor it, hum ${hook} — that ascending leap is a ${name}.`
 }
@@ -161,7 +171,7 @@ export function melodicDictationExplanation(
   degrees: number[],
   solfegeStr: string
 ): string {
-  const numbers = degrees.map((d) => (d === 7 ? '1' : d + 1)).join('–')
+  const numbers = degrees.map((d) => (d % 7) + 1).join('–')
   const ladder = mode === 'major' ? 'do re mi fa sol la ti' : 'do re me fa sol le te'
   return `Solfège is movable — it names the scale degree, not a fixed letter: ${ladder} = degrees 1–7 up from the tonic (do). ${solfegeStr} = degrees ${numbers} in ${mode}; the tonic chord at the start anchors "do".`
 }

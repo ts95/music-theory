@@ -15,9 +15,14 @@ import { KEYS } from './keys'
 const MAJOR_SOLFEGE = ['do', 're', 'mi', 'fa', 'sol', 'la', 'ti', 'do']
 const MINOR_SOLFEGE = ['do', 're', 'me', 'fa', 'sol', 'le', 'te', 'do']
 
-/** Do-based movable solfège for a scale degree (0 = tonic … 7 = octave). */
+/**
+ * Do-based movable solfège for a scale degree (0 = tonic … 7 = octave). Degrees
+ * above the octave wrap to the same syllables (octave-agnostic), so a melody can
+ * range beyond one octave: degree 8 = re, 9 = mi, 14 = do (two octaves up).
+ */
 export function solfege(mode: Mode, degree: number): string {
-  return (mode === 'major' ? MAJOR_SOLFEGE : MINOR_SOLFEGE)[degree]
+  const syllables = mode === 'major' ? MAJOR_SOLFEGE : MINOR_SOLFEGE
+  return degree < syllables.length ? syllables[degree] : syllables[degree % 7]
 }
 
 export type { Voiced }
@@ -115,10 +120,11 @@ export function realizeEar(spec: EarSpec, root: Voiced): RealizedEar {
   const tonic = root.note
   const reference = [voiceChord(diatonicTriads(tonic, spec.mode)[0], root)]
   if (spec.kind === 'melody') {
-    // One-octave scale (tonic..octave), voiced ascending, indexed by degree.
+    // Two-octave scale voiced ascending, indexed by degree (0 = tonic, 7 =
+    // octave, 14 = two octaves up), so melodies can range beyond one octave.
     const scale = spec.mode === 'major' ? majorScale(tonic) : minorScale(tonic, 'natural')
-    const scale8 = voiceScaleAscending([...scale, scale[0]], root.octave)
-    const target = spec.degrees.map((d) => [scale8[d]])
+    const scale15 = voiceScaleAscending([...scale, ...scale, scale[0]], root.octave)
+    const target = spec.degrees.map((d) => [scale15[d]])
     return { reference, target, style: 'melodic' }
   }
   const target = spec.degrees.map((d) =>

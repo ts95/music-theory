@@ -40,9 +40,9 @@ export default function ScalePlayCard({
     return { from, octaves: Math.max(1, (top - from) / 12) as number }
   }, [midis])
 
-  // Mistakes tolerated before the run fails: Hard (L3) allows 1, Easy/Medium 2.
-  // The run fails on the mistake *after* the allowance is spent.
-  const allowance = question.level === 3 ? 1 : 2
+  // Mistakes tolerated before the run fails: Easy/Medium 2, Hard (L3) 1, Expert
+  // (L4) 0. The run fails on the mistake *after* the allowance is spent.
+  const allowance = question.level === 4 ? 0 : question.level === 3 ? 1 : 2
 
   const [index, setIndex] = useState(0)
   const [mistakes, setMistakes] = useState(0)

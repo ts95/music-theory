@@ -16,20 +16,16 @@ describe('generateAllQuestions', () => {
     expect(relMinor).toHaveLength(12)
     expect(scale).toHaveLength(36)
 
-    // chords by degree: 3 cumulative key-range levels × 2 modes × 7
-    //   (trimmed triads + V7) = (3 + 7 + 12 keys) × 2 × 7 = 308.
-    // chord recognition: 3 levels by key range × 2 modes × 7 degrees
-    //   = (3 + 7 + 12 keys) × 2 × 7 = 42 + 98 + 168 = 308.
-    // chord spelling (inverse of recognition, no inversions): same enumeration
-    //   = (3 + 7 + 12 keys) × 2 × 7 = 308.
-    // progressions: 13 progression-variants (6 major + 5 minor triad + 2
-    // seventh forms) across three cumulative key-range levels (3 + 7 + 12 keys
-    // per mode) = 13 × (3 + 7 + 12) = 286.
-    // ear: 24 intervals (cumulative levels 4+8+12) + 11 progression types
-    //   + 64 melodic (3 levels × 2 modes) + 141 rhythm (3 levels × metres,
-    //   audible duplicates collapsed) + 75 scale-play (Easy 10 + Medium 17 + Hard 48).
+    // Four ABRSM-aligned bands. Key-range ladder is ≤1/≤3/≤5/all = 3/7/11/12 keys.
+    // chords by degree: keys × 2 modes × 7 (trimmed triads + V7) = (3+7+11+12)×2×7 = 462.
+    // chord recognition: L1 ≤3 keys, L2–L4 all keys × 2 × 7 = (7+12+12+12)×2×7 = 602.
+    // chord spelling: same key ladder as chords = 462.
+    // progressions: 13 variants × (3+7+11+12) keys = 429.
+    // ear: 40 intervals (4+8+12+16) + 11 progression types + 84 melodic
+    //   (10+12+10+10 motifs × 2 modes) + 183 rhythm (31+54+56+42) + 123 scale-play
+    //   (10+17+48+48).
     expect(questions.length).toBe(
-      12 + 36 + 308 + 308 + 308 + 286 + 24 + 11 + 64 + 141 + 75
+      12 + 36 + 123 + 462 + 602 + 462 + 429 + 40 + 11 + 84 + 183
     )
   })
 
@@ -41,15 +37,15 @@ describe('generateAllQuestions', () => {
       questions.filter((q) => q.etudeId === id).length
     expect(count('relative-minors')).toBe(12)
     expect(count('scales')).toBe(36)
-    expect(count('chords')).toBe(308) // 3 levels × (3+7+12) keys × 2 × 7
-    expect(count('chord-recognition')).toBe(308)
-    expect(count('chord-spelling')).toBe(308) // inverse of recognition
-    expect(count('progressions')).toBe(286) // 13 variants × (3+7+12) keys
-    expect(count('intervals-ear')).toBe(24) // cumulative levels: 4 + 8 + 12
+    expect(count('chords')).toBe(462) // (3+7+11+12) keys × 2 × 7
+    expect(count('chord-recognition')).toBe(602) // (7+12+12+12) keys × 2 × 7
+    expect(count('chord-spelling')).toBe(462) // same key ladder as chords
+    expect(count('progressions')).toBe(429) // 13 variants × (3+7+11+12) keys
+    expect(count('intervals-ear')).toBe(40) // cumulative levels: 4 + 8 + 12 + 16
     expect(count('progressions-ear')).toBe(11)
-    expect(count('melodic-dictation')).toBe(64) // (10+12+10) motifs × 2 modes
-    expect(count('rhythm-dictation')).toBe(141) // L1 31 + L2 54 + L3 56
-    expect(count('scale-play')).toBe(75) // Easy 10 + Medium 17 + Hard 48
+    expect(count('melodic-dictation')).toBe(84) // (10+12+10+10) motifs × 2 modes
+    expect(count('rhythm-dictation')).toBe(183) // L1 31 + L2 54 + L3 56 + L4 42
+    expect(count('scale-play')).toBe(123) // 10 + 17 + 48 + 48
   })
 
   it('has unique ids', () => {
@@ -252,8 +248,8 @@ describe('generateAllQuestions', () => {
 
     it('keeps the question counts and ids stable', () => {
       expect(scaleQ).toHaveLength(36)
-      expect(chordQ).toHaveLength(308)
-      expect(progQ).toHaveLength(286)
+      expect(chordQ).toHaveLength(462)
+      expect(progQ).toHaveLength(429)
     })
   })
 
@@ -300,8 +296,8 @@ describe('generateAllQuestions', () => {
     const earQ = questions.filter((q) => q.ear)
 
     it('every ear question carries an ear spec, distinct choices, and a tip', () => {
-      // 24 intervals + 11 progressions + 64 melodic + 141 rhythm.
-      expect(earQ.length).toBe(24 + 11 + 64 + 141)
+      // 40 intervals + 11 progressions + 84 melodic + 183 rhythm.
+      expect(earQ.length).toBe(40 + 11 + 84 + 183)
       for (const q of earQ) {
         expect(q.ear, q.id).toBeDefined()
         expect(q.choices.length, q.id).toBeGreaterThanOrEqual(4)
@@ -312,19 +308,28 @@ describe('generateAllQuestions', () => {
       }
     })
 
-    it('interval questions span three cumulative levels with widening options', () => {
+    it('interval questions span four cumulative levels with widening options', () => {
       const intervals = questions.filter((q) => q.ear?.kind === 'interval')
-      expect(intervals).toHaveLength(24)
+      expect(intervals).toHaveLength(40)
       expect(intervals.filter((q) => q.level === 1)).toHaveLength(4) // Easy
       expect(intervals.filter((q) => q.level === 2)).toHaveLength(8) // Medium
-      expect(intervals.filter((q) => q.level === 3)).toHaveLength(12) // Hard
-      // P5 appears at every level; the option count grows 4 → 5 → 6.
+      expect(intervals.filter((q) => q.level === 3)).toHaveLength(12) // Hard (all simple)
+      expect(intervals.filter((q) => q.level === 4)).toHaveLength(16) // Expert (+ compound)
+      // P5 appears at every level; the option count grows 4 → 5 → 6 → 6.
       const p5 = questions.find((x) => x.id === 'interval-ear:L1:7')!
       expect(p5.choices[p5.answerIndex]).toBe('Perfect 5th')
       expect(p5.ear).toEqual({ kind: 'interval', semitones: 7, letterSteps: 4 })
       expect(p5.choices.length).toBe(4)
       expect(questions.find((x) => x.id === 'interval-ear:L2:7')!.choices.length).toBe(5)
       expect(questions.find((x) => x.id === 'interval-ear:L3:7')!.choices.length).toBe(6)
+      // Expert introduces compound intervals (an octave + a simple interval).
+      const m9 = questions.find((x) => x.id === 'interval-ear:L4:13')!
+      expect(m9.choices[m9.answerIndex]).toBe('Minor 9th')
+      expect(m9.ear).toEqual({ kind: 'interval', semitones: 13, letterSteps: 8 })
+      const compound = intervals.filter(
+        (q) => q.level === 4 && q.ear?.kind === 'interval' && q.ear.semitones > 12,
+      )
+      expect(compound.length).toBeGreaterThan(0)
     })
 
     it('progression-by-ear reuses the curated set', () => {
@@ -397,7 +402,7 @@ describe('generateAllQuestions', () => {
     const recog = questions.filter((x) => x.category === 'Chord recognition')
 
     it('renders every chord on a staff under a key signature, with a tip', () => {
-      expect(recog).toHaveLength(308)
+      expect(recog).toHaveLength(602)
       for (const q of recog) {
         expect(q.etudeId).toBe('chord-recognition')
         expect(q.notation, q.id).toBeDefined()
@@ -409,7 +414,7 @@ describe('generateAllQuestions', () => {
         expect(q.notation!.keySignature.length, q.id).toBeGreaterThan(0)
         expect(q.keyboard, q.id).toBeUndefined()
         expect(q.level, q.id).toBeGreaterThanOrEqual(1)
-        expect(q.level, q.id).toBeLessThanOrEqual(3)
+        expect(q.level, q.id).toBeLessThanOrEqual(4)
         expect(q.explanation, q.id).toBeTruthy() // memory tip on a miss
       }
     })
@@ -421,23 +426,34 @@ describe('generateAllQuestions', () => {
       }
     })
 
-    it('three difficulty levels scale chord complexity and key range', () => {
+    it('four difficulty levels scale chord complexity and key range', () => {
       const easy = recog.filter((q) => q.level === 1)
       const medium = recog.filter((q) => q.level === 2)
       const hard = recog.filter((q) => q.level === 3)
-      expect(easy).toHaveLength(42) // 3 keys × 2 modes × 7
-      expect(medium).toHaveLength(98) // 7 keys × 2 modes × 7
-      expect(hard).toHaveLength(168) // 12 keys × 2 modes × 7
+      const expert = recog.filter((q) => q.level === 4)
+      expect(easy).toHaveLength(98) // 7 keys (≤3) × 2 modes × 7
+      expect(medium).toHaveLength(168) // 12 keys × 2 modes × 7
+      expect(hard).toHaveLength(168)
+      expect(expert).toHaveLength(168)
 
-      // Easy: triads only, root position (no slash chords).
+      const hasNinth = (qs: typeof recog) => qs.some((q) => q.notation!.groups[0].length === 5)
+      const hasSeventh = (qs: typeof recog) => qs.some((q) => q.notation!.groups[0].length === 4)
+      const hasInversion = (qs: typeof recog) => qs.some((q) => q.choices[q.answerIndex].includes('/'))
+
+      // Easy: triads only, root position (no slash chords, no sevenths/ninths).
       for (const q of easy) {
         expect(q.notation!.groups[0], q.id).toHaveLength(3)
         expect(q.choices[q.answerIndex], q.id).not.toContain('/')
       }
-      // Hard alone introduces the 9th extensions.
-      expect(hard.some((q) => q.notation!.groups[0].length === 5)).toBe(true)
-      expect(easy.some((q) => q.notation!.groups[0].length === 5)).toBe(false)
-      expect(medium.some((q) => q.notation!.groups[0].length === 5)).toBe(false)
+      // Medium adds inversions but still only triads.
+      expect(hasInversion(medium)).toBe(true)
+      expect(medium.every((q) => q.notation!.groups[0].length === 3)).toBe(true)
+      // Hard adds sevenths; Expert alone introduces ninths.
+      expect(hasSeventh(hard)).toBe(true)
+      expect(hasNinth(hard)).toBe(false)
+      expect(hasNinth(expert)).toBe(true)
+      // Expert runs against a tighter clock.
+      expect(expert.some((q) => q.timeLimitMs === 8000)).toBe(true)
     })
 
     it('covers augmented, dominant, diminished, and 9th chords (with inversions)', () => {
@@ -456,19 +472,19 @@ describe('generateAllQuestions', () => {
     const specOf = (q: (typeof melody)[number]) =>
       q.ear as { kind: 'melody'; mode: 'major' | 'minor'; degrees: number[] }
 
-    it('is a solfège prompt across three levels, both modes', () => {
-      expect(melody).toHaveLength(64)
+    it('is a solfège prompt across four levels, both modes', () => {
+      expect(melody).toHaveLength(84)
       for (const q of melody) {
         expect(q.ear?.kind).toBe('melody')
         const spec = specOf(q)
         // Answer tokens match the degree count.
         expect(q.choices[q.answerIndex].split('–')).toHaveLength(spec.degrees.length)
         expect(q.level, q.id).toBeGreaterThanOrEqual(1)
-        expect(q.level, q.id).toBeLessThanOrEqual(3)
+        expect(q.level, q.id).toBeLessThanOrEqual(4)
         expect(q.explanation).toBeTruthy()
       }
       // Every level carries both modes.
-      for (const level of [1, 2, 3]) {
+      for (const level of [1, 2, 3, 4]) {
         const modes = new Set(melody.filter((q) => q.level === level).map((q) => specOf(q).mode))
         expect([...modes].sort()).toEqual(['major', 'minor'])
       }
@@ -478,6 +494,9 @@ describe('generateAllQuestions', () => {
       // Level 3 includes the complete 8-note scale (do…do).
       const scale = melody.find((x) => x.id === 'melody:L3:major:01234567')!
       expect(scale.choices[scale.answerIndex]).toBe('do–re–mi–fa–sol–la–ti–do')
+      // Expert (Level 4) ranges beyond the octave — at least one degree > 7.
+      const expert = melody.filter((q) => q.level === 4)
+      expect(expert.some((q) => specOf(q).degrees.some((d) => d > 7))).toBe(true)
     })
   })
 
@@ -498,7 +517,7 @@ describe('generateAllQuestions', () => {
       q.ear as { kind: 'rhythm'; meter: keyof typeof METERS; pattern: Ev[] }
 
     it('every choice is a valid one-bar pattern in its metre, aligned to choices', () => {
-      expect(rhythm).toHaveLength(141) // L1 31 + L2 54 + L3 56
+      expect(rhythm).toHaveLength(183) // L1 31 + L2 54 + L3 56 + L4 42
       for (const q of rhythm) {
         expect(q.ear?.kind).toBe('rhythm')
         const total = METERS[specOf(q).meter].totalBeats
@@ -520,7 +539,7 @@ describe('generateAllQuestions', () => {
       }
     })
 
-    it('covers all seven metres and three levels', () => {
+    it('covers all seven metres and four levels', () => {
       expect([...new Set(rhythm.map((q) => specOf(q).meter))].sort()).toEqual([
         '12/8',
         '2/2',
@@ -530,7 +549,7 @@ describe('generateAllQuestions', () => {
         '5/4',
         '6/8',
       ])
-      expect([...new Set(rhythm.map((q) => q.level))].sort()).toEqual([1, 2, 3])
+      expect([...new Set(rhythm.map((q) => q.level))].sort()).toEqual([1, 2, 3, 4])
     })
 
     it('metres cascade: each level inherits the previous levels’ metres', () => {
@@ -539,8 +558,10 @@ describe('generateAllQuestions', () => {
       const easy = metresAt(1)
       const medium = metresAt(2)
       const hard = metresAt(3)
+      const expert = metresAt(4)
       for (const m of easy) expect(medium.has(m), `medium missing ${m}`).toBe(true)
       for (const m of medium) expect(hard.has(m), `hard missing ${m}`).toBe(true)
+      for (const m of hard) expect(expert.has(m), `expert missing ${m}`).toBe(true)
       expect(easy.has('2/4')).toBe(true) // Easy adds 2/4
       expect(easy.has('6/8')).toBe(false) // 6/8 is compound — Medium and up only
       expect(medium.has('6/8') && medium.has('12/8') && medium.has('2/2')).toBe(true)
@@ -581,16 +602,18 @@ describe('play the scale (étude 4)', () => {
     scalePlay.find((q) => q.level === lvl)!.scalePlay!
 
   it('covers the cumulative ABRSM scope per level', () => {
-    expect(scalePlay).toHaveLength(75)
+    expect(scalePlay).toHaveLength(123)
     expect(scalePlay.filter((q) => q.level === 1)).toHaveLength(10) // 4 maj + 2 min×3
     expect(scalePlay.filter((q) => q.level === 2)).toHaveLength(17) // 5 maj + 4 min×3
     expect(scalePlay.filter((q) => q.level === 3)).toHaveLength(48) // 12 maj + 12 min×3
+    expect(scalePlay.filter((q) => q.level === 4)).toHaveLength(48) // Expert: all keys, faster
   })
 
   it('octaves & sudden-death timer per level', () => {
     expect([sp(1).octaves, sp(1).seconds]).toEqual([1, 15])
     expect([sp(2).octaves, sp(2).seconds]).toEqual([2, 20])
-    expect([sp(3).octaves, sp(3).seconds]).toEqual([2, 15])
+    expect([sp(3).octaves, sp(3).seconds]).toEqual([2, 18]) // Hard eased to 18 s
+    expect([sp(4).octaves, sp(4).seconds]).toEqual([2, 12]) // Expert: tighter clock
   })
 
   it('notes + both fingerings are aligned and ascending', () => {

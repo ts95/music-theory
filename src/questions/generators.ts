@@ -225,9 +225,10 @@ function keyForMode(
 /** The trimmed degree set for chord questions: I/i, ii/ii°, IV/iv, V, vi/VI, vii°. */
 const CHORD_DEGREES = [0, 1, 3, 4, 5, 6]
 
-// Three cumulative difficulty levels by key range (key-signature accidentals),
-// like Chord Recognition and Progressions: Easy ≤1, Medium ≤3, Hard all twelve.
-const CHORD_LEVEL_ACCIDENTALS = [1, 3, 12]
+// Four cumulative difficulty levels by key range (key-signature accidentals):
+// Easy ≤1, Medium ≤3, Hard ≤5, Expert all twelve (≤6). Spreading the key range
+// across four bands tracks ABRSM, where the full set of keys arrives by grade 5.
+const CHORD_LEVEL_ACCIDENTALS = [1, 3, 5, 6]
 
 /**
  * 4. Diatonic chords by Roman-numeral degree, for both modes of every key.
@@ -369,10 +370,10 @@ function spellAndRegister(
  * idiomatic ii–V–I / ii°–V–i. Distractors: the same progression in other keys
  * (strong) plus a one-chord variant within the same key.
  */
-// Three cumulative difficulty levels by key range (key-signature accidentals),
-// mirroring Chord Recognition — the dominant difficulty when spelling a
-// progression: Easy ≤1 accidental (C/G/F + relative minors), Medium ≤3, Hard all.
-const PROGRESSION_LEVEL_ACCIDENTALS = [1, 3, 12]
+// Four cumulative difficulty levels by key range (key-signature accidentals) —
+// the dominant difficulty when spelling a progression: Easy ≤1 accidental
+// (C/G/F + relative minors), Medium ≤3, Hard ≤5, Expert all twelve (≤6).
+const PROGRESSION_LEVEL_ACCIDENTALS = [1, 3, 5, 6]
 
 function progressionQuestions(): Question[] {
   const questions: Question[] = []
@@ -449,7 +450,7 @@ interface IntervalDef {
   letterSteps: number
 }
 
-/** The 12 intervals within an octave, ascending. */
+/** The simple intervals within an octave, then the compound intervals (Expert). */
 const INTERVALS: IntervalDef[] = [
   { name: 'Minor 2nd', semitones: 1, letterSteps: 1 },
   { name: 'Major 2nd', semitones: 2, letterSteps: 1 },
@@ -463,15 +464,24 @@ const INTERVALS: IntervalDef[] = [
   { name: 'Minor 7th', semitones: 10, letterSteps: 6 },
   { name: 'Major 7th', semitones: 11, letterSteps: 6 },
   { name: 'Octave', semitones: 12, letterSteps: 7 },
+  // Compound intervals (octave + a simple interval) — ABRSM grade 5+.
+  { name: 'Minor 9th', semitones: 13, letterSteps: 8 },
+  { name: 'Major 9th', semitones: 14, letterSteps: 8 },
+  { name: 'Minor 10th', semitones: 15, letterSteps: 9 },
+  { name: 'Major 10th', semitones: 16, letterSteps: 9 },
+  { name: 'Perfect 11th', semitones: 17, letterSteps: 10 },
+  { name: 'Perfect 12th', semitones: 19, letterSteps: 11 },
+  { name: 'Major 13th', semitones: 21, letterSteps: 12 },
 ]
 
-// Three cumulative difficulty levels by semitone span. Each level keeps the
-// easier intervals and adds more (so harder levels offer a wider array of
-// options), and shows more choices: Easy 4, Medium 5, Hard 6.
+// Four cumulative difficulty bands by interval span (ABRSM-aligned): Easy =
+// 3rds/5th/octave; Medium adds 2nds/4th/tritone; Hard = all simple intervals;
+// Expert adds compound intervals (9th–13th). Choices widen: Easy 4 … Expert 6.
 const INTERVAL_LEVELS: { semitones: number[]; maxDistractors: number }[] = [
-  { semitones: [1, 6, 7, 12], maxDistractors: 3 }, // m2, TT, P5, 8ve
-  { semitones: [1, 2, 3, 4, 5, 6, 7, 12], maxDistractors: 4 }, // + M2 m3 M3 P4
-  { semitones: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], maxDistractors: 5 }, // all
+  { semitones: [3, 4, 7, 12], maxDistractors: 3 }, // m3, M3, P5, 8ve
+  { semitones: [1, 2, 3, 4, 5, 6, 7, 12], maxDistractors: 4 }, // + m2 M2 P4 TT
+  { semitones: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], maxDistractors: 5 }, // all simple
+  { semitones: [3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19, 21], maxDistractors: 5 }, // + compound
 ]
 
 /** 6. Interval ear-training: identify an ascending interval by sound (3 levels). */
@@ -553,7 +563,7 @@ function progressionEarQuestions(): Question[] {
 const INVERSIONS = 3
 const INVERSION_NAMES = ['root position', 'first inversion', 'second inversion']
 
-/** The three Chord-Recognition difficulty levels (chord complexity + key range). */
+/** The four Chord-Recognition difficulty levels (chord complexity + key range). */
 interface RecLevel {
   n: number
   sizes: ChordSize[]
@@ -561,10 +571,13 @@ interface RecLevel {
   /** Include keys whose signature has at most this many accidentals. */
   maxAccidentals: number
 }
+// ABRSM-aligned: root-position triads (G1–3) → inversions (G5) → sevenths (G6)
+// → ninths (G7–8). Ninths now live only in Expert (Hard was too hard).
 const REC_LEVELS: RecLevel[] = [
-  { n: 1, sizes: ['triad'], invert: false, maxAccidentals: 1 }, // Easy
-  { n: 2, sizes: ['triad', 'seventh'], invert: true, maxAccidentals: 3 }, // Medium
-  { n: 3, sizes: ['triad', 'seventh', 'ninth'], invert: true, maxAccidentals: 12 }, // Hard
+  { n: 1, sizes: ['triad'], invert: false, maxAccidentals: 3 }, // Easy
+  { n: 2, sizes: ['triad'], invert: true, maxAccidentals: 6 }, // Medium — inversions
+  { n: 3, sizes: ['triad', 'seventh'], invert: true, maxAccidentals: 6 }, // Hard — sevenths
+  { n: 4, sizes: ['triad', 'seventh', 'ninth'], invert: true, maxAccidentals: 6 }, // Expert — ninths
 ]
 
 /** Semitones (0–11) from `root` up to `tone`. */
@@ -676,7 +689,9 @@ function chordRecognitionQuestions(): Question[] {
           q.level = level.n
           // Inversions take longer to read (re-stack the notes in thirds to
           // find the root), so grant 5 s on top of the 10 s category default.
-          if (inversion !== 0) q.timeLimitMs = 15000
+          // Expert runs against a tighter clock (8 s, +4 s for inversions).
+          if (level.n === 4) q.timeLimitMs = inversion !== 0 ? 12000 : 8000
+          else if (inversion !== 0) q.timeLimitMs = 15000
           q.notation = {
             groups: [voiceInversion(tones, inversion, octave)],
             clef,
@@ -710,11 +725,14 @@ function chordKeySignature(tones: Note[]): string {
   return keySignatureSpec(root, major ? 'major' : 'minor')
 }
 
-/** The three Chord-Spelling levels (chord complexity + key range); no inversions. */
+// The four Chord-Spelling levels (chord complexity × key range; no inversions).
+// Each step adds either a chord size or more keys, and the full key range is held
+// back to Expert so every band is distinct.
 const SPELL_LEVELS: { n: number; sizes: ChordSize[]; maxAccidentals: number }[] = [
   { n: 1, sizes: ['triad'], maxAccidentals: 1 }, // Easy
   { n: 2, sizes: ['triad', 'seventh'], maxAccidentals: 3 }, // Medium
-  { n: 3, sizes: ['triad', 'seventh', 'ninth'], maxAccidentals: 12 }, // Hard
+  { n: 3, sizes: ['triad', 'seventh', 'ninth'], maxAccidentals: 5 }, // Hard
+  { n: 4, sizes: ['triad', 'seventh', 'ninth'], maxAccidentals: 6 }, // Expert
 ]
 
 /** Same-root distractor qualities by size (the root is given by the symbol). */
@@ -870,9 +888,24 @@ const MELODY_LEVELS: number[][][] = [
     [0, 2, 4, 5, 7, 5, 4, 2],
     [0, 4, 2, 5, 4, 7],
   ],
+  // L4 Expert: longer lines (6–10 notes) ranging beyond the octave (up to a 10th,
+  // degree 9). Solfège is octave-agnostic, so the upper-octave notes reuse the
+  // same syllables (re, mi …) — the leap, not the name, is what's harder.
+  [
+    [0, 2, 4, 7, 9, 7, 4, 0],
+    [0, 4, 7, 9, 7, 4, 0],
+    [0, 2, 4, 5, 7, 9, 8, 7],
+    [7, 9, 8, 7, 5, 4, 2, 0],
+    [0, 7, 9, 7, 4, 2, 0],
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    [9, 7, 5, 4, 2, 0],
+    [0, 4, 2, 7, 9, 5, 4, 0],
+    [0, 2, 4, 7, 8, 9, 7, 0],
+    [4, 7, 9, 7, 4, 2, 0],
+  ],
 ]
 
-const clampDeg = (d: number): number => Math.max(0, Math.min(7, d))
+const clampDeg = (d: number): number => Math.max(0, Math.min(14, d))
 
 const melodyAnswer = (mode: Mode, degrees: number[]): string =>
   degrees.map((d) => solfege(mode, d)).join('–')
@@ -1152,6 +1185,70 @@ const RHYTHM_LEVELS: RhythmLevelDef[] = [
       ],
     },
   },
+  // L4 Expert — fastest, densest: full 32nd runs, continuous triplet beats,
+  // wall-to-wall sixteenth cells, and heavy tied/off-beat syncopation across all
+  // metres including the asymmetric 5/4.
+  {
+    tempo: 152,
+    pools: {
+      '4/4': [
+        [X, X, X, X, X, X, X, X, Q, Q, Q],
+        [T, T, T, T, T, T, T, T, T, T, T, T],
+        [ED, S, ED, S, ED, S, Q],
+        [S, S, E, S, S, E, S, S, E, S, S, E],
+        [E, tie(Q), E, E, tie(Q), E],
+        [S, S, S, S, X, X, X, X, X, X, X, X, Q, Q],
+        [E, QD, QD, E],
+        [X, X, X, X, E, T, T, T, Q, Q],
+      ],
+      '3/4': [
+        [X, X, X, X, X, X, X, X, Q, Q],
+        [T, T, T, T, T, T, T, T, T],
+        [S, S, E, S, S, E, S, S, E],
+        [E, tie(Q), tie(E), E, E],
+        [X, X, X, X, E, T, T, T, Q],
+        [ED, S, ED, S, E, E],
+      ],
+      '2/4': [
+        [X, X, X, X, X, X, X, X, Q],
+        [T, T, T, T, T, T],
+        [S, S, E, S, S, E],
+        [X, X, X, X, E, Q],
+        [ED, S, ED, S],
+      ],
+      '6/8': [
+        [S, S, S, S, S, S, S, S, S, S, S, S],
+        [S, S, E, S, S, E, S, S, E],
+        [E, E, S, S, E, S, S, E],
+        [QD, S, S, E, E],
+        [S, S, S, S, E, QD],
+        [E, tie(Q), E, Q],
+      ],
+      '12/8': [
+        [E, S, S, E, QD, E, S, S, E, QD],
+        [S, S, E, E, QD, S, S, E, E, QD],
+        [E, E, E, QD, E, E, E, QD],
+        [QD, E, E, E, QD, E, E, E],
+        [S, S, S, S, E, QD, S, S, S, S, E, QD],
+      ],
+      '5/4': [
+        [X, X, X, X, X, X, X, X, Q, Q, Q, Q],
+        [T, T, T, T, T, T, T, T, T, T, T, T, T, T, T],
+        [S, S, E, S, S, E, S, S, E, S, S, E, S, S, E],
+        [E, E, Q, E, E, Q, Q],
+        [QD, QD, Q, Q],
+        [Q, E, E, Q, Q, Q],
+      ],
+      '2/2': [
+        [X, X, X, X, X, X, X, X, Q, Q, Q],
+        [T, T, T, T, T, T, T, T, T, T, T, T],
+        [S, S, E, S, S, E, S, S, E, S, S, E],
+        [E, tie(Q), E, E, tie(Q), E],
+        [E, QD, QD, E],
+        [QD, QD, Q],
+      ],
+    },
+  },
 ]
 
 /** Stable serialization, e.g. "q. 8 q q" / "t8 t8 t8 q" / "q~ q" — the choice id. */
@@ -1237,10 +1334,15 @@ interface ScalePlayLevel {
 }
 const ALL_MAJOR = KEYS.map((k) => noteToString(k.majorTonic))
 const ALL_MINOR = KEYS.map((k) => noteToString(k.minorTonic))
+// Cumulative ABRSM scale scope: Easy = grade-1 keys (C/G/D/F + A/D minor), 1
+// octave; Medium = grade-2/3 keys, 2 octaves; Hard = all keys, 2 octaves; Expert
+// = all keys, 2 octaves against a tighter clock and zero forgiven errors (the
+// error allowance is set per level in ScalePlayCard).
 const SCALE_PLAY_LEVELS: ScalePlayLevel[] = [
   { n: 1, octaves: 1, seconds: 15, majors: ['C', 'G', 'D', 'F'], minors: ['A', 'D'] },
   { n: 2, octaves: 2, seconds: 20, majors: ['C', 'G', 'D', 'F', 'A'], minors: ['A', 'D', 'E', 'G'] },
-  { n: 3, octaves: 2, seconds: 15, majors: ALL_MAJOR, minors: ALL_MINOR },
+  { n: 3, octaves: 2, seconds: 18, majors: ALL_MAJOR, minors: ALL_MINOR },
+  { n: 4, octaves: 2, seconds: 12, majors: ALL_MAJOR, minors: ALL_MINOR },
 ]
 
 function scalePlayQuestion(

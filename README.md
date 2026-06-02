@@ -19,10 +19,10 @@ progress, chosen from a table-of-contents home screen. Eleven études today, in 
 - **No. 2 — Scales.** Spell the natural / harmonic / melodic minor scales of every key.
 - **No. 3 — Play the Scale.** You're given a key and **play the scale ascending** on an interactive
   keyboard — tap/click, or strike a connected **MIDI keyboard**. Each correct note lights with its
-  RH+LH fingering; a few wrong notes are forgiven (Hard allows one, Easy/Medium two) before the run
+  RH+LH fingering; a few wrong notes are forgiven (Easy/Medium two, Hard one, Expert none) before the run
   ends and reveals the whole scale. An optional **show-fingering** hint flashes the whole scale's finger
   numbers for 3 s (any key hides them) — but peeking grades the exercise as failed. Sudden-death;
-  cumulative ABRSM-grade scope (Easy 1 octave / 15 s, Medium 2 / 20 s, Hard 2 / 15 s).
+  cumulative ABRSM-grade scope (Easy 1 octave / 15 s, Medium 2 / 20 s, Hard 2 / 18 s, Expert 2 / 12 s).
 
 ### 🎶 Chords & Harmony
 
@@ -52,13 +52,15 @@ progress, chosen from a table-of-contents home screen. Eleven études today, in 
   of common patterns — sixteenth cells (ti-tika / tika-ti), dotted-eighth and Scotch-snap figures, the
   tresillo (3+3+2), eighth-note triplets, ties, rests and off-beat syncopation. The metres accumulate
   with difficulty: Easy adds **2/4** (to 4/4, 3/4, 6/8), Medium adds **cut time (₵)** and **12/8**, Hard
-  adds **5/4**; a count-in sets the tempo and metre.
+  adds **5/4**, and **Expert** keeps the metres but pushes the tempo and density (full 32nd runs,
+  continuous triplets, heavy syncopation); a count-in sets the tempo and metre.
 
 ### Across the études
 
-- 🎚️ **Difficulty levels.** Most études have **Easy / Medium / Hard** (remembered per étude). Levels
-  widen the key range, add harder material (wider intervals, longer motifs, busier rhythms, sevenths /
-  inversions), or use the ABRSM grade-1/2 key sets — cumulatively, so harder includes easier.
+- 🎚️ **Difficulty levels.** Most études have four bands — **Easy / Medium / Hard / Expert** (remembered
+  per étude), calibrated to the ABRSM grades (≈ 1–3 / 4–5 / 5–6 / 7–8+, adjusted per étude). Levels widen
+  the key range and add harder material (compound intervals, longer/wider melodies, busier rhythms,
+  sevenths/ninths, inversions) — cumulatively, so harder includes easier.
 - 🔊 **Hover to hear it.** Hover any answer to play it on a synthesized piano — scales arpeggiate,
   chords ring as a block, progressions play chord-by-chord. Toggle with **♪ Sound**.
 - 👆 **Touch-friendly.** Every hover preview also works by touch. **Press** an answer to hear it, **slide**
@@ -113,10 +115,10 @@ is a separately scheduled card under an **SM-2-style** spaced-repetition schedul
 interval to the next review grows; miss it (or hit "I don't know") and it comes back soon, with the ease
 dropped further the more confidently you blanked.
 
-- **Levels** partition or widen an étude's material into Easy / Medium / Hard; each level keeps its own
-  scheduling, so progress on one doesn't leak into another.
+- **Levels** partition or widen an étude's material into Easy / Medium / Hard / Expert; each level keeps
+  its own scheduling, so progress on one doesn't leak into another.
 - **Timed recall** is sudden-death: Relative Minors and Chords by Degree (5 s), Chord Recognition (10 s,
-  +5 s for inversions), Progressions (15 s). Other categories are untimed.
+  +5 s for inversions; Expert 8 s), Progressions (15 s). Other categories are untimed.
 - **Pacing** caps each étude at 10 due cards per rolling 5-hour window.
 - **Sync:** progress lives in the browser's `localStorage`. Optionally **sign in** (email magic link,
   Supabase-backed) to sync progress and practice time across devices; signed out, the app stays fully

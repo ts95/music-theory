@@ -65,7 +65,7 @@ untimed.
 
 ---
 
-## No. 3 — Play the Scale (`scale-play`) — current version: 1
+## No. 3 — Play the Scale (`scale-play`) — current version: 2
 
 ### v1
 
@@ -82,9 +82,20 @@ untimed.
 - **Timing:** sudden-death budget is per-level (`seconds` above), enforced on the interactive card, not
   via `TIMED_LIMITS`.
 
+### v2 — 2026-06-02: four ABRSM bands (add Expert)
+
+- **Levels** (`['Easy','Medium','Hard','Expert']`, `SCALE_PLAY_LEVELS`): adds a fourth band and eases
+  Hard's clock; in-scope minor keys still appear in all three forms.
+  - **Easy (L1):** 1 octave, 15 s — majors C, G, D, F; minors A, D (ABRSM grade 1).
+  - **Medium (L2):** 2 octaves, 20 s — majors C, G, D, F, A; minors A, D, E, G.
+  - **Hard (L3):** 2 octaves, **18 s** (eased from 15 s) — all 12 majors and minors.
+  - **Expert (L4):** 2 octaves, **12 s**, and **zero forgiven errors** (Easy/Medium tolerate 2, Hard 1,
+    Expert 0 — `allowance` in `ScalePlayCard`) — all 12 keys.
+- Per-level SRS progress from v1 resets (the `L3` budget changed and `L4` is new).
+
 ---
 
-## No. 4 — Chords by Degree (`chords`) — current version: 1
+## No. 4 — Chords by Degree (`chords`) — current version: 2
 
 ### v1
 
@@ -104,9 +115,15 @@ untimed.
 - **Reveal:** lights the answer chord (root position) on the keyboard with RH/LH fingerings.
 - **Timing:** category `Diatonic chord` — **5 s** sudden-death.
 
+### v2 — 2026-06-02: four ABRSM bands (add Expert)
+
+- **Levels** (`['Easy','Medium','Hard','Expert']`): key range spread across four bands by key-signature
+  accidentals (`CHORD_LEVEL_ACCIDENTALS = [1, 3, 5, 6]`) — Easy ≤1, Medium ≤3, Hard ≤5, Expert all
+  twelve. Same trimmed degree set + V7 throughout. Per-level v1 progress resets.
+
 ---
 
-## No. 5 — Chord Recognition (`chord-recognition`) — current version: 1
+## No. 5 — Chord Recognition (`chord-recognition`) — current version: 2
 
 ### v1
 
@@ -128,9 +145,19 @@ untimed.
 - **Timing:** category `Chord recognition` — **10 s** sudden-death; inversion questions override to
   **15 s** (`q.timeLimitMs`, +5 s to re-stack the notes in thirds).
 
+### v2 — 2026-06-02: four ABRSM bands (add Expert; ninths moved up)
+
+- **Levels** (`['Easy','Medium','Hard','Expert']`, `REC_LEVELS`): ABRSM-aligned ladder — root triads →
+  inversions → sevenths → ninths. **Ninths now appear only in Expert** (Hard was too hard).
+  - **Easy (L1):** triads, root position, keys ≤3 accidentals.
+  - **Medium (L2):** triads **with inversions**, all keys.
+  - **Hard (L3):** + **sevenths**, inversions, all keys.
+  - **Expert (L4):** + **ninths**, inversions, all keys, **tighter clock** (8 s base, +4 s for inversions).
+- Per-level v1 progress resets (level scope shifted).
+
 ---
 
-## No. 6 — Spell the Chord (`chord-spelling`) — current version: 1
+## No. 6 — Spell the Chord (`chord-spelling`) — current version: 2
 
 ### v1
 
@@ -156,9 +183,19 @@ untimed.
   keyboard with RH/LH fingerings (`q.notation` on-reveal + `q.keyboard`).
 - **Timing:** category `Chord spelling` — **untimed** (a deliberate reading/reveal exercise).
 
+### v2 — 2026-06-02: four ABRSM bands (add Expert)
+
+- **Levels** (`['Easy','Medium','Hard','Expert']`, `SPELL_LEVELS`): chord size × key range, with the full
+  key range held back to Expert so every band is distinct.
+  - **Easy (L1):** triads, keys ≤1.
+  - **Medium (L2):** + sevenths, keys ≤3.
+  - **Hard (L3):** + ninths, keys ≤5.
+  - **Expert (L4):** + ninths, all twelve keys.
+- Per-level v1 progress resets.
+
 ---
 
-## No. 7 — Progressions (`progressions`) — current version: 1
+## No. 7 — Progressions (`progressions`) — current version: 2
 
 ### v1
 
@@ -180,9 +217,15 @@ untimed.
 - **Reveal:** the chords are drawn on a treble staff under the key's signature (`q.notation`, on reveal).
 - **Timing:** category `Progression` — **15 s** sudden-death.
 
+### v2 — 2026-06-02: four ABRSM bands (add Expert)
+
+- **Levels** (`['Easy','Medium','Hard','Expert']`): key range by accidentals
+  (`PROGRESSION_LEVEL_ACCIDENTALS = [1, 3, 5, 6]`) — Easy ≤1, Medium ≤3, Hard ≤5, Expert all twelve.
+  Same curated progressions + ii–V–I seventh forms throughout. Per-level v1 progress resets.
+
 ---
 
-## No. 8 — Intervals by Ear (`intervals-ear`) — current version: 1
+## No. 8 — Intervals by Ear (`intervals-ear`) — current version: 2
 
 ### v1
 
@@ -196,6 +239,17 @@ untimed.
 - **Distractors:** the **nearest intervals by semitone** within the level's pool.
 - **Audio:** owned by the question (`q.ear`, `kind: 'interval'`); no hover audio.
 - **Timing:** untimed (no `Interval` entry in `TIMED_LIMITS`).
+
+### v2 — 2026-06-02: four ABRSM bands (add Expert; compound intervals)
+
+- **Levels** (`['Easy','Medium','Hard','Expert']`, `INTERVAL_LEVELS`): Easy recalibrated to drop the
+  grade-5 tritone.
+  - **Easy (L1):** m3, M3, P5, octave — 4 choices.
+  - **Medium (L2):** + m2, M2, P4, tritone — 5 choices.
+  - **Hard (L3):** all 12 simple intervals — 6 choices.
+  - **Expert (L4):** adds **compound intervals** (m9, M9, m10, M10, P11, P12, M13) — 6 choices. Realized
+    octave-aware by `spellAbove`; explained as "an octave plus a simple interval".
+- Per-level v1 progress resets (Easy pool changed; `L4` is new).
 
 ---
 
@@ -214,7 +268,7 @@ untimed.
 
 ---
 
-## No. 10 — Melodic Dictation (`melodic-dictation`) — current version: 1
+## No. 10 — Melodic Dictation (`melodic-dictation`) — current version: 2
 
 ### v1
 
@@ -232,9 +286,16 @@ untimed.
 - **Timing:** untimed. (Note: sampling an individual scale note during playback counts as wrong — see the
   card behavior; not a category timer.)
 
+### v2 — 2026-06-02: four ABRSM bands (add Expert; wider range)
+
+- **Levels** (`['Easy','Medium','Hard','Expert']`, `MELODY_LEVELS`): Easy/Medium/Hard keep their
+  character; **Expert** adds longer lines (6–10 notes) **ranging beyond the octave** (degrees up to a
+  10th). `realizeEar` now voices a two-octave scale and `solfege` wraps degrees ≥ 8 (octave-agnostic
+  syllables). Per-level v1 progress resets.
+
 ---
 
-## No. 11 — Rhythm Dictation (`rhythm-dictation`) — current version: 1
+## No. 11 — Rhythm Dictation (`rhythm-dictation`) — current version: 2
 
 ### v1
 
@@ -257,6 +318,13 @@ untimed.
   choices (`audibleSignature` in `src/rhythm.ts`).
 - **Audio:** owned by the question (`q.ear`, `kind: 'rhythm'`, carrying meter, tempo, and pattern).
 - **Timing:** untimed.
+
+### v2 — 2026-06-02: four ABRSM bands (add Expert)
+
+- **Levels** (`['Easy','Medium','Hard','Expert']`, `RHYTHM_LEVELS`): L1–L3 unchanged; adds an **Expert**
+  band — tempo **152**, the densest vocabulary (full 32nd runs, continuous triplet beats, wall-to-wall
+  sixteenth cells, heavy tied/off-beat syncopation) across all seven metres including 5/4. The
+  `audibleSignature` dedupe applies to the new pool too. L1–L3 ids/progress are unchanged; `L4` is new.
 
 ---
 
