@@ -421,7 +421,9 @@ export default function TapAlongCard({
                     />
                   ))}
                   {expected.map((e, i) => {
-                    const s = markStyle(e.ms, e.holdMs)
+                    // Draw the target at 90% of the note's length (a small gap
+                    // between notes reads as discrete onsets, not one long bar).
+                    const s = markStyle(e.ms, e.holdMs * 0.9)
                     return (
                       <div key={i} className="absolute top-1/2 -translate-y-1/2" style={s}>
                         <div className="h-1 w-full rounded-full bg-accent/55" />
