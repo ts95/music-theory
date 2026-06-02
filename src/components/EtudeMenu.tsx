@@ -3,6 +3,7 @@ import type { Etude, Question, SrsData } from '../contracts'
 import { getState, initialState, isDue } from '../srs'
 import { formatMinutes } from '../time'
 import { remainingDue, windowResetAt } from '../dueCap'
+import { getSavedLevel } from '../levels'
 
 interface EtudeMenuProps {
   etudes: Etude[]
@@ -89,7 +90,16 @@ export default function EtudeMenu({
     <>
       <ul className="space-y-3">
       {etudes.map((e, i) => {
-        const questions = allQuestions.filter((q) => q.etudeId === e.id)
+        // Scope the card to the level the étude will open at (the remembered
+        // level), so its due/total/studied preview matches the étude view —
+        // each level is its own SRS set, so an all-levels total would mismatch.
+        const savedLevel = e.levels
+          ? Math.min(getSavedLevel(e.id), e.levels.length)
+          : null
+        const questions = allQuestions.filter(
+          (q) =>
+            q.etudeId === e.id && (savedLevel === null || q.level === savedLevel),
+        )
         const total = questions.length
         const due = questions.filter((q) =>
           isDue(getState(data, q.id) ?? initialState(now), now),
