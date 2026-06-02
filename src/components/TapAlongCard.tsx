@@ -372,35 +372,67 @@ export default function TapAlongCard({
       >
         <RhythmStaff pattern={pattern} meter={meter} eventColors={eventColors} />
 
-        {/* Tap trace: under the staff, a dot per tap with a line extending right
-            for as long as it was held (the live one grows while you hold). */}
+        {/* Tap trace(s): under the staff, a dot per onset with a line extending
+            right for its held length. While tapping, just your taps (the live one
+            grows as you hold). On the results screen a second "expected" lane is
+            added below so you can compare your timing/duration to the target. */}
         {(started || status === 'done') && (
-          <div className="relative mt-1 h-7" aria-hidden>
-            {/* faint beat grid + baseline */}
-            <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-rule/60" />
-            {Array.from({ length: totalBeats + 1 }, (_, i) => (
-              <div
-                key={`g${i}`}
-                className="absolute top-1 bottom-1 w-px bg-rule/40"
-                style={{ left: `${(i / totalBeats) * 100}%` }}
-              />
-            ))}
-            {tapsRef.current.map((t, i) => {
-              const s = markStyle(t.down, t.hold)
-              return (
-                <div key={i} className="absolute top-1/2 -translate-y-1/2" style={s}>
-                  <div className="h-1 w-full rounded-full bg-ink/55" />
-                  <div className="absolute left-0 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-ink/70" />
-                </div>
-              )
-            })}
-            {live && (
-              <div className="absolute top-1/2 -translate-y-1/2" style={markStyle(live.down, live.hold)}>
-                <div className="h-1 w-full rounded-full bg-ink" />
-                <div className="absolute left-0 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-ink" />
-              </div>
+          <>
+            {status === 'done' && (
+              <p className="marking mt-3 text-ink-2">you</p>
             )}
-          </div>
+            <div className="relative mt-1 h-7" aria-hidden>
+              {/* faint beat grid + baseline */}
+              <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-rule/60" />
+              {Array.from({ length: totalBeats + 1 }, (_, i) => (
+                <div
+                  key={`g${i}`}
+                  className="absolute top-1 bottom-1 w-px bg-rule/40"
+                  style={{ left: `${(i / totalBeats) * 100}%` }}
+                />
+              ))}
+              {tapsRef.current.map((t, i) => {
+                const s = markStyle(t.down, t.hold)
+                return (
+                  <div key={i} className="absolute top-1/2 -translate-y-1/2" style={s}>
+                    <div className="h-1 w-full rounded-full bg-ink/55" />
+                    <div className="absolute left-0 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-ink/70" />
+                  </div>
+                )
+              })}
+              {live && (
+                <div className="absolute top-1/2 -translate-y-1/2" style={markStyle(live.down, live.hold)}>
+                  <div className="h-1 w-full rounded-full bg-ink" />
+                  <div className="absolute left-0 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-ink" />
+                </div>
+              )}
+            </div>
+
+            {status === 'done' && (
+              <>
+                <p className="marking mt-2 text-accent">expected</p>
+                <div className="relative mt-1 h-7" aria-hidden>
+                  <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-rule/60" />
+                  {Array.from({ length: totalBeats + 1 }, (_, i) => (
+                    <div
+                      key={`eg${i}`}
+                      className="absolute top-1 bottom-1 w-px bg-rule/40"
+                      style={{ left: `${(i / totalBeats) * 100}%` }}
+                    />
+                  ))}
+                  {expected.map((e, i) => {
+                    const s = markStyle(e.ms, e.holdMs)
+                    return (
+                      <div key={i} className="absolute top-1/2 -translate-y-1/2" style={s}>
+                        <div className="h-1 w-full rounded-full bg-accent/55" />
+                        <div className="absolute left-0 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent" />
+                      </div>
+                    )
+                  })}
+                </div>
+              </>
+            )}
+          </>
         )}
 
         {tapping &&
