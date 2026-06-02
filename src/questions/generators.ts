@@ -50,6 +50,7 @@ import {
   rhythmDictationExplanation,
   scaleExplanation,
 } from './explanations'
+import { audibleSignature } from '../rhythm'
 
 const SCALE_TYPES: ScaleType[] = ['natural', 'harmonic', 'melodic']
 
@@ -1170,7 +1171,25 @@ function rhythmDictationQuestions(): Question[] {
   RHYTHM_LEVELS.forEach((def, levelIndex) => {
     const level = levelIndex + 1
     for (const meter of Object.keys(def.pools) as TimeSig[]) {
-      const pool = def.pools[meter]!
+      const rawPool = def.pools[meter]!
+      // Collapse patterns that SOUND identical (e.g. a dotted quarter vs a
+      // quarter tied to an eighth): keep the simplest notation per audible
+      // signature, in first-seen order, so a question never offers two choices
+      // that both match the rhythm played.
+      const repBySig = new Map<string, RhythmEvent[]>()
+      for (const p of rawPool) {
+        const s = audibleSignature(p)
+        const cur = repBySig.get(s)
+        if (!cur || p.length < cur.length) repBySig.set(s, p)
+      }
+      const seen = new Set<string>()
+      const pool: RhythmEvent[][] = []
+      for (const p of rawPool) {
+        const s = audibleSignature(p)
+        if (seen.has(s)) continue
+        seen.add(s)
+        pool.push(repBySig.get(s)!)
+      }
       const byKey: Record<string, RhythmEvent[]> = {}
       for (const p of pool) byKey[rhythmKey(p)] = p
       for (const pattern of pool) {

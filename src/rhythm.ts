@@ -38,3 +38,32 @@ export function eventBeats(e: RhythmEvent): number {
 export function patternBeats(pattern: RhythmEvent[]): number {
   return pattern.reduce((sum, e) => sum + eventBeats(e), 0)
 }
+
+/**
+ * What a pattern actually SOUNDS like: the onset beat and held length of every
+ * struck note. Rests advance time but make no sound; a tie holds its note through
+ * the chain without re-striking (mirrors how `scheduleRhythm` plays it). Two
+ * patterns with the same signature are indistinguishable by ear — e.g. a dotted
+ * quarter vs a quarter tied to an eighth — so a rhythm-dictation question must
+ * never offer both as choices.
+ */
+export function audibleSignature(pattern: RhythmEvent[]): string {
+  const round = (n: number): number => Math.round(n * 1000) / 1000
+  const attacks: string[] = []
+  let beat = 0
+  for (let i = 0; i < pattern.length; i++) {
+    const e = pattern[i]
+    const continuation = i > 0 && !!pattern[i - 1].tie
+    if (!e.rest && !continuation) {
+      let held = eventBeats(e)
+      let j = i
+      while (pattern[j].tie && j + 1 < pattern.length) {
+        j++
+        held += eventBeats(pattern[j])
+      }
+      attacks.push(`${round(beat)}:${round(held)}`)
+    }
+    beat += eventBeats(e)
+  }
+  return attacks.join(' ')
+}

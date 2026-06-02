@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { generateAllQuestions } from './generators'
 import { ETUDES } from './etudes'
-import { METERS } from '../rhythm'
+import { METERS, audibleSignature } from '../rhythm'
 import { voicedMidi } from '../theory'
 
 const questions = generateAllQuestions()
@@ -26,10 +26,10 @@ describe('generateAllQuestions', () => {
     // seventh forms) across three cumulative key-range levels (3 + 7 + 12 keys
     // per mode) = 13 × (3 + 7 + 12) = 286.
     // ear: 24 intervals (cumulative levels 4+8+12) + 11 progression types
-    //   + 64 melodic (3 levels × 2 modes) + 142 rhythm (3 levels × metres)
-    //   + 75 scale-play (Easy 10 + Medium 17 + Hard 48).
+    //   + 64 melodic (3 levels × 2 modes) + 141 rhythm (3 levels × metres,
+    //   audible duplicates collapsed) + 75 scale-play (Easy 10 + Medium 17 + Hard 48).
     expect(questions.length).toBe(
-      12 + 36 + 308 + 308 + 308 + 286 + 24 + 11 + 64 + 142 + 75
+      12 + 36 + 308 + 308 + 308 + 286 + 24 + 11 + 64 + 141 + 75
     )
   })
 
@@ -48,7 +48,7 @@ describe('generateAllQuestions', () => {
     expect(count('intervals-ear')).toBe(24) // cumulative levels: 4 + 8 + 12
     expect(count('progressions-ear')).toBe(11)
     expect(count('melodic-dictation')).toBe(64) // (10+12+10) motifs × 2 modes
-    expect(count('rhythm-dictation')).toBe(142) // L1 31 + L2 54 + L3 57
+    expect(count('rhythm-dictation')).toBe(141) // L1 31 + L2 54 + L3 56
     expect(count('scale-play')).toBe(75) // Easy 10 + Medium 17 + Hard 48
   })
 
@@ -300,8 +300,8 @@ describe('generateAllQuestions', () => {
     const earQ = questions.filter((q) => q.ear)
 
     it('every ear question carries an ear spec, distinct choices, and a tip', () => {
-      // 24 intervals + 11 progressions + 64 melodic + 142 rhythm.
-      expect(earQ.length).toBe(24 + 11 + 64 + 142)
+      // 24 intervals + 11 progressions + 64 melodic + 141 rhythm.
+      expect(earQ.length).toBe(24 + 11 + 64 + 141)
       for (const q of earQ) {
         expect(q.ear, q.id).toBeDefined()
         expect(q.choices.length, q.id).toBeGreaterThanOrEqual(4)
@@ -498,7 +498,7 @@ describe('generateAllQuestions', () => {
       q.ear as { kind: 'rhythm'; meter: keyof typeof METERS; pattern: Ev[] }
 
     it('every choice is a valid one-bar pattern in its metre, aligned to choices', () => {
-      expect(rhythm).toHaveLength(142) // L1 31 + L2 54 + L3 57
+      expect(rhythm).toHaveLength(141) // L1 31 + L2 54 + L3 56
       for (const q of rhythm) {
         expect(q.ear?.kind).toBe('rhythm')
         const total = METERS[specOf(q).meter].totalBeats
@@ -510,6 +510,13 @@ describe('generateAllQuestions', () => {
         }
         expect(q.level, q.id).toBeGreaterThanOrEqual(1)
         expect(q.explanation).toBeTruthy()
+      }
+    })
+
+    it('never offers two choices that sound identical (e.g. dotted vs tied)', () => {
+      for (const q of rhythm) {
+        const sigs = q.rhythmChoices!.map(audibleSignature)
+        expect(new Set(sigs).size, q.id).toBe(sigs.length)
       }
     })
 

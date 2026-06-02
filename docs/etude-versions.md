@@ -252,6 +252,9 @@ untimed.
     paired dotted-eighth/snap cells, tresillo and Charleston-style syncopation, tied off-beats, triplet
     beats, and a 32nd run.
 - **Distractors:** other patterns in the **same level and metre**, chosen by closest onset (note) count.
+  Patterns that *sound* identical (same attacks/held durations — e.g. a dotted quarter vs a quarter tied
+  to an eighth) are collapsed to one per metre pool, so a question never offers two correct-sounding
+  choices (`audibleSignature` in `src/rhythm.ts`).
 - **Audio:** owned by the question (`q.ear`, `kind: 'rhythm'`, carrying meter, tempo, and pattern).
 - **Timing:** untimed.
 
