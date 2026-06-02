@@ -14,6 +14,7 @@ import Button from './components/Button'
 import { isMuted, setMuted } from './audio/player'
 import { formatMinutes, getTodaySeconds, resetAllAnswers, resetAllSeconds } from './time'
 import { getSavedLevel, saveLevel } from './levels'
+import { getBoolPref, setBoolPref } from './prefs'
 import { remainingDue } from './dueCap'
 import { useEtudeTimer } from './useEtudeTimer'
 import { useSession } from './supabase/useSession'
@@ -64,6 +65,8 @@ export default function App() {
   const [data, setData] = useState<SrsData>(() => load())
   const [route, setRoute] = useState<string | null>(() => routeFromLocation())
   const [soundOn, setSoundOn] = useState(() => !isMuted())
+  // The sudden-death answer timer is optional (default on); persisted globally.
+  const [timerOn, setTimerOn] = useState(() => getBoolPref('timer', true))
   // Bumped on sign-in so the session restarts against the merged cloud data.
   const [sessionKey, setSessionKey] = useState(0)
   // Force a re-read of today's practice time after a global reset.
@@ -169,8 +172,14 @@ export default function App() {
     setMuted(!next)
   }
 
+  function toggleTimer() {
+    const next = !timerOn
+    setTimerOn(next)
+    setBoolPref('timer', next)
+  }
+
   const ioButtons = (
-    <div className="flex gap-2">
+    <div className="flex flex-wrap gap-2">
       <Button
         variant="secondary"
         onClick={toggleSound}
@@ -178,6 +187,18 @@ export default function App() {
         title={soundOn ? 'Sound on (hover a choice to hear it)' : 'Sound off'}
       >
         {soundOn ? '♪ Sound' : '♪̶ Muted'}
+      </Button>
+      <Button
+        variant="secondary"
+        onClick={toggleTimer}
+        aria-pressed={timerOn}
+        title={
+          timerOn
+            ? 'Sudden-death timer on — answer before the clock runs out'
+            : 'Sudden-death timer off — answer at your own pace'
+        }
+      >
+        {timerOn ? '⏱ Timed' : '⏱ Untimed'}
       </Button>
       <Button variant="secondary" onClick={() => navigate('about')}>
         About
@@ -258,6 +279,7 @@ export default function App() {
             data={data}
             setData={handleDataChange}
             sessionKey={sessionKey}
+            timerOn={timerOn}
             onBack={() => navigate(null)}
             onNavigate={navigate}
             ioButtons={ioButtons}
@@ -279,6 +301,7 @@ interface EtudeScreenProps {
   data: SrsData
   setData: (data: SrsData) => void
   sessionKey: number
+  timerOn: boolean
   onBack: () => void
   onNavigate: (route: string | null) => void
   ioButtons: ReactNode
@@ -290,6 +313,7 @@ function EtudeScreen({
   data,
   setData,
   sessionKey,
+  timerOn,
   onBack,
   onNavigate,
   ioButtons,
@@ -451,6 +475,7 @@ function EtudeScreen({
           etudeId={etude.id}
           version={etude.version ?? 1}
           data={data}
+          timerOn={timerOn}
           onDataChange={setData}
           onQuestionChange={setCurrentQid}
         />

@@ -36,6 +36,8 @@ interface ReviewSessionProps {
   version: number
   /** The current SRS store, owned by App (so import/export stay in sync). */
   data: SrsData
+  /** Whether the sudden-death answer timer is active (a global, optional setting). */
+  timerOn: boolean
   /** Persist + lift store changes back to App. */
   onDataChange: (data: SrsData) => void
   /** The id of the question currently shown (null on the summary), for the timer. */
@@ -88,6 +90,7 @@ export default function ReviewSession({
   etudeId,
   version,
   data,
+  timerOn,
   onDataChange,
   onQuestionChange,
 }: ReviewSessionProps) {
@@ -216,8 +219,9 @@ export default function ReviewSession({
     const resolved = selected !== null || timedOut || scaleResolved
     const progress = total > 0 ? ((index + (resolved ? 1 : 0)) / total) * 100 : 0
     // A question may override the category default (e.g. extra time for an
-    // inverted chord in chord recognition).
-    const timeLimitMs = q.timeLimitMs ?? TIMED_LIMITS[q.category]
+    // inverted chord in chord recognition). When the global timer is off, no
+    // limit applies (undefined ⇒ QuestionCard runs untimed).
+    const timeLimitMs = timerOn ? (q.timeLimitMs ?? TIMED_LIMITS[q.category]) : undefined
     return (
       <div className="space-y-4">
         <div className="flex items-end justify-between gap-4">
@@ -245,6 +249,7 @@ export default function ReviewSession({
           <ScalePlayCard
             key={q.id}
             question={q}
+            timed={timerOn}
             onResolve={handleScaleResult}
             onNext={handleNext}
           />

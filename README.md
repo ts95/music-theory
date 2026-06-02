@@ -82,8 +82,9 @@ progress, chosen from a table-of-contents home screen. Twelve études today, in 
   of the key facts (remembered open/closed).
 - 🤷 **"I don't know."** A fifth option on every question: admit a blank instead of guessing. It reveals
   the answer and sends the scheduler the strongest "bring this back soon" signal.
-- ⏱️ **Timed recall.** Several categories are sudden-death (5–15 s); let the clock run out and it counts
-  as a miss, so the scheduler resurfaces that item sooner.
+- ⏱️ **Timed recall (optional).** Several categories are sudden-death (5–15 s); let the clock run out and it
+  counts as a miss, so the scheduler resurfaces that item sooner. A header toggle (**⏱ Timed / Untimed**)
+  turns the clock off entirely — answer at your own pace — and the choice is remembered.
 - 🪶 **Gentle pacing.** Each étude serves at most **10 due cards per 5-hour window**, so a backlog never
   feels overwhelming.
 - 📈 **Daily practice time.** Each étude tracks active minutes practiced **today** (it pauses when you
@@ -127,7 +128,8 @@ dropped further the more confidently you blanked.
 - **Levels** partition or widen an étude's material into Easy / Medium / Hard / Expert; each level keeps
   its own scheduling, so progress on one doesn't leak into another.
 - **Timed recall** is sudden-death: Relative Minors and Chords by Degree (5 s), Chord Recognition (10 s,
-  +5 s for inversions; Expert 8 s), Progressions (15 s). Other categories are untimed.
+  +5 s for inversions; Expert 8 s), Progressions (15 s), plus Play the Scale's per-level clock. Other
+  categories are untimed. The whole timer can be switched off with the **⏱ Timed / Untimed** header toggle.
 - **Pacing** caps each étude at 10 due cards per rolling 5-hour window.
 - **Sync:** progress lives in the browser's `localStorage`. Optionally **sign in** (email magic link,
   Supabase-backed) to sync progress and practice time across devices; signed out, the app stays fully

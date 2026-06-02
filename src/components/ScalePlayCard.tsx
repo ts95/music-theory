@@ -17,6 +17,8 @@ import Button from './Button'
 
 interface ScalePlayCardProps {
   question: Question
+  /** Whether the sudden-death clock runs (global setting); untimed when false. */
+  timed: boolean
   onResolve: (passed: boolean) => void
   onNext: () => void
 }
@@ -25,6 +27,7 @@ const mod = (n: number, m: number) => ((n % m) + m) % m
 
 export default function ScalePlayCard({
   question,
+  timed,
   onResolve,
   onNext,
 }: ScalePlayCardProps) {
@@ -123,9 +126,9 @@ export default function ScalePlayCard({
     status === 'playing'
   )
 
-  // Sudden-death countdown.
+  // Sudden-death countdown — skipped entirely when the timer is off (untimed).
   useEffect(() => {
-    if (status !== 'playing') return
+    if (status !== 'playing' || !timed) return
     const deadline = Date.now() + sp.seconds * 1000
     const id = setInterval(() => {
       const rem = deadline - Date.now()
@@ -139,7 +142,7 @@ export default function ScalePlayCard({
     }, 100)
     return () => clearInterval(id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, sp.seconds])
+  }, [status, sp.seconds, timed])
 
   const mark = (i: number): KeyMark => ({
     midi: midis[i],
@@ -154,12 +157,14 @@ export default function ScalePlayCard({
       : sp.notes.map((_, i) => mark(i))
 
   const playing = status === 'playing'
+  // The clock UI only shows while playing AND when the timer is enabled.
+  const showClock = playing && timed
   const pct = Math.max(0, (remaining / (sp.seconds * 1000)) * 100)
-  const urgent = playing && remaining <= 3000
+  const urgent = showClock && remaining <= 3000
 
   return (
     <article className="relative overflow-hidden rounded-3xl border border-rule bg-card px-6 py-7 shadow-[0_22px_60px_-32px_rgba(33,28,21,0.5)] sm:px-9 sm:py-9">
-      {playing && (
+      {showClock && (
         <div aria-hidden className="absolute inset-x-0 top-0 h-1 bg-rule/40">
           <div
             className={`h-full transition-[width] duration-100 ease-linear ${urgent ? 'bg-wrong' : 'bg-accent'}`}
@@ -178,7 +183,7 @@ export default function ScalePlayCard({
       <p className="marking flex items-center gap-2 text-accent">
         <span className="h-px w-5 bg-accent/50" />
         {question.category}
-        {playing && (
+        {showClock && (
           <span
             className={`ml-auto font-mono text-sm font-semibold tabular-nums transition-colors ${urgent ? 'text-wrong' : 'text-ink-2'}`}
             aria-label="seconds remaining"

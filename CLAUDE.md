@@ -284,5 +284,6 @@ Tailwind utilities like `bg-paper`, `text-ink`, `ring-rule`, `text-accent`):
     server (navigate to `http://localhost:5173`, snapshot/screenshot, click) to eyeball a change or
     script a one-off check.
   - Two gotchas when automating: some question categories are **sudden-death timed**, so answer via the
-    keyboard (number keys `1–N` pick a choice, `Enter` advances) rather than slow clicks; and reset
-    `localStorage` (key `music-theory-srs`) for a deterministic due queue.
+    keyboard (number keys `1–N` pick a choice, `Enter` advances) rather than slow clicks — or turn the timer
+    off (the **⏱ Timed/Untimed** header toggle, persisted as `{"timer":false}` under the `music-theory-ui`
+    localStorage key); and reset `localStorage` (key `music-theory-srs`) for a deterministic due queue.
