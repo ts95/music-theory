@@ -24,8 +24,8 @@ const mono = (s: string) => <span className="font-mono text-ink">{s}</span>
 function Line({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex gap-3">
-      <span className="marking w-16 shrink-0 text-ink-3">{label}</span>
-      <span className="flex-1">{children}</span>
+      <span className="marking w-20 shrink-0 text-ink-3">{label}</span>
+      <span className="min-w-0 flex-1">{children}</span>
     </div>
   )
 }

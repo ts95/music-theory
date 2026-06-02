@@ -386,7 +386,7 @@ function EtudeScreen({
 
         {etude.levels && (
           <div
-            className="rise mt-5 flex items-center gap-3"
+            className="rise mt-5 flex flex-wrap items-center gap-3"
             style={{ animationDelay: '110ms' }}
           >
             <span className="marking text-ink-3">Level</span>
@@ -415,7 +415,7 @@ function EtudeScreen({
         )}
 
         <dl
-          className="rise mt-5 flex items-stretch gap-6"
+          className="rise mt-5 flex flex-wrap items-stretch gap-x-6 gap-y-3"
           style={{ animationDelay: '140ms' }}
         >
           {[
