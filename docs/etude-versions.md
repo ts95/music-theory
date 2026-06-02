@@ -328,7 +328,7 @@ untimed.
 
 ---
 
-## No. 12 — Tap the Rhythm (`rhythm-tap`) — current version: 2
+## No. 12 — Tap the Rhythm (`rhythm-tap`) — current version: 3
 
 ### v1 — 2026-06-02
 
@@ -368,6 +368,15 @@ untimed.
   (`TAP_EXCLUDE_METERS` in `generators.ts`); **Rhythm Dictation is unaffected** and keeps the full
   `RHYTHM_LEVELS` set. Count: 175 tap exercises (31 + 46 + 56 + 42); the 8 L2 12/8 patterns are dropped.
   Other levels, grading, tempo, and ids are unchanged from v1.
+
+### v3 — 2026-06-02: more forgiving grading
+
+- **Grading only** (questions/metres/levels/ids unchanged from v2): the perfect timing window is now a flat
+  **±200 ms** for every note (`PERFECT_MS`), no longer tightened for faster notes — the neighbour-gap cap
+  still applies so a tap can't match two adjacent onsets. The hold requirement is now **70%** of the note's
+  sounding length for eighths and longer but only **40%** for sixteenths and thirty-seconds (`holdMinFor`),
+  since fast notes are easy to clip. Pass threshold unchanged (≥ 80%). Bumped so accuracy stays comparable
+  across the looser grading.
 
 ---
 

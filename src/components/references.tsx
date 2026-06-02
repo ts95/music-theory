@@ -320,14 +320,15 @@ const REFERENCES: Record<string, EtudeReference> = {
         <p>
           <span className="text-ink">Press and hold</span> each note with{' '}
           <span className="text-ink">Space</span> or by pressing the staff — hold
-          for <span className="text-ink">at least ~70% of the note's length</span>,
-          so a quarter is sustained, not just clipped. Release, then press the next
-          note. Rests are silent — don't tap them.
+          for most of its length (<span className="text-ink">~70%</span>, or just
+          ~40% for quick sixteenths/thirty-seconds), so a note is sustained, not
+          just clipped. Release, then press the next note. Rests are silent — don't
+          tap them.
         </p>
         <p>
           You're scored on timing accuracy — it's forgiving, so a little early or
-          late still counts as 100% (the window is a touch tighter for faster
-          notes). The result colours each note{' '}
+          late still counts as 100% (a flat ~200 ms window for every note). The
+          result colours each note{' '}
           <span style={{ color: '#2f6b4e' }}>on the beat</span> /{' '}
           <span style={{ color: '#b08d57' }}>a little off</span> /{' '}
           <span style={{ color: '#bb4430' }}>missed or held too short</span>, and{' '}

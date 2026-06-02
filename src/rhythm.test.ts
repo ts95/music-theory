@@ -108,12 +108,28 @@ describe('scoreTaps', () => {
     expect(scoreTaps([expected[0]], [{ down: 0, hold: 349 }]).perOnset[0].short).toBe(true)
   })
 
-  it('tightens the window for faster notes', () => {
-    // 175ms off: still perfect for a quarter (200ms window) but not for a
-    // sixteenth (150ms window) — faster notes demand tighter timing.
+  it('uses a flat 200ms window regardless of note value', () => {
+    // 190ms off is within the window for both a sixteenth and a quarter now;
+    // 210ms off is just past it for both (no per-note tightening).
     const sixteenth = [{ ms: 0, beats: 0.25, holdMs: 0 }]
-    expect(scoreTaps(sixteenth, [{ down: 175, hold: 50 }]).perOnset[0].score).toBeLessThan(1)
-    expect(scoreTaps([{ ms: 0, beats: 1, holdMs: 0 }], [{ down: 175, hold: 50 }]).perOnset[0].score).toBe(1)
+    const quarter = [{ ms: 0, beats: 1, holdMs: 0 }]
+    expect(scoreTaps(sixteenth, [{ down: 190, hold: 50 }]).perOnset[0].score).toBe(1)
+    expect(scoreTaps(quarter, [{ down: 190, hold: 50 }]).perOnset[0].score).toBe(1)
+    expect(scoreTaps(quarter, [{ down: 210, hold: 50 }]).perOnset[0].score).toBeLessThan(1)
+  })
+
+  it('requires only 40% hold for sixteenths/thirty-seconds, 70% otherwise', () => {
+    // A sixteenth sounding 100ms: 40ms (40%) passes; just under fails.
+    const six = [{ ms: 0, beats: 0.25, holdMs: 100 }]
+    expect(scoreTaps(six, [{ down: 0, hold: 40 }]).perOnset[0].score).toBe(1)
+    expect(scoreTaps(six, [{ down: 0, hold: 39 }]).perOnset[0].short).toBe(true)
+    // A thirty-second (beats 0.125) also needs only 40%.
+    const t32 = [{ ms: 0, beats: 0.125, holdMs: 100 }]
+    expect(scoreTaps(t32, [{ down: 0, hold: 40 }]).perOnset[0].score).toBe(1)
+    // A quarter still needs 70%.
+    const q = [{ ms: 0, beats: 1, holdMs: 100 }]
+    expect(scoreTaps(q, [{ down: 0, hold: 69 }]).perOnset[0].short).toBe(true)
+    expect(scoreTaps(q, [{ down: 0, hold: 70 }]).perOnset[0].score).toBe(1)
   })
 
   it('does not let a single tap match two dense onsets', () => {

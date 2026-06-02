@@ -78,31 +78,32 @@ export interface Tap {
   hold: number
 }
 
-/** A tap must be held for at least this fraction of the note's sounding length
- *  to count as correct — so a quarter is sustained, not just clipped. */
+/** Fraction of a note's sounding length a tap must cover to count (else it's
+ *  flagged "short"): sixteenths and thirty-seconds are easy to clip, so they
+ *  need only 40%; eighths and longer need 70%. Keyed off the note's written
+ *  value (`beats`): a sixteenth = 0.25, a thirty-second = 0.125. */
 export const HOLD_MIN = 0.7
+export const HOLD_MIN_FAST = 0.4
+const holdMinFor = (beats: number): number => (beats <= 0.25 ? HOLD_MIN_FAST : HOLD_MIN)
 
-/** The "perfect" half-window (ms) for a note of `beats` value: ~200 ms for a
- *  quarter or slower, tightening to ~150 ms for sixteenths/faster. Note-value
- *  based (tempo-independent), so a fast note demands tighter timing — but the
- *  whole range is forgiving (you only need the rhythm right, not metronomic). */
-function perfectWindowMs(beats: number): number {
-  return Math.max(150, Math.min(200, 133 + 67 * beats))
-}
+/** The "perfect" timing half-window (ms): a fixed, forgiving 200 ms regardless
+ *  of tempo or note value (the neighbour-gap cap below still tightens it only so
+ *  a tap can't match two adjacent onsets in dense passages). */
+const PERFECT_MS = 200
 
 /**
  * Grade tapped onsets against the expected ones (all times in ms from a shared
- * start). Each expected onset gets a tolerance: full marks within its perfect
- * window, decaying linearly to zero at `missMs` (≈3× the perfect window, but
+ * start). Each onset gets a flat ±200 ms perfect window (`PERFECT_MS`), full
+ * marks within it, decaying linearly to zero at `missMs` (3× the window, but
  * capped at 45% of the gap to the nearest neighbour so a tap can't match two
  * onsets in dense passages). Onsets are matched to their nearest unused tap;
  * leftover taps are `extra` and each costs half an onset. Accuracy is the mean
  * per-onset score (minus the extra-tap penalty), 0–100. Constants are tunable.
  *
- * A matched tap only counts as correct if it was also **held** for at least
- * `HOLD_MIN` of the note's sounding length (`holdMs`) — a clipped tap on the beat
- * scores 0 and is flagged `short`, so a quarter must be sustained, not just
- * struck.
+ * A matched tap only counts as correct if it was also **held** for enough of the
+ * note's sounding length (`holdMs`) — `holdMinFor(beats)`: 70% for eighths and
+ * longer, 40% for sixteenths/thirty-seconds. A clipped tap on the beat scores 0
+ * and is flagged `short`, so a note must be sustained, not just struck.
  *
  * Per onset it reports the signed timing offset `dtMs` (+late / −early, null if
  * the onset was missed), whether the matched tap was `short`, and its 0–1
@@ -132,10 +133,9 @@ export function scoreTaps(
     const prevGap = i > 0 ? e.ms - expected[i - 1].ms : Infinity
     const nextGap = i < n - 1 ? expected[i + 1].ms - e.ms : Infinity
     const gap = Math.min(prevGap, nextGap)
-    const perfect = perfectWindowMs(e.beats)
-    const miss = Math.min(perfect * 3, gap === Infinity ? perfect * 3 : 0.45 * gap)
+    const miss = Math.min(PERFECT_MS * 3, gap === Infinity ? PERFECT_MS * 3 : 0.45 * gap)
     // A perfect window can't exceed the miss window (very dense rhythms).
-    const p = Math.min(perfect, miss)
+    const p = Math.min(PERFECT_MS, miss)
 
     let bestJ = -1
     let bestSigned = Infinity
@@ -151,8 +151,9 @@ export function scoreTaps(
       used[bestJ] = true
       const d = Math.abs(bestSigned)
       const timing = d <= p ? 1 : 1 - (d - p) / (miss - p)
-      // The tap landed in time, but must also be sustained for the note's length.
-      const short = taps[bestJ].hold < HOLD_MIN * e.holdMs
+      // The tap landed in time, but must also be sustained for the note's length
+      // (fast notes need only half — see holdMinFor).
+      const short = taps[bestJ].hold < holdMinFor(e.beats) * e.holdMs
       const score = short ? 0 : timing
       perOnset.push({ dtMs: Math.round(bestSigned), score, short })
       sum += score

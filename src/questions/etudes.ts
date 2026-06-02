@@ -102,6 +102,6 @@ export const ETUDES: Etude[] = [
     title: 'Tap the Rhythm',
     subtitle: 'Read a one-bar rhythm and tap it in time',
     levels: ['Easy', 'Medium', 'Hard', 'Expert'],
-    version: 2,
+    version: 3,
   },
 ]
