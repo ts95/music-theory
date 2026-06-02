@@ -84,7 +84,8 @@ export interface Tap {
  *  value (`beats`): a sixteenth = 0.25, a thirty-second = 0.125. */
 export const HOLD_MIN = 0.7
 export const HOLD_MIN_FAST = 0.4
-const holdMinFor = (beats: number): number => (beats <= 0.25 ? HOLD_MIN_FAST : HOLD_MIN)
+export const holdMinFor = (beats: number): number =>
+  beats <= 0.25 ? HOLD_MIN_FAST : HOLD_MIN
 
 /** The "perfect" timing half-window (ms): a fixed, forgiving 200 ms regardless
  *  of tempo or note value (the neighbour-gap cap below still tightens it only so

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Question } from '../contracts'
-import { METERS, onsets, scoreTaps, type OnsetResult, type Tap } from '../rhythm'
+import { METERS, holdMinFor, onsets, scoreTaps, type OnsetResult, type Tap } from '../rhythm'
 import { isMuted, playClick, playRhythm, prime, stop } from '../audio/player'
 import { getSavedTempo, saveTempo } from '../tempos'
 import RhythmStaff from './RhythmStaff'
@@ -421,9 +421,11 @@ export default function TapAlongCard({
                     />
                   ))}
                   {expected.map((e, i) => {
-                    // Draw the target at 90% of the note's length (a small gap
-                    // between notes reads as discrete onsets, not one long bar).
-                    const s = markStyle(e.ms, e.holdMs * 0.9)
+                    // Draw the target at the required-hold fraction + 20pp (60%
+                    // fast / 90% otherwise) — a touch past the grading threshold
+                    // (holdMinFor), so aiming for this line clears it comfortably.
+                    const frac = Math.min(1, holdMinFor(e.beats) + 0.2)
+                    const s = markStyle(e.ms, e.holdMs * frac)
                     return (
                       <div key={i} className="absolute top-1/2 -translate-y-1/2" style={s}>
                         <div className="h-1 w-full rounded-full bg-accent/55" />
