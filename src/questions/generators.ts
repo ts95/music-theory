@@ -1321,6 +1321,13 @@ function rhythmDictationQuestions(): Question[] {
   return questions
 }
 
+// Metres trimmed from tap-along (only) vs the shared RHYTHM_LEVELS, by level:
+// Medium drops 12/8 — compound quadruple is left for Hard+ here. (Rhythm
+// Dictation keeps the full RHYTHM_LEVELS set; this filter is tap-along-specific.)
+const TAP_EXCLUDE_METERS: Partial<Record<number, TimeSig[]>> = {
+  2: ['12/8'],
+}
+
 /**
  * Tap the Rhythm (interactive): show a one-bar rhythm as notation; the student
  * taps it in time after a count-in. Reuses the rhythm-dictation vocabulary
@@ -1332,6 +1339,7 @@ function rhythmTapQuestions(): Question[] {
   RHYTHM_LEVELS.forEach((def, levelIndex) => {
     const level = levelIndex + 1
     for (const meter of Object.keys(def.pools) as TimeSig[]) {
+      if (TAP_EXCLUDE_METERS[level]?.includes(meter)) continue
       const rawPool = def.pools[meter]!
       // Keep the simplest notation per audible signature (same as dictation).
       const repBySig = new Map<string, RhythmEvent[]>()

@@ -328,7 +328,7 @@ untimed.
 
 ---
 
-## No. 12 — Tap the Rhythm (`rhythm-tap`) — current version: 1
+## No. 12 — Tap the Rhythm (`rhythm-tap`) — current version: 2
 
 ### v1 — 2026-06-02
 
@@ -360,6 +360,14 @@ untimed.
   session is performed at is recorded on the practice log (`addAnswer`'s `tempo`) and synced to the
   `practice_time.tempo` column, so the calendar CSV export carries it. (Pattern set/levels unchanged → still
   v1; tempo is a recorded dimension, not a difficulty redefinition.)
+
+### v2 — 2026-06-02: Medium drops 12/8
+
+- **Metres:** Medium (L2) no longer includes **12/8** — compound quadruple is held back to Hard+. Medium is
+  now 4/4, 3/4, 2/4, 6/8, 2/2 (2/4 still carries Easy→Medium→Hard). Implemented as a tap-along-only filter
+  (`TAP_EXCLUDE_METERS` in `generators.ts`); **Rhythm Dictation is unaffected** and keeps the full
+  `RHYTHM_LEVELS` set. Count: 175 tap exercises (31 + 46 + 56 + 42); the 8 L2 12/8 patterns are dropped.
+  Other levels, grading, tempo, and ids are unchanged from v1.
 
 ---
 

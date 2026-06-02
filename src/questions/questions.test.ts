@@ -23,10 +23,10 @@ describe('generateAllQuestions', () => {
     // progressions: 13 variants × (3+7+11+12) keys = 429.
     // ear: 40 intervals (4+8+12+16) + 11 progression types + 84 melodic
     //   (10+12+10+10 motifs × 2 modes) + 183 rhythm-dictation (31+54+56+42) +
-    //   183 rhythm-tap (same patterns, one tap exercise each) + 123 scale-play
-    //   (10+17+48+48).
+    //   175 rhythm-tap (same patterns, one tap exercise each; Medium drops 12/8,
+    //   so 31+46+56+42) + 123 scale-play (10+17+48+48).
     expect(questions.length).toBe(
-      12 + 36 + 123 + 462 + 602 + 462 + 429 + 40 + 11 + 84 + 183 + 183
+      12 + 36 + 123 + 462 + 602 + 462 + 429 + 40 + 11 + 84 + 183 + 175
     )
   })
 
@@ -46,7 +46,7 @@ describe('generateAllQuestions', () => {
     expect(count('progressions-ear')).toBe(11)
     expect(count('melodic-dictation')).toBe(84) // (10+12+10+10) motifs × 2 modes
     expect(count('rhythm-dictation')).toBe(183) // L1 31 + L2 54 + L3 56 + L4 42
-    expect(count('rhythm-tap')).toBe(183) // same patterns, one tap exercise each
+    expect(count('rhythm-tap')).toBe(175) // 31+46+56+42 — Medium drops 12/8 vs dictation
     expect(count('scale-play')).toBe(123) // 10 + 17 + 48 + 48
   })
 
