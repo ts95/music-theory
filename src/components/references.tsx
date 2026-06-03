@@ -318,6 +318,11 @@ const REFERENCES: Record<string, EtudeReference> = {
           to start.
         </p>
         <p>
+          Before you begin, the syllables under each note show <span className="text-ink">how to
+          count it</span> — switch between <span className="text-ink">Traditional</span> (numbers,
+          &amp;, e/a) and <span className="text-ink">Kodály</span> (ta, ti, ti-ka) with the toggle.
+        </p>
+        <p>
           <span className="text-ink">Press and hold</span> each note with{' '}
           <span className="text-ink">Space</span> or by pressing the staff — hold
           for most of its length (<span className="text-ink">~70%</span>, or just

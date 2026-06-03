@@ -10,6 +10,7 @@ import { ensureMusicFont } from './vexFont'
  */
 
 const INK = '#211c15'
+const COUNT = '#5a5142' // ink-2 — the counting syllables read as a quiet guide
 
 /** VexFlow duration token: base + dots ('d') + rest ('r'), e.g. 'qd', '16', '8r'. */
 const vexDuration = (e: RhythmEvent): string =>
@@ -24,17 +25,24 @@ interface RhythmStaffProps {
    * tap-along results screen to show, note by note, how each onset was hit.
    */
   eventColors?: (string | undefined)[]
+  /**
+   * Optional counting syllable under each note (aligned to `pattern`; `null` =
+   * none). Used by the tap-along ready screen to show how to count the rhythm.
+   */
+  counts?: (string | null)[]
 }
 
 export default function RhythmStaff({
   pattern,
   meter = '4/4',
   eventColors,
+  counts,
 }: RhythmStaffProps) {
   const ref = useRef<HTMLDivElement>(null)
   const [failed, setFailed] = useState(false)
   const [num, den] = meter.split('/').map(Number)
   const width = 40 + pattern.length * 30 + 14 // 40px lead for the time signature
+  const height = counts ? 172 : 92 // extra room below the staff for the counts
 
   useEffect(() => {
     let cancelled = false
@@ -56,10 +64,12 @@ export default function RhythmStaff({
           Stem,
           Voice,
           Formatter,
+          Annotation,
+          AnnotationVerticalJustify,
         } = vexflow
         ref.current.innerHTML = ''
         const renderer = new Renderer(ref.current, Renderer.Backends.SVG)
-        renderer.resize(width, 92)
+        renderer.resize(width, height)
         const ctx = renderer.getContext()
         ctx.setFillStyle(INK)
         ctx.setStrokeStyle(INK)
@@ -79,6 +89,17 @@ export default function RhythmStaff({
           notes.forEach((note, i) => {
             const c = eventColors[i]
             if (c) note.setStyle({ fillStyle: c, strokeStyle: c })
+          })
+        }
+        // Optional counting syllable under each note (tap-along ready screen).
+        if (counts) {
+          notes.forEach((note, i) => {
+            const c = counts[i]
+            if (c == null) return
+            const a = new Annotation(c)
+            a.setVerticalJustification(AnnotationVerticalJustify.BOTTOM)
+            a.setStyle({ fillStyle: COUNT, strokeStyle: COUNT })
+            note.addModifier(a, 0)
           })
         }
         // Draw augmentation dots (ticks already come from the 'd' in the duration).
@@ -125,7 +146,7 @@ export default function RhythmStaff({
       cancelled = true
       if (host) host.innerHTML = ''
     }
-  }, [width, meter, num, den, JSON.stringify(pattern), JSON.stringify(eventColors)])
+  }, [width, height, meter, num, den, JSON.stringify(pattern), JSON.stringify(eventColors), JSON.stringify(counts)])
 
   if (failed) return null
   return <div ref={ref} className="overflow-x-auto" />

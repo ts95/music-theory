@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Question } from '../contracts'
 import { METERS, holdMinFor, onsets, scoreTaps, type OnsetResult, type Tap } from '../rhythm'
+import { countSyllables } from '../rhythmCounting'
 import { isMuted, playClick, playRhythm, prime, stop } from '../audio/player'
 import { getSavedTempo, saveTempo } from '../tempos'
+import { getBoolPref, setBoolPref } from '../prefs'
 import RhythmStaff from './RhythmStaff'
 import Button from './Button'
 
@@ -56,6 +58,17 @@ export default function TapAlongCard({
     setTempoState(t)
     saveTempo('rhythm-tap', level, t)
   }
+  // Counting guide shown on the ready screen: Traditional (numbers) or Kodály
+  // (duration syllables), remembered globally.
+  const [kodaly, setKodalyState] = useState(() => getBoolPref('count-kodaly', false))
+  const setKodaly = (v: boolean) => {
+    setKodalyState(v)
+    setBoolPref('count-kodaly', v)
+  }
+  const counts = useMemo(
+    () => countSyllables(pattern, meter, kodaly ? 'kodaly' : 'traditional'),
+    [pattern, meter, kodaly]
+  )
   const beatMs = 60000 / tempo
   const { countIn, totalBeats } = METERS[meter]
 
@@ -273,19 +286,28 @@ export default function TapAlongCard({
     }
   }, [status])
 
-  // Per-event feedback colours, aligned to the full pattern (rests/ties left ink).
+  // Per-event feedback colours, aligned to the full pattern. Rests stay ink; a
+  // tied continuation inherits its onset's colour, so a whole tied note (the
+  // struck note + everything tied to it) shows as one colour.
   const eventColors = useMemo(() => {
     if (!result) return undefined
     const colors: (string | undefined)[] = []
     let k = 0
+    let held: string | undefined // the current tied group's colour
     for (let i = 0; i < pattern.length; i++) {
       const e = pattern[i]
       const continuation = i > 0 && !!pattern[i - 1].tie
-      if (e.rest || continuation) {
+      if (e.rest) {
         colors.push(undefined)
+        held = undefined
         continue
       }
-      colors.push(onsetColor(result.perOnset[k++]))
+      if (continuation) {
+        colors.push(held)
+        continue
+      }
+      held = onsetColor(result.perOnset[k++])
+      colors.push(held)
     }
     return colors
   }, [result, pattern])
@@ -370,7 +392,12 @@ export default function TapAlongCard({
                 : 'cursor-pointer border-correct/40 bg-paper ring-1 ring-correct/20' // steady
         }`}
       >
-        <RhythmStaff pattern={pattern} meter={meter} eventColors={eventColors} />
+        <RhythmStaff
+          pattern={pattern}
+          meter={meter}
+          eventColors={eventColors}
+          counts={status === 'ready' ? counts : undefined}
+        />
 
         {/* Tap trace(s): under the staff, a dot per onset with a line extending
             right for its held length. While tapping, just your taps (the live one
@@ -465,9 +492,38 @@ export default function TapAlongCard({
       </div>
 
       {status === 'ready' && (
-        <div className="mt-7 flex flex-wrap items-center justify-between gap-4">
-          <label className="flex items-center gap-3">
-            <span className="marking text-ink-3">Tempo</span>
+        <>
+          {/* Counting guide system toggle + a one-line legend. */}
+          <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2">
+            <span className="marking text-ink-3">Count</span>
+            <div className="inline-flex rounded-full border border-rule bg-card p-0.5">
+              {[
+                { label: 'Traditional', on: !kodaly, set: () => setKodaly(false) },
+                { label: 'Kodály', on: kodaly, set: () => setKodaly(true) },
+              ].map((o) => (
+                <button
+                  key={o.label}
+                  type="button"
+                  onClick={o.set}
+                  aria-pressed={o.on}
+                  className={`rounded-full px-3.5 py-1.5 text-sm transition-colors ${
+                    o.on ? 'bg-ink text-paper' : 'text-ink-2 hover:text-ink'
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+            <span className="marking text-ink-3">
+              {kodaly
+                ? 'ta = quarter · ti = eighth · ti-ka sixteenths'
+                : 'numbers on beats · & off-beats · e/a sixteenths'}
+            </span>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
+            <label className="flex items-center gap-3">
+              <span className="marking text-ink-3">Tempo</span>
             <input
               type="range"
               min={TEMPO_MIN}
@@ -482,10 +538,11 @@ export default function TapAlongCard({
               {tempo} BPM
             </span>
           </label>
-          <Button onClick={run} autoFocus>
-            Begin
-          </Button>
-        </div>
+            <Button onClick={run} autoFocus>
+              Begin
+            </Button>
+          </div>
+        </>
       )}
 
       {status === 'done' && result && (
