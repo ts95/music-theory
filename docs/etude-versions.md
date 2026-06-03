@@ -328,7 +328,7 @@ untimed.
 
 ---
 
-## No. 12 — Tap the Rhythm (`rhythm-tap`) — current version: 3
+## No. 12 — Tap the Rhythm (`rhythm-tap`) — current version: 4
 
 ### v1 — 2026-06-02
 
@@ -377,6 +377,13 @@ untimed.
   sounding length for eighths and longer but only **40%** for sixteenths and thirty-seconds (`holdMinFor`),
   since fast notes are easy to clip. Pass threshold unchanged (≥ 80%). Bumped so accuracy stays comparable
   across the looser grading.
+
+### v4 — 2026-06-03: 40% hold for triplets too
+
+- **Grading only:** the **40%** hold requirement (`HOLD_MIN_FAST`, vs 70% otherwise) now also applies to
+  **eighth-note triplets**, not just sixteenths/thirty-seconds — `holdMinFor` keys off the note's written
+  value (`beats ≤ 0.34`, i.e. anything shorter than an eighth). The expected-trace target line (hold + 20pp)
+  follows suit. Nothing else changed.
 
 ---
 

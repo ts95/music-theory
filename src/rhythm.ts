@@ -79,13 +79,14 @@ export interface Tap {
 }
 
 /** Fraction of a note's sounding length a tap must cover to count (else it's
- *  flagged "short"): sixteenths and thirty-seconds are easy to clip, so they
- *  need only 40%; eighths and longer need 70%. Keyed off the note's written
- *  value (`beats`): a sixteenth = 0.25, a thirty-second = 0.125. */
+ *  flagged "short"): quick notes are easy to clip, so they need only 40%; eighths
+ *  and longer need 70%. Keyed off the note's written value (`beats`): "quick" is
+ *  anything shorter than an eighth — a sixteenth (0.25), thirty-second (0.125),
+ *  or an eighth-note triplet (≈ 0.33). */
 export const HOLD_MIN = 0.7
 export const HOLD_MIN_FAST = 0.4
 export const holdMinFor = (beats: number): number =>
-  beats <= 0.25 ? HOLD_MIN_FAST : HOLD_MIN
+  beats <= 0.34 ? HOLD_MIN_FAST : HOLD_MIN
 
 /** The "perfect" timing half-window (ms): a fixed, forgiving 200 ms regardless
  *  of tempo or note value (the neighbour-gap cap below still tightens it only so

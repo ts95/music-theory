@@ -118,7 +118,7 @@ describe('scoreTaps', () => {
     expect(scoreTaps(quarter, [{ down: 210, hold: 50 }]).perOnset[0].score).toBeLessThan(1)
   })
 
-  it('requires only 40% hold for sixteenths/thirty-seconds, 70% otherwise', () => {
+  it('requires only 40% hold for quick notes (16th/32nd/triplet), 70% otherwise', () => {
     // A sixteenth sounding 100ms: 40ms (40%) passes; just under fails.
     const six = [{ ms: 0, beats: 0.25, holdMs: 100 }]
     expect(scoreTaps(six, [{ down: 0, hold: 40 }]).perOnset[0].score).toBe(1)
@@ -126,6 +126,10 @@ describe('scoreTaps', () => {
     // A thirty-second (beats 0.125) also needs only 40%.
     const t32 = [{ ms: 0, beats: 0.125, holdMs: 100 }]
     expect(scoreTaps(t32, [{ down: 0, hold: 40 }]).perOnset[0].score).toBe(1)
+    // An eighth-note triplet (beats ≈ 0.33) now also needs only 40%.
+    const trip = [{ ms: 0, beats: 1 / 3, holdMs: 100 }]
+    expect(scoreTaps(trip, [{ down: 0, hold: 40 }]).perOnset[0].score).toBe(1)
+    expect(scoreTaps(trip, [{ down: 0, hold: 39 }]).perOnset[0].short).toBe(true)
     // A quarter still needs 70%.
     const q = [{ ms: 0, beats: 1, holdMs: 100 }]
     expect(scoreTaps(q, [{ down: 0, hold: 69 }]).perOnset[0].short).toBe(true)

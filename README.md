@@ -59,7 +59,7 @@ progress, chosen from a table-of-contents home screen. Twelve études today, in 
   on every beat. The **tempo is adjustable** (a 50–150 BPM slider, remembered per level); a count-in with a
   beat count (**1·2·3·4**) sets it, then the staff flashes **green** to mark the downbeat where your bar begins.
   You're scored on timing accuracy — a little early or late still counts (a forgiving, flat ~200 ms window)
-  — and each note must be **held for most of its length** (~70%, or ~40% for quick sixteenths/thirty-seconds)
+  — and each note must be **held for most of its length** (~70%, or ~40% for quick notes — sixteenths, thirty-seconds, triplets)
   to count, so a note is sustained, not clipped. The result colours each note
   **on the beat / a little off / missed or too short**, with **Hear it** to compare and **Try again** for a
   practice run (your first attempt is the one that's graded). Same metres and four levels as Rhythm Dictation.
