@@ -84,6 +84,13 @@ export default function TapAlongCard({
       })),
     [pattern, totalBeats, beatMs]
   )
+  // Trace gridlines at the metre's felt beats (+ the closing barline), as a
+  // fraction of the bar — so 6/8 shows two lines, 12/8 four, cut time two, etc.,
+  // matching the count-in pulse rather than every quarter.
+  const beatGrid = useMemo(
+    () => [...countIn.map((b) => b / totalBeats), 1],
+    [countIn, totalBeats]
+  )
   // A click on every felt beat across both bars — one uniform wooden click, the
   // same for the count-in and the exercise. The first beat of each measure is
   // slightly accented. The count-in bar counts the felt beats the usual way
@@ -409,13 +416,13 @@ export default function TapAlongCard({
               <p className="marking mt-3 text-ink-2">you</p>
             )}
             <div className="relative mt-1 h-7" aria-hidden>
-              {/* faint beat grid + baseline */}
+              {/* faint felt-beat grid + baseline */}
               <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-rule/60" />
-              {Array.from({ length: totalBeats + 1 }, (_, i) => (
+              {beatGrid.map((frac, i) => (
                 <div
                   key={`g${i}`}
                   className="absolute top-1 bottom-1 w-px bg-rule/40"
-                  style={{ left: `${(i / totalBeats) * 100}%` }}
+                  style={{ left: `${frac * 100}%` }}
                 />
               ))}
               {tapsRef.current.map((t, i) => {
@@ -440,11 +447,11 @@ export default function TapAlongCard({
                 <p className="marking mt-2 text-accent">expected</p>
                 <div className="relative mt-1 h-7" aria-hidden>
                   <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-rule/60" />
-                  {Array.from({ length: totalBeats + 1 }, (_, i) => (
+                  {beatGrid.map((frac, i) => (
                     <div
                       key={`eg${i}`}
                       className="absolute top-1 bottom-1 w-px bg-rule/40"
-                      style={{ left: `${(i / totalBeats) * 100}%` }}
+                      style={{ left: `${frac * 100}%` }}
                     />
                   ))}
                   {expected.map((e, i) => {
