@@ -71,6 +71,13 @@ export default function TapAlongCard({
     () => countSyllables(pattern, meter, kodaly ? 'kodaly' : 'traditional'),
     [pattern, meter, kodaly]
   )
+  const [status, setStatus] = useState<'ready' | 'tapping' | 'done'>('ready')
+  // The tempo the just-finished attempt was performed at. The *trace* geometry is
+  // drawn against this (not the live `tempo`) once done, so adjusting the slider
+  // on the results screen — to set up a "Try again" — doesn't shift the recorded
+  // dots/trails left or right. Scheduling/grading always use the live `tempo` so
+  // a retry honours a slider change; while tapping the two are equal.
+  const [doneTempo, setDoneTempo] = useState(0)
   const beatMs = 60000 / tempo
   const { countIn, totalBeats } = METERS[meter]
 
@@ -113,25 +120,51 @@ export default function TapAlongCard({
   }, [countIn, totalBeats, beatMs])
   // When the tapping bar begins (the count-in is over): the "now tap" moment.
   const rhythmStartMs = totalBeats * beatMs
-  // One bar's worth of ms — the time axis of the tap trace under the staff.
-  const barMs = totalBeats * beatMs
+  // The tap trace under the staff is drawn against the *performed* tempo once
+  // done — recorded taps carry fixed real-time ms, so re-projecting them onto a
+  // different axis (the slider on the results screen) would shift them. While
+  // tapping, this equals the live `beatMs`.
+  const traceBeatMs = 60000 / (status === 'done' ? doneTempo : tempo)
+  // One bar's worth of ms — the time axis of the tap trace (and its count-in lane).
+  const barMs = totalBeats * traceBeatMs
   // A tap → its position (% across the bar) and the held line's length (% of bar).
   const markStyle = (down: number, hold: number) => {
-    const pos = Math.max(0, Math.min(100, ((down - rhythmStartMs) / barMs) * 100))
+    const pos = Math.max(0, Math.min(100, ((down - barMs) / barMs) * 100))
     return { left: `${pos}%`, width: `${Math.max(0, Math.min(100 - pos, (hold / barMs) * 100))}%` }
   }
+  // Same, on the count-in lane's axis (the count-in bar, 0…barMs).
+  const countInStyle = (down: number, hold: number) => {
+    const pos = Math.max(0, Math.min(100, (down / barMs) * 100))
+    return { left: `${pos}%`, width: `${Math.max(0, Math.min(100 - pos, (hold / barMs) * 100))}%` }
+  }
+  // The target onsets positioned on the trace's (frozen-on-done) axis, so the
+  // "expected" lane lines up with the "you" lane no matter the slider.
+  const traceExpected = useMemo(
+    () =>
+      onsets(pattern).map((o) => ({
+        ms: (totalBeats + o.beat) * traceBeatMs,
+        beats: o.beats,
+        holdMs: o.hold * traceBeatMs,
+      })),
+    [pattern, totalBeats, traceBeatMs]
+  )
   // Tail past the bar so a late final tap still lands; then we grade.
   const finishMs = 2 * totalBeats * beatMs + 450
   // Ignore taps during the count-in (a feel-the-beat tap shouldn't penalise).
   const gateMs = rhythmStartMs - 120
 
-  const [status, setStatus] = useState<'ready' | 'tapping' | 'done'>('ready')
   // False during the count-in, true once the tapping bar has begun.
   const [started, setStarted] = useState(false)
   // A brief green flash at the downbeat where tapping begins (the colour cue).
   const [go, setGo] = useState(false)
   // The count-in beat number currently showing (1·2·3·4…); null when not counting.
   const [countNum, setCountNum] = useState<number | null>(null)
+  // How many count-in felt beats have sounded — lights the count-in warm-up lane.
+  const [countInLit, setCountInLit] = useState(0)
+  // The user's completed warm-up taps during the count-in (with held length).
+  const [countInTaps, setCountInTaps] = useState<Tap[]>([])
+  // The in-progress warm-up tap, growing while held (its trail on the lane).
+  const [countInLive, setCountInLive] = useState<{ down: number; hold: number } | null>(null)
   const [tapCount, setTapCount] = useState(0)
   // A one-shot flash on every beat — the visual metronome (also covers muted).
   const [beatLit, setBeatLit] = useState(false)
@@ -149,9 +182,10 @@ export default function TapAlongCard({
   // The in-progress press (one at a time): onset relative to t0 + the absolute
   // press time, so its hold is measured on release.
   const pending = useRef<{ downRel: number; downAbs: number } | null>(null)
-  // True when a press began during the count-in and is still held — so anticipating
-  // the downbeat by pressing early and holding into it still starts the first note.
-  const heldFromCountIn = useRef(false)
+  // An in-progress warm-up press during the count-in (down relative to t0 + the
+  // absolute press time). Drives the warm-up trail; if still held at the downbeat
+  // it becomes the first note (anticipated/held-into downbeat).
+  const countInPending = useRef<{ down: number; downAbs: number } | null>(null)
   const timers = useRef<ReturnType<typeof setTimeout>[]>([])
   // Animation frame growing the live tap's trace while a key/finger is held.
   const raf = useRef<number | undefined>(undefined)
@@ -191,6 +225,7 @@ export default function TapAlongCard({
     }
     const res = scoreTaps(expected, tapsRef.current)
     setResult(res)
+    setDoneTempo(tempo) // freeze the trace axis at the performed tempo
     setStatus('done')
     setAttempts((n) => n + 1)
     // Grade SRS once, on the first attempt only.
@@ -209,12 +244,15 @@ export default function TapAlongCard({
     t0.current = performance.now()
     tapsRef.current = []
     pending.current = null
-    heldFromCountIn.current = false
+    countInPending.current = null
     finishing.current = false
     setTapCount(0)
     setStarted(false)
     setGo(false)
     setCountNum(null)
+    setCountInLit(0)
+    setCountInTaps([])
+    setCountInLive(null)
     setLive(null)
     setResult(null)
     setStatus('tapping')
@@ -223,7 +261,10 @@ export default function TapAlongCard({
         setTimeout(() => {
           playClick(c.accent)
           setBeatLit(true)
-          if (c.num != null) setCountNum(c.num) // count-in beat number
+          if (c.num != null) {
+            setCountNum(c.num) // count-in beat number
+            setCountInLit(c.num) // light this felt beat on the warm-up lane
+          }
           timers.current.push(setTimeout(() => setBeatLit(false), 110))
         }, c.ms)
       )
@@ -235,11 +276,13 @@ export default function TapAlongCard({
         setCountNum(null)
         setGo(true)
         timers.current.push(setTimeout(() => setGo(false), 550))
-        // If a key/finger is still held from the count-in (anticipated downbeat),
-        // start the first note now so the hold counts.
-        if (heldFromCountIn.current && !pending.current) {
+        // If a warm-up press is still held from the count-in (anticipated
+        // downbeat), hand it off to the first note so the hold counts.
+        if (countInPending.current && !pending.current) {
+          stopRaf()
+          countInPending.current = null
+          setCountInLive(null)
           pending.current = { downRel: rhythmStartMs, downAbs: performance.now() }
-          heldFromCountIn.current = false
           setLive({ down: rhythmStartMs, hold: 0 })
           startGrow()
         }
@@ -248,7 +291,7 @@ export default function TapAlongCard({
     timers.current.push(setTimeout(finish, finishMs))
   }
 
-  // Grow the live trace (dot + line) while a press is held.
+  // Grow the live trace (dot + line) while the graded note is held.
   const startGrow = () => {
     const grow = () => {
       if (!pending.current) return
@@ -257,15 +300,26 @@ export default function TapAlongCard({
     }
     raf.current = requestAnimationFrame(grow)
   }
+  // Same, for a warm-up press during the count-in (grows the count-in trail).
+  const startCountInGrow = () => {
+    const grow = () => {
+      if (!countInPending.current) return
+      setCountInLive({ down: countInPending.current.down, hold: performance.now() - countInPending.current.downAbs })
+      raf.current = requestAnimationFrame(grow)
+    }
+    raf.current = requestAnimationFrame(grow)
+  }
   // Press: start a note. Release: record it with how long it was held. One press
   // at a time (a held key/finger), so the next note needs a release first.
   const pressDown = () => {
-    if (status !== 'tapping' || t0.current == null || pending.current) return
+    if (status !== 'tapping' || t0.current == null || pending.current || countInPending.current) return
     const downRel = performance.now() - t0.current
     if (downRel < gateMs) {
-      // A press during the count-in: don't score it, but if it's still held when
-      // the downbeat arrives, it becomes the first note (see the downbeat timer).
-      heldFromCountIn.current = true
+      // A press during the count-in: not graded, but it grows a warm-up trail —
+      // and if it's still held at the downbeat it becomes the first note.
+      countInPending.current = { down: downRel, downAbs: performance.now() }
+      setCountInLive({ down: downRel, hold: 0 })
+      startCountInGrow()
       return
     }
     pending.current = { downRel, downAbs: performance.now() }
@@ -273,7 +327,15 @@ export default function TapAlongCard({
     startGrow()
   }
   const pressUp = () => {
-    heldFromCountIn.current = false // released; a count-in feel-tap is dropped
+    // A warm-up press released during the count-in → record it (with held length).
+    if (countInPending.current) {
+      stopRaf()
+      const { down, downAbs } = countInPending.current
+      countInPending.current = null
+      setCountInLive(null)
+      setCountInTaps((prev) => [...prev, { down, hold: performance.now() - downAbs }])
+      return
+    }
     if (!pending.current) return
     stopRaf()
     const { downRel, downAbs } = pending.current
@@ -428,12 +490,12 @@ export default function TapAlongCard({
           marks the whole tapping phase: a brief brighter flash on the downbeat,
           settling to a soft steady green (no per-tap highlight). */}
       <div
-        onPointerDown={tapping && started ? pressDown : undefined}
+        onPointerDown={tapping ? pressDown : undefined}
         className={`relative mt-5 select-none rounded-2xl border px-3 py-4 transition-all duration-300 ${
           !tapping
             ? 'border-rule bg-paper/60'
             : !started
-              ? 'border-dashed border-rule bg-paper/60 opacity-70'
+              ? 'cursor-pointer border-dashed border-rule bg-paper/60' // count-in: warm-up taps allowed
               : go
                 ? 'cursor-pointer border-correct bg-correct/10 ring-1 ring-correct' // downbeat flash
                 : 'cursor-pointer border-correct/40 bg-paper ring-1 ring-correct/20' // steady
@@ -445,6 +507,41 @@ export default function TapAlongCard({
           eventColors={eventColors}
           counts={status === 'ready' ? counts : undefined}
         />
+
+        {/* Count-in warm-up lane: a felt-beat mark lights in sync with each
+            count-in click (accent), and your warm-up taps show too (ink) — so you
+            can test your timing before the real bar starts. */}
+        {tapping && !started && (
+          <div className="relative mt-1 h-7" aria-hidden>
+            <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-rule/60" />
+            {beatGrid.map((frac, i) => (
+              <div
+                key={`cg${i}`}
+                className="absolute top-1 bottom-1 w-px bg-rule/40"
+                style={{ left: `${frac * 100}%` }}
+              />
+            ))}
+            {countIn.slice(0, countInLit).map((bq, i) => (
+              <div
+                key={`cm${i}`}
+                className="absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent"
+                style={{ left: `${(bq / totalBeats) * 100}%` }}
+              />
+            ))}
+            {countInTaps.map((t, i) => (
+              <div key={`ct${i}`} className="absolute top-1/2 -translate-y-1/2" style={countInStyle(t.down, t.hold)}>
+                <div className="h-1 w-full rounded-full bg-ink/55" />
+                <div className="absolute left-0 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-ink/70" />
+              </div>
+            ))}
+            {countInLive && (
+              <div className="absolute top-1/2 -translate-y-1/2" style={countInStyle(countInLive.down, countInLive.hold)}>
+                <div className="h-1 w-full rounded-full bg-ink" />
+                <div className="absolute left-0 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-ink" />
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Tap trace(s): under the staff, a dot per onset with a line extending
             right for its held length. While tapping, just your taps (the live one
@@ -494,7 +591,7 @@ export default function TapAlongCard({
                       style={{ left: `${frac * 100}%` }}
                     />
                   ))}
-                  {expected.map((e, i) => {
+                  {traceExpected.map((e, i) => {
                     // Draw the target at the required-hold fraction + 20pp (60%
                     // fast / 90% otherwise) — a touch past the grading threshold
                     // (holdMinFor), so aiming for this line clears it comfortably.
@@ -519,7 +616,7 @@ export default function TapAlongCard({
               tap &amp; hold each note for its length
             </p>
           ) : (
-            <p className="marking mt-2 text-center text-ink-3">listen…</p>
+            <p className="marking mt-2 text-center text-ink-3">tap along to warm up…</p>
           ))}
         {/* Count-in beat number (1·2·3·4…) over the staff — accent while
             counting; the downbeat then flashes the staff green (above). */}
