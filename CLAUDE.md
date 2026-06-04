@@ -88,6 +88,12 @@ Use git **proactively**:
 - For non-trivial features, work on a short-lived branch and commit there before merging to `main`.
 - Don't bundle unrelated changes into one commit.
 
+**Commit every delivery; never push without confirmation.** Commit each completed delivery locally as
+you finish it — don't wait to be asked. But **never `git push`** until Toni has explicitly confirmed he
+wants it pushed. When Toni asks for a change to a delivery:
+- if that delivery's commit has **not been pushed yet**, **amend** the existing commit;
+- if it has **already been pushed**, add a **new** commit with the fix (don't rewrite pushed history).
+
 ---
 
 ## Tech stack
