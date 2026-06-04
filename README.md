@@ -55,8 +55,8 @@ progress, chosen from a table-of-contents home screen. Twelve études today, in 
   adds **5/4**, and **Expert** keeps the metres but pushes the tempo and density (full 32nd runs,
   continuous triplets, heavy syncopation); a count-in sets the tempo and metre.
 - **No. 12 — Tap the Rhythm.** The performance flip side of Rhythm Dictation: **read** a one-bar rhythm
-  and **tap-and-hold it in time** (Space or press the screen) over a count-in and a steady metronome click
-  on every beat. The **tempo is adjustable** (a 50–150 BPM slider, remembered per level); a count-in with a
+  and **tap-and-hold it in time** (Space, press the screen, or any key of a connected **MIDI keyboard** —
+  the pitch is irrelevant, only the rhythm) over a count-in and a steady metronome click on every beat. The **tempo is adjustable** (a 50–150 BPM slider, remembered per level); a count-in with a
   beat count (**1·2·3·4**) sets it, then the staff flashes **green** to mark the downbeat where your bar begins.
   You're scored on timing accuracy — a little early or late still counts (a forgiving, flat ~200 ms window)
   — and each note must be **held for most of its length** (~70%, or ~40% for quick notes — sixteenths, thirty-seconds, triplets)

@@ -5,6 +5,7 @@ import { countSyllables } from '../rhythmCounting'
 import { isMuted, playClick, playRhythm, prime, stop } from '../audio/player'
 import { getSavedTempo, saveTempo } from '../tempos'
 import { getBoolPref, setBoolPref } from '../prefs'
+import { useMidiInput } from '../midi'
 import RhythmStaff from './RhythmStaff'
 import Button from './Button'
 
@@ -243,6 +244,7 @@ export default function TapAlongCard({
     prime() // unlock audio on this gesture
     t0.current = performance.now()
     tapsRef.current = []
+    heldNotes.current.clear()
     pending.current = null
     countInPending.current = null
     finishing.current = false
@@ -349,6 +351,29 @@ export default function TapAlongCard({
   downRef.current = pressDown
   const upRef = useRef(pressUp)
   upRef.current = pressUp
+
+  // Optional MIDI: tap *any* key(s) — pitch is irrelevant, only the rhythm. A
+  // press begins when the first key goes down and ends when the last is
+  // released, so a continuous (legato) hold reads as one sustained note. Plug &
+  // play — does nothing without a connected device.
+  const heldNotes = useRef<Set<number>>(new Set())
+  const midiDown = (note: number) => {
+    const wasEmpty = heldNotes.current.size === 0
+    heldNotes.current.add(note)
+    if (wasEmpty) downRef.current()
+  }
+  const midiUp = (note: number) => {
+    heldNotes.current.delete(note)
+    if (heldNotes.current.size === 0) upRef.current()
+  }
+  // Always listening (not gated to tapping) so the connection shows on the ready
+  // screen; stray notes are harmless — pressDown ignores anything off the
+  // tapping phase, and run() clears any held-note state.
+  const { connected: midiConnected, supported: midiSupported } = useMidiInput(
+    midiDown,
+    true,
+    midiUp
+  )
 
   // Space holds a note (press/release); pointer up anywhere ends a touch hold.
   // The card owns Space entirely — always preventDefault so it can't also
@@ -664,6 +689,16 @@ export default function TapAlongCard({
                 : 'numbers on beats · & off-beats · e/a sixteenths'}
             </span>
           </div>
+
+          {midiSupported && (
+            <p className="marking mt-3 text-ink-3">
+              <span className={midiConnected ? 'text-correct' : 'text-ink-3'}>
+                {midiConnected
+                  ? '🎹 MIDI connected — tap any key, or Space / the screen'
+                  : '🎹 plug in a MIDI keyboard to tap any key — or use Space / the screen'}
+              </span>
+            </p>
+          )}
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
             {tempoControl}

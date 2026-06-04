@@ -324,11 +324,13 @@ const REFERENCES: Record<string, EtudeReference> = {
         </p>
         <p>
           <span className="text-ink">Press and hold</span> each note with{' '}
-          <span className="text-ink">Space</span> or by pressing the staff — hold
-          for most of its length (<span className="text-ink">~70%</span>, or just
-          ~40% for quick notes — sixteenths, thirty-seconds, triplets), so a note is sustained, not
-          just clipped. Release, then press the next note. Rests are silent — don't
-          tap them.
+          <span className="text-ink">Space</span>, by pressing the staff, or with{' '}
+          <span className="text-ink">any key of a MIDI keyboard</span> (the pitch
+          doesn't matter — only the rhythm) — hold for most of its length
+          (<span className="text-ink">~70%</span>, or just ~40% for quick notes —
+          sixteenths, thirty-seconds, triplets), so a note is sustained, not just
+          clipped. Release, then press the next note. Rests are silent — don't tap
+          them.
         </p>
         <p>
           You're scored on timing accuracy — it's forgiving, so a little early or
