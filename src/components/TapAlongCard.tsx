@@ -178,6 +178,11 @@ export default function TapAlongCard({
   // Whether the graded (first) attempt passed — shown on practice retries.
   const [gradedPass, setGradedPass] = useState(false)
 
+  // The étude card — scrolled fully into view when an exercise starts.
+  const cardRef = useRef<HTMLElement | null>(null)
+  // When the attempt finished — MIDI transport shortcuts wake up 500ms later so
+  // a stray tap at the end of the bar can't skip straight to the next exercise.
+  const doneAt = useRef(0)
   const t0 = useRef<number | null>(null)
   const tapsRef = useRef<Tap[]>([])
   // The in-progress press (one at a time): onset relative to t0 + the absolute
@@ -227,6 +232,7 @@ export default function TapAlongCard({
     const res = scoreTaps(expected, tapsRef.current)
     setResult(res)
     setDoneTempo(tempo) // freeze the trace axis at the performed tempo
+    doneAt.current = performance.now()
     setStatus('done')
     setAttempts((n) => n + 1)
     // Grade SRS once, on the first attempt only.
@@ -258,6 +264,21 @@ export default function TapAlongCard({
     setLive(null)
     setResult(null)
     setStatus('tapping')
+    // Bring the whole exercise into view if the viewport is clipping it (the
+    // trace lanes that appear once tapping starts can push it past the fold).
+    // Next frame, so the now-tapping layout is measured. Only scrolls if needed.
+    requestAnimationFrame(() => {
+      const el = cardRef.current
+      if (!el) return
+      const r = el.getBoundingClientRect()
+      if (r.top < 0 || r.bottom > window.innerHeight) {
+        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        el.scrollIntoView({
+          behavior: reduce ? 'auto' : 'smooth',
+          block: r.height > window.innerHeight ? 'start' : 'nearest',
+        })
+      }
+    })
     for (const c of clicks) {
       timers.current.push(
         setTimeout(() => {
@@ -358,11 +379,29 @@ export default function TapAlongCard({
   // play — does nothing without a connected device.
   const heldNotes = useRef<Set<number>>(new Set())
   const midiDown = (note: number) => {
+    // Off the tapping phase, dedicated keys drive the transport (octave-agnostic
+    // by pitch class): C = primary action (Begin / Next), B = Try again, A =
+    // Hear it. During tapping every key is a tap instead.
+    if (status !== 'tapping') {
+      const pc = note % 12
+      if (status === 'ready') {
+        if (pc === 0) run() // C → Begin
+      } else if (status === 'done') {
+        // Ignore the first 500ms so a tap landing as the bar ends can't skip on.
+        if (performance.now() - doneAt.current < 500) return
+        if (pc === 0) onNext() // C → Next
+        else if (pc === 11) run() // B → Try again
+        else if (pc === 9) playRhythm(pattern, meter, tempo) // A → Hear it
+      }
+      return
+    }
     const wasEmpty = heldNotes.current.size === 0
     heldNotes.current.add(note)
     if (wasEmpty) downRef.current()
   }
   const midiUp = (note: number) => {
+    // Only a real held tap ends a press; shortcut/stray note-offs are ignored.
+    if (!heldNotes.current.has(note)) return
     heldNotes.current.delete(note)
     if (heldNotes.current.size === 0) upRef.current()
   }
@@ -459,7 +498,10 @@ export default function TapAlongCard({
   )
 
   return (
-    <article className="relative overflow-hidden rounded-3xl border border-rule bg-card px-6 py-7 shadow-[0_22px_60px_-32px_rgba(33,28,21,0.5)] sm:px-9 sm:py-9">
+    <article
+      ref={cardRef}
+      className="relative overflow-hidden rounded-3xl border border-rule bg-card px-6 py-7 shadow-[0_22px_60px_-32px_rgba(33,28,21,0.5)] sm:px-9 sm:py-9"
+    >
       <span
         aria-hidden
         className="pointer-events-none absolute -top-10 -right-2 select-none font-display text-[12rem] leading-none text-ink/[0.04] sm:text-[15rem]"
@@ -694,7 +736,7 @@ export default function TapAlongCard({
             <p className="marking mt-3 text-ink-3">
               <span className={midiConnected ? 'text-correct' : 'text-ink-3'}>
                 {midiConnected
-                  ? '🎹 MIDI connected — tap any key, or Space / the screen'
+                  ? '🎹 MIDI connected — tap any key (or Space / the screen); press middle C to begin'
                   : '🎹 plug in a MIDI keyboard to tap any key — or use Space / the screen'}
               </span>
             </p>
@@ -745,6 +787,12 @@ export default function TapAlongCard({
               <Button onClick={onNext}>Next</Button>
             </div>
           </div>
+
+          {midiConnected && (
+            <p className="marking mt-3 text-correct">
+              🎹 A hear it · B try again · C next
+            </p>
+          )}
 
           {/* Adjust the tempo before retrying. */}
           <div className="mt-4">{tempoControl}</div>
