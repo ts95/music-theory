@@ -341,6 +341,15 @@ const REFERENCES: Record<string, EtudeReference> = {
           <span style={{ color: '#bb4430' }}>missed or held too short</span>, and{' '}
           <span className="text-ink">Hear it</span> plays the rhythm back.
         </p>
+        <p>
+          As an aid, the note head you're about to play{' '}
+          <span style={{ color: '#7a2540' }}>lights up</span> during the count-in
+          (a silent preview) and when you press <span className="text-ink">Hear
+          it</span> — never while you're tapping. The <span className="text-ink">timing
+          bars</span> below the staff (your taps against the target) can be hidden
+          with the <span className="text-ink">Bars</span> toggle to practise with
+          less assistance.
+        </p>
         <p className="text-ink-3">
           <span className="text-ink">Try again</span> is a practice run — your
           first attempt is the one that counts, so a retry can't turn a miss into a

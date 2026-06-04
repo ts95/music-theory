@@ -56,13 +56,16 @@ progress, chosen from a table-of-contents home screen. Twelve études today, in 
   continuous triplets, heavy syncopation); a count-in sets the tempo and metre.
 - **No. 12 — Tap the Rhythm.** The performance flip side of Rhythm Dictation: **read** a one-bar rhythm
   and **tap-and-hold it in time** (Space, press the screen, or any key of a connected **MIDI keyboard** —
-  the pitch is irrelevant, only the rhythm) over a count-in and a steady metronome click on every beat. The **tempo is adjustable** (a 50–150 BPM slider, remembered per level); a count-in with a
+  the pitch is irrelevant, only the rhythm) over a count-in and a steady metronome click on every beat. The **tempo is adjustable** (a 30–90 BPM slider, remembered per level); a count-in with a
   beat count (**1·2·3·4**) sets it, then the staff flashes **green** to mark the downbeat where your bar begins.
-  You're scored on timing accuracy — a little early or late still counts (a forgiving, flat ~200 ms window)
+  The note head you're about to play **lights up** during the count-in (a silent preview) and on **Hear it** —
+  never while you're tapping — and the **timing bars** below the staff can be hidden (the **Bars** toggle) to
+  practise with less assistance. You're scored on timing accuracy — a little early or late still counts (a forgiving, flat ~200 ms window)
   — and each note must be **held for most of its length** (~70%, or ~40% for quick notes — sixteenths, thirty-seconds, triplets)
   to count, so a note is sustained, not clipped. The result colours each note
   **on the beat / a little off / missed or too short**, with **Hear it** to compare and **Try again** for a
-  practice run (your first attempt is the one that's graded). Same metres and four levels as Rhythm Dictation.
+  practice run (your first attempt is the one that's graded). On a connected **MIDI keyboard**, middle C
+  begins / advances, B retries, and A plays it back. Same metres and four levels as Rhythm Dictation.
 
 ### Across the études
 

@@ -72,6 +72,13 @@ export default function TapAlongCard({
     () => countSyllables(pattern, meter, kodaly ? 'kodaly' : 'traditional'),
     [pattern, meter, kodaly]
   )
+  // The duration bars below the staff (count-in warm-up + your taps + the
+  // expected target) are a timing aid; hide them to test with less assistance.
+  const [showBars, setShowBarsState] = useState(() => getBoolPref('rhythm-bars', true))
+  const setShowBars = (v: boolean) => {
+    setShowBarsState(v)
+    setBoolPref('rhythm-bars', v)
+  }
   const [status, setStatus] = useState<'ready' | 'tapping' | 'done'>('ready')
   // The tempo the just-finished attempt was performed at. The *trace* geometry is
   // drawn against this (not the live `tempo`) once done, so adjusting the slider
@@ -234,6 +241,20 @@ export default function TapAlongCard({
     []
   )
 
+  // Scroll the étude card's bottom into view — the freshest content (the count-in
+  // lane when an exercise begins, the results + buttons when it's done) lives at
+  // the bottom as the card grows. Two frames so the new layout is committed first.
+  const scrollCardToBottom = () => {
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        const el = cardRef.current
+        if (!el) return
+        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'end' })
+      })
+    )
+  }
+
   const finish = () => {
     if (finishing.current) return
     finishing.current = true
@@ -257,6 +278,7 @@ export default function TapAlongCard({
       setGradedPass(res.accuracy >= PASS)
       onResolve(res.accuracy >= PASS, tempo)
     }
+    scrollCardToBottom() // reveal the results + buttons
   }
 
   // Run one attempt (the first via "Begin", later ones via "Try again").
@@ -288,21 +310,7 @@ export default function TapAlongCard({
     for (const s of struck) {
       timers.current.push(setTimeout(() => setHighlight(s.index), s.beat * beatMs))
     }
-    // Bring the whole exercise into view if the viewport is clipping it (the
-    // trace lanes that appear once tapping starts can push it past the fold).
-    // Next frame, so the now-tapping layout is measured. Only scrolls if needed.
-    requestAnimationFrame(() => {
-      const el = cardRef.current
-      if (!el) return
-      const r = el.getBoundingClientRect()
-      if (r.top < 0 || r.bottom > window.innerHeight) {
-        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-        el.scrollIntoView({
-          behavior: reduce ? 'auto' : 'smooth',
-          block: r.height > window.innerHeight ? 'start' : 'nearest',
-        })
-      }
-    })
+    scrollCardToBottom() // reveal the count-in lane / staff as tapping begins
     for (const c of clicks) {
       timers.current.push(
         setTimeout(() => {
@@ -522,6 +530,33 @@ export default function TapAlongCard({
     </label>
   )
 
+  // Toggle the duration bars below the staff (the timing aid). Shown on the ready
+  // and results screens so it can be flipped before a run or to reveal afterwards.
+  const barsToggle = (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+      <span className="marking text-ink-3">Bars</span>
+      <div className="inline-flex rounded-full border border-rule bg-card p-0.5">
+        {[
+          { label: 'Shown', on: showBars, set: () => setShowBars(true) },
+          { label: 'Hidden', on: !showBars, set: () => setShowBars(false) },
+        ].map((o) => (
+          <button
+            key={o.label}
+            type="button"
+            onClick={o.set}
+            aria-pressed={o.on}
+            className={`rounded-full px-3.5 py-1.5 text-sm transition-colors ${
+              o.on ? 'bg-ink text-paper' : 'text-ink-2 hover:text-ink'
+            }`}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+      <span className="marking text-ink-3">timing bars below the staff — an aid</span>
+    </div>
+  )
+
   return (
     <article
       ref={cardRef}
@@ -604,7 +639,7 @@ export default function TapAlongCard({
         {/* Count-in warm-up lane: a felt-beat mark lights in sync with each
             count-in click (accent), and your warm-up taps show too (ink) — so you
             can test your timing before the real bar starts. */}
-        {tapping && !started && (
+        {tapping && !started && showBars && (
           <div className="relative mt-1 h-7" aria-hidden>
             <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-rule/60" />
             {beatGrid.map((frac, i) => (
@@ -640,7 +675,7 @@ export default function TapAlongCard({
             right for its held length. While tapping, just your taps (the live one
             grows as you hold). On the results screen a second "expected" lane is
             added below so you can compare your timing/duration to the target. */}
-        {(started || status === 'done') && (
+        {(started || status === 'done') && showBars && (
           <>
             {status === 'done' && (
               <p className="marking mt-3 text-ink-2">you</p>
@@ -758,6 +793,8 @@ export default function TapAlongCard({
             </span>
           </div>
 
+          <div className="mt-3">{barsToggle}</div>
+
           {midiSupported && (
             <p className="marking mt-3 text-ink-3">
               <span className={midiConnected ? 'text-correct' : 'text-ink-3'}>
@@ -820,8 +857,11 @@ export default function TapAlongCard({
             </p>
           )}
 
-          {/* Adjust the tempo before retrying. */}
-          <div className="mt-4">{tempoControl}</div>
+          {/* Adjust the tempo, or reveal/hide the timing bars, before retrying. */}
+          <div className="mt-4 flex flex-wrap items-center gap-x-8 gap-y-3">
+            {tempoControl}
+            {barsToggle}
+          </div>
 
           {/* Per-note mistakes, made explicit: offset (+ late / − early), held
               too short, or missed. */}

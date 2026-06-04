@@ -47,3 +47,39 @@ test('note-head cue lights during count-in & Hear it, but not while tapping', as
   await card.getByRole('button', { name: /^Hear it$/ }).click()
   await expect(glow).toHaveCount(1, { timeout: 4000 })
 })
+
+test('the duration-bars toggle hides the trace lanes (but keeps the note-head cue)', async ({
+  page,
+}) => {
+  test.setTimeout(45000)
+  const card = page.getByRole('article')
+  const lanes = card.locator('div.relative.h-7') // count-in / you / expected lanes
+  const glow = card.locator('span[style*="radial-gradient"]')
+
+  await card.locator('input[type=range]').evaluate((el: HTMLInputElement) => {
+    const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!
+    set.call(el, '90')
+    el.dispatchEvent(new Event('input', { bubbles: true }))
+    el.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+
+  // Hide the bars, then run.
+  await card.getByRole('button', { name: 'Hidden', exact: true }).click()
+  await card.getByRole('button', { name: /^Begin$/ }).click()
+
+  // Count-in: no trace lanes, but the note-head cue still lights (independent aid).
+  await expect(glow).toHaveCount(1, { timeout: 4000 })
+  await expect(lanes).toHaveCount(0)
+
+  // Tapping + results: still no lanes.
+  await expect(card.getByText(/tap .* each note for its length/)).toBeVisible({
+    timeout: 15000,
+  })
+  await expect(lanes).toHaveCount(0)
+  await expect(card.getByText(/% accuracy/)).toBeVisible({ timeout: 15000 })
+  await expect(lanes).toHaveCount(0)
+
+  // Reveal again on the results screen → the you + expected lanes appear.
+  await card.getByRole('button', { name: 'Shown', exact: true }).click()
+  await expect(lanes).toHaveCount(2)
+})
