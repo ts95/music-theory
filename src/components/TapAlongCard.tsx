@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Question } from '../contracts'
-import { METERS, holdMinFor, onsets, scoreTaps, type OnsetResult, type Tap } from '../rhythm'
+import { METERS, eventBeats, holdMinFor, onsets, scoreTaps, type OnsetResult, type Tap } from '../rhythm'
 import { countSyllables } from '../rhythmCounting'
 import { isMuted, playClick, playRhythm, prime, stop } from '../audio/player'
 import { getSavedTempo, saveTempo } from '../tempos'
@@ -79,6 +79,9 @@ export default function TapAlongCard({
   // dots/trails left or right. Scheduling/grading always use the live `tempo` so
   // a retry honours a slider change; while tapping the two are equal.
   const [doneTempo, setDoneTempo] = useState(0)
+  // The pattern index of the note head currently lit (the "play it now" cue) —
+  // during the count-in preview and "Hear it" playback only; null otherwise.
+  const [highlight, setHighlight] = useState<number | null>(null)
   const beatMs = 60000 / tempo
   const { countIn, totalBeats } = METERS[meter]
 
@@ -94,6 +97,19 @@ export default function TapAlongCard({
       })),
     [pattern, totalBeats, beatMs]
   )
+  // The struck notes' pattern indices + onset beat — drives the note-head
+  // "play it now" highlight (which event lights, and when). Same skip rule as
+  // onsets(): rests and tied continuations make no attack.
+  const struck = useMemo(() => {
+    const out: { index: number; beat: number }[] = []
+    let beat = 0
+    for (let i = 0; i < pattern.length; i++) {
+      const continuation = i > 0 && !!pattern[i - 1].tie
+      if (!pattern[i].rest && !continuation) out.push({ index: i, beat })
+      beat += eventBeats(pattern[i])
+    }
+    return out
+  }, [pattern])
   // Trace gridlines at the metre's felt beats (+ the closing barline), as a
   // fraction of the bar — so 6/8 shows two lines, 12/8 four, cut time two, etc.,
   // matching the count-in pulse rather than every quarter.
@@ -247,6 +263,7 @@ export default function TapAlongCard({
   const run = () => {
     clearTimers()
     stopRaf()
+    stop() // cancel any in-flight "Hear it" (audio + its note-head highlight)
     prime() // unlock audio on this gesture
     t0.current = performance.now()
     tapsRef.current = []
@@ -263,7 +280,14 @@ export default function TapAlongCard({
     setCountInLive(null)
     setLive(null)
     setResult(null)
+    setHighlight(null)
     setStatus('tapping')
+    // Count-in preview: light each struck note head at its onset across the
+    // count-in bar, so you watch the rhythm once before tapping it. Aligned with
+    // the count-in click timers (no audio, so dead-on); cleared at the downbeat.
+    for (const s of struck) {
+      timers.current.push(setTimeout(() => setHighlight(s.index), s.beat * beatMs))
+    }
     // Bring the whole exercise into view if the viewport is clipping it (the
     // trace lanes that appear once tapping starts can push it past the fold).
     // Next frame, so the now-tapping layout is measured. Only scrolls if needed.
@@ -297,6 +321,7 @@ export default function TapAlongCard({
       setTimeout(() => {
         setStarted(true)
         setCountNum(null)
+        setHighlight(null) // preview over — no cue during the real tapping bar
         setGo(true)
         timers.current.push(setTimeout(() => setGo(false), 550))
         // If a warm-up press is still held from the count-in (anticipated
@@ -391,7 +416,7 @@ export default function TapAlongCard({
         if (performance.now() - doneAt.current < 500) return
         if (pc === 0) onNext() // C → Next
         else if (pc === 11) run() // B → Try again
-        else if (pc === 9) playRhythm(pattern, meter, tempo) // A → Hear it
+        else if (pc === 9) playRhythm(pattern, meter, tempo, setHighlight) // A → Hear it
       }
       return
     }
@@ -573,6 +598,7 @@ export default function TapAlongCard({
           meter={meter}
           eventColors={eventColors}
           counts={status === 'ready' ? counts : undefined}
+          highlightIndex={highlight}
         />
 
         {/* Count-in warm-up lane: a felt-beat mark lights in sync with each
@@ -777,7 +803,7 @@ export default function TapAlongCard({
             <div className="flex items-center gap-3">
               <Button
                 variant="secondary"
-                onClick={() => playRhythm(pattern, meter, tempo)}
+                onClick={() => playRhythm(pattern, meter, tempo, setHighlight)}
               >
                 Hear it
               </Button>

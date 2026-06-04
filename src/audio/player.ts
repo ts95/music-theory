@@ -27,6 +27,9 @@ let generation = 0
 // hover-leave won't stop playback — only mute or a deliberate replay/advance
 // (which call stop() directly) may cut it short. 0 ⇒ nothing protected.
 let promptEndsAt = 0
+// The active rhythm-playback highlight callback (set by playRhythm), so stop()
+// can clear a lingering highlight if playback is cut short. null ⇒ none.
+let activeOnEvent: ((index: number | null) => void) | null = null
 
 const MUTE_KEY = 'music-theory-muted'
 let muted = readMuted()
@@ -210,16 +213,18 @@ const COUNT_PITCH = 'C6' // the count-in tick (percussive woodblock)
 export function playRhythm(
   pattern: RhythmEvent[],
   meter: TimeSig,
-  tempo = 92
+  tempo = 92,
+  onEvent?: (index: number | null) => void
 ): void {
   if (muted) return
   stop()
+  activeOnEvent = onEvent ?? null
   const g = generation
   debounce = setTimeout(async () => {
     try {
       await ensureSynth()
       if (muted || g !== generation) return
-      const durationMs = scheduleRhythm(pattern, meter, tempo)
+      const durationMs = scheduleRhythm(pattern, meter, tempo, onEvent)
       // Protect the prompt: only mute / replay / advance (which call stop()) cut it.
       promptEndsAt = Date.now() + durationMs
     } catch {
@@ -229,10 +234,16 @@ export function playRhythm(
 }
 
 /** Schedules a rhythm prompt; returns its total duration in ms. */
-function scheduleRhythm(pattern: RhythmEvent[], meter: TimeSig, tempo: number): number {
+function scheduleRhythm(
+  pattern: RhythmEvent[],
+  meter: TimeSig,
+  tempo: number,
+  onEvent?: (index: number | null) => void
+): number {
   if (!Tone || !synth) return 0
   const beatMs = 60000 / tempo
   const { countIn, totalBeats } = METERS[meter]
+  const barMs = totalBeats * beatMs
   const fireNote = (holdSec: number, atMs: number) => {
     const freq = Tone!.Frequency(RHYTHM_PITCH, 'midi').toFrequency()
     scheduled.push(setTimeout(() => synth?.triggerAttackRelease(freq, holdSec), atMs))
@@ -240,8 +251,13 @@ function scheduleRhythm(pattern: RhythmEvent[], meter: TimeSig, tempo: number): 
   const fireClick = (atMs: number) => {
     scheduled.push(setTimeout(() => clickSynth?.triggerAttackRelease(COUNT_PITCH, 0.05), atMs))
   }
+  // Light a note head (struck note) at a given time — both as a silent preview
+  // over the count-in bar and synced to playback over the rhythm bar.
+  const fireHighlight = (index: number, atMs: number) => {
+    if (onEvent) scheduled.push(setTimeout(() => onEvent(index), atMs))
+  }
   countIn.forEach((beat) => fireClick(beat * beatMs)) // count-in (distinct tick)
-  let t = totalBeats * beatMs // the bar starts after one count-in bar
+  let t = barMs // the bar starts after one count-in bar
   for (let i = 0; i < pattern.length; i++) {
     const e = pattern[i]
     const beats = eventBeats(e)
@@ -256,9 +272,12 @@ function scheduleRhythm(pattern: RhythmEvent[], meter: TimeSig, tempo: number): 
         held += eventBeats(pattern[j])
       }
       fireNote(Math.max(0.12, (held * beatMs * 0.8) / 1000), t)
+      fireHighlight(i, t - barMs) // count-in preview (same position, one bar earlier)
+      fireHighlight(i, t) // playback, in sync with the note
     }
     t += beats * beatMs
   }
+  if (onEvent) scheduled.push(setTimeout(() => onEvent(null), t)) // clear at the end
   return t // bar end (count-in + the one-bar pattern)
 }
 
@@ -302,6 +321,10 @@ export function stop(): void {
   }
   for (const id of scheduled) clearTimeout(id)
   scheduled = []
+  if (activeOnEvent) {
+    activeOnEvent(null) // clear any lingering note-head highlight
+    activeOnEvent = null
+  }
   synth?.releaseAll()
 }
 

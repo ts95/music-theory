@@ -11,6 +11,7 @@ import { ensureMusicFont } from './vexFont'
 
 const INK = '#211c15'
 const COUNT = '#5a5142' // ink-2 — the counting syllables read as a quiet guide
+const ACCENT = '#7a2540' // claret — the "play it now" playhead glow
 
 /** VexFlow duration token: base + dots ('d') + rest ('r'), e.g. 'qd', '16', '8r'. */
 const vexDuration = (e: RhythmEvent): string =>
@@ -30,6 +31,12 @@ interface RhythmStaffProps {
    * none). Used by the tap-along ready screen to show how to count the rhythm.
    */
   counts?: (string | null)[]
+  /**
+   * Optional index into `pattern` whose note head should "light up" — a claret
+   * glow drawn as an overlay (no VexFlow redraw). Used by the tap-along count-in
+   * preview and "Hear it" playback to cue when to play each note. `null` = none.
+   */
+  highlightIndex?: number | null
 }
 
 export default function RhythmStaff({
@@ -37,9 +44,13 @@ export default function RhythmStaff({
   meter = '4/4',
   eventColors,
   counts,
+  highlightIndex,
 }: RhythmStaffProps) {
   const ref = useRef<HTMLDivElement>(null)
   const [failed, setFailed] = useState(false)
+  // Per-note-head centres (px in SVG coords), captured after each draw, so the
+  // highlight overlay can be positioned without re-running VexFlow.
+  const [geom, setGeom] = useState<{ xs: number[]; ys: number[] } | null>(null)
   const [num, den] = meter.split('/').map(Number)
   const width = 40 + pattern.length * 30 + 14 // 40px lead for the time signature
   const height = counts ? 172 : 92 // extra room below the staff for the counts
@@ -130,6 +141,24 @@ export default function RhythmStaff({
         voice.draw(ctx, stave)
         beams.forEach((b) => b.setContext(ctx).draw())
         tuplets.forEach((t) => t.setContext(ctx).draw())
+        // Capture each note head's centre so the highlight overlay can sit on it
+        // (positions are only valid after format + draw).
+        const xs = notes.map((n) => {
+          try {
+            return (n.getNoteHeadBeginX() + n.getNoteHeadEndX()) / 2
+          } catch {
+            return n.getAbsoluteX()
+          }
+        })
+        const ys = notes.map((n) => {
+          try {
+            const y = n.getYs()
+            return y && y.length ? y[0] : 40
+          } catch {
+            return 40
+          }
+        })
+        setGeom({ xs, ys })
         // Tie curves: each event flagged `tie` connects to the next note.
         pattern.forEach((e, i) => {
           if (e.tie && notes[i + 1]) {
@@ -149,5 +178,26 @@ export default function RhythmStaff({
   }, [width, height, meter, num, den, JSON.stringify(pattern), JSON.stringify(eventColors), JSON.stringify(counts)])
 
   if (failed) return null
-  return <div ref={ref} className="overflow-x-auto" />
+  const lit =
+    highlightIndex != null && geom && geom.xs[highlightIndex] != null
+      ? { x: geom.xs[highlightIndex], y: geom.ys[highlightIndex] }
+      : null
+  return (
+    <div className="relative">
+      <div ref={ref} className="overflow-x-auto" />
+      {lit && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full"
+          style={{
+            left: lit.x,
+            top: lit.y,
+            width: 26,
+            height: 26,
+            background: `radial-gradient(circle, ${ACCENT}66 0%, ${ACCENT}33 45%, transparent 70%)`,
+          }}
+        />
+      )}
+    </div>
+  )
 }
