@@ -560,7 +560,7 @@ export default function TapAlongCard({
   return (
     <article
       ref={cardRef}
-      className="relative overflow-hidden rounded-3xl border border-rule bg-card px-6 py-7 shadow-[0_22px_60px_-32px_rgba(33,28,21,0.5)] sm:px-9 sm:py-9"
+      className="relative scroll-mb-[50px] overflow-hidden rounded-3xl border border-rule bg-card px-6 py-7 shadow-[0_22px_60px_-32px_rgba(33,28,21,0.5)] sm:px-9 sm:py-9"
     >
       <span
         aria-hidden
@@ -746,20 +746,17 @@ export default function TapAlongCard({
           ) : (
             <p className="marking mt-2 text-center text-ink-3">tap along to warm up…</p>
           ))}
-        {/* Count-in beat number (1·2·3·4…) over the staff — accent while
-            counting; the downbeat then flashes the staff green (above). */}
+        {/* Count-in beat number (1·2·3·4…) tucked into the staff's top-right so it
+            never overlaps the notes (which are left-aligned on the middle line);
+            the downbeat then flashes the staff green (above). */}
         {tapping && !started && countNum != null && (
-          <div
+          <span
+            key={countNum}
             aria-hidden
-            className="pointer-events-none absolute inset-0 flex items-center justify-center"
+            className="rise pointer-events-none absolute right-3 top-1 font-display text-5xl font-medium leading-none text-accent drop-shadow-[0_2px_10px_rgba(122,37,64,0.3)]"
           >
-            <span
-              key={countNum}
-              className="rise font-display text-7xl font-medium text-accent drop-shadow-[0_2px_10px_rgba(122,37,64,0.3)]"
-            >
-              {countNum}
-            </span>
-          </div>
+            {countNum}
+          </span>
         )}
       </div>
 
