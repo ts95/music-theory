@@ -201,8 +201,6 @@ export default function TapAlongCard({
   // Whether the graded (first) attempt passed — shown on practice retries.
   const [gradedPass, setGradedPass] = useState(false)
 
-  // The étude card — scrolled fully into view when an exercise starts.
-  const cardRef = useRef<HTMLElement | null>(null)
   // When the attempt finished — MIDI transport shortcuts wake up 500ms later so
   // a stray tap at the end of the bar can't skip straight to the next exercise.
   const doneAt = useRef(0)
@@ -241,16 +239,17 @@ export default function TapAlongCard({
     []
   )
 
-  // Scroll the étude card's bottom into view — the freshest content (the count-in
-  // lane when an exercise begins, the results + buttons when it's done) lives at
-  // the bottom as the card grows. Two frames so the new layout is committed first.
-  const scrollCardToBottom = () => {
+  // Scroll the whole page to the bottom — the freshest content (the count-in lane
+  // when an exercise begins, the results + buttons when it's done) lives at the
+  // bottom as the card grows. Two frames so the new layout is committed first.
+  const scrollToBottom = () => {
     requestAnimationFrame(() =>
       requestAnimationFrame(() => {
-        const el = cardRef.current
-        if (!el) return
         const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-        el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'end' })
+        window.scrollTo({
+          top: document.documentElement.scrollHeight,
+          behavior: reduce ? 'auto' : 'smooth',
+        })
       })
     )
   }
@@ -278,7 +277,7 @@ export default function TapAlongCard({
       setGradedPass(res.accuracy >= PASS)
       onResolve(res.accuracy >= PASS, tempo)
     }
-    scrollCardToBottom() // reveal the results + buttons
+    scrollToBottom() // reveal the results + buttons
   }
 
   // Run one attempt (the first via "Begin", later ones via "Try again").
@@ -310,7 +309,7 @@ export default function TapAlongCard({
     for (const s of struck) {
       timers.current.push(setTimeout(() => setHighlight(s.index), s.beat * beatMs))
     }
-    scrollCardToBottom() // reveal the count-in lane / staff as tapping begins
+    scrollToBottom() // reveal the count-in lane / staff as tapping begins
     for (const c of clicks) {
       timers.current.push(
         setTimeout(() => {
@@ -559,8 +558,7 @@ export default function TapAlongCard({
 
   return (
     <article
-      ref={cardRef}
-      className="relative scroll-mb-[50px] overflow-hidden rounded-3xl border border-rule bg-card px-6 py-7 shadow-[0_22px_60px_-32px_rgba(33,28,21,0.5)] sm:px-9 sm:py-9"
+      className="relative overflow-hidden rounded-3xl border border-rule bg-card px-6 py-7 shadow-[0_22px_60px_-32px_rgba(33,28,21,0.5)] sm:px-9 sm:py-9"
     >
       <span
         aria-hidden
