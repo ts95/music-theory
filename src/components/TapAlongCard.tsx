@@ -25,9 +25,10 @@ interface TapAlongCardProps {
 }
 
 const PASS = 80
-const TEMPO_MIN = 50
-const TEMPO_MAX = 150
+const TEMPO_MIN = 30
+const TEMPO_MAX = 90
 const TEMPO_STEP = 5
+const DEFAULT_TEMPO = 50
 // Feedback notehead colours (design tokens): viridian = on the beat, gold =
 // off but counted, vermilion = missed.
 const ON_BEAT = '#2f6b4e'
@@ -50,9 +51,10 @@ export default function TapAlongCard({
   const { meter, pattern } = ta
   const level = question.level ?? 0
   // The tempo is user-adjustable (slider); default to the saved tempo for this
-  // level, else the level's built-in tempo snapped into the slider's range.
-  const [tempo, setTempoState] = useState(
-    () => getSavedTempo('rhythm-tap', level) ?? snapTempo(ta.tempo)
+  // level, else 50 BPM. Snapped/clamped into the slider's range (handles stale
+  // saved values from a previous range).
+  const [tempo, setTempoState] = useState(() =>
+    snapTempo(getSavedTempo('rhythm-tap', level) ?? DEFAULT_TEMPO)
   )
   const setTempo = (t: number) => {
     setTempoState(t)
@@ -147,6 +149,9 @@ export default function TapAlongCard({
   // The in-progress press (one at a time): onset relative to t0 + the absolute
   // press time, so its hold is measured on release.
   const pending = useRef<{ downRel: number; downAbs: number } | null>(null)
+  // True when a press began during the count-in and is still held — so anticipating
+  // the downbeat by pressing early and holding into it still starts the first note.
+  const heldFromCountIn = useRef(false)
   const timers = useRef<ReturnType<typeof setTimeout>[]>([])
   // Animation frame growing the live tap's trace while a key/finger is held.
   const raf = useRef<number | undefined>(undefined)
@@ -204,6 +209,7 @@ export default function TapAlongCard({
     t0.current = performance.now()
     tapsRef.current = []
     pending.current = null
+    heldFromCountIn.current = false
     finishing.current = false
     setTapCount(0)
     setStarted(false)
@@ -229,21 +235,21 @@ export default function TapAlongCard({
         setCountNum(null)
         setGo(true)
         timers.current.push(setTimeout(() => setGo(false), 550))
+        // If a key/finger is still held from the count-in (anticipated downbeat),
+        // start the first note now so the hold counts.
+        if (heldFromCountIn.current && !pending.current) {
+          pending.current = { downRel: rhythmStartMs, downAbs: performance.now() }
+          heldFromCountIn.current = false
+          setLive({ down: rhythmStartMs, hold: 0 })
+          startGrow()
+        }
       }, rhythmStartMs)
     )
     timers.current.push(setTimeout(finish, finishMs))
   }
 
-  // Press: start a note. Release: record it with how long it was held. One press
-  // at a time (a held key/finger), so the next note needs a release first.
-  const pressDown = () => {
-    if (status !== 'tapping' || t0.current == null || pending.current) return
-    const downRel = performance.now() - t0.current
-    if (downRel < gateMs) return // still in the count-in — ignore
-    const downAbs = performance.now()
-    pending.current = { downRel, downAbs }
-    // Grow the live trace (dot + line) while held.
-    setLive({ down: downRel, hold: 0 })
+  // Grow the live trace (dot + line) while a press is held.
+  const startGrow = () => {
     const grow = () => {
       if (!pending.current) return
       setLive({ down: pending.current.downRel, hold: performance.now() - pending.current.downAbs })
@@ -251,7 +257,23 @@ export default function TapAlongCard({
     }
     raf.current = requestAnimationFrame(grow)
   }
+  // Press: start a note. Release: record it with how long it was held. One press
+  // at a time (a held key/finger), so the next note needs a release first.
+  const pressDown = () => {
+    if (status !== 'tapping' || t0.current == null || pending.current) return
+    const downRel = performance.now() - t0.current
+    if (downRel < gateMs) {
+      // A press during the count-in: don't score it, but if it's still held when
+      // the downbeat arrives, it becomes the first note (see the downbeat timer).
+      heldFromCountIn.current = true
+      return
+    }
+    pending.current = { downRel, downAbs: performance.now() }
+    setLive({ down: downRel, hold: 0 })
+    startGrow()
+  }
   const pressUp = () => {
+    heldFromCountIn.current = false // released; a count-in feel-tap is dropped
     if (!pending.current) return
     stopRaf()
     const { downRel, downAbs } = pending.current
@@ -330,6 +352,24 @@ export default function TapAlongCard({
           : 'Off the beat.'
   const passed = accuracy >= PASS
   const tapping = status === 'tapping'
+
+  // Tempo slider, shown before the first try and again before a retry.
+  const tempoControl = (
+    <label className="flex items-center gap-3">
+      <span className="marking text-ink-3">Tempo</span>
+      <input
+        type="range"
+        min={TEMPO_MIN}
+        max={TEMPO_MAX}
+        step={TEMPO_STEP}
+        value={tempo}
+        onChange={(e) => setTempo(Number(e.target.value))}
+        aria-label="Tempo in beats per minute"
+        className="h-1 w-40 cursor-pointer appearance-none rounded-full bg-rule accent-accent"
+      />
+      <span className="w-20 font-mono text-sm tabular-nums text-ink">{tempo} BPM</span>
+    </label>
+  )
 
   return (
     <article className="relative overflow-hidden rounded-3xl border border-rule bg-card px-6 py-7 shadow-[0_22px_60px_-32px_rgba(33,28,21,0.5)] sm:px-9 sm:py-9">
@@ -529,22 +569,7 @@ export default function TapAlongCard({
           </div>
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
-            <label className="flex items-center gap-3">
-              <span className="marking text-ink-3">Tempo</span>
-            <input
-              type="range"
-              min={TEMPO_MIN}
-              max={TEMPO_MAX}
-              step={TEMPO_STEP}
-              value={tempo}
-              onChange={(e) => setTempo(Number(e.target.value))}
-              aria-label="Tempo in beats per minute"
-              className="h-1 w-40 cursor-pointer appearance-none rounded-full bg-rule accent-accent"
-            />
-            <span className="w-20 font-mono text-sm tabular-nums text-ink">
-              {tempo} BPM
-            </span>
-          </label>
+            {tempoControl}
             <Button onClick={run} autoFocus>
               Begin
             </Button>
@@ -588,6 +613,9 @@ export default function TapAlongCard({
               <Button onClick={onNext}>Next</Button>
             </div>
           </div>
+
+          {/* Adjust the tempo before retrying. */}
+          <div className="mt-4">{tempoControl}</div>
 
           {/* Per-note mistakes, made explicit: offset (+ late / − early), held
               too short, or missed. */}
