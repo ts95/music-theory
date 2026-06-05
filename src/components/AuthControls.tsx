@@ -12,6 +12,9 @@ import { SUPABASE_ENABLED, authRedirectTo, supabase } from '../supabase/client'
  * signs you in right inside the app. Renders nothing when sync isn't configured.
  */
 
+/** Length of the email OTP — must match Supabase auth `mailer_otp_length`. */
+const OTP_LENGTH = 8
+
 /** True when running as an installed/standalone PWA (incl. iOS home-screen). */
 function isStandalone(): boolean {
   if (typeof window === 'undefined') return false
@@ -144,24 +147,24 @@ export default function AuthControls({ session }: { session: Session | null }) {
               }}
             >
               <p className="mt-2 text-sm text-ink-2">
-                Enter the 6-digit code we emailed to{' '}
+                Enter the 8-digit code we emailed to{' '}
                 <span className="text-ink">{email}</span>.
               </p>
               <input
                 inputMode="numeric"
                 autoComplete="one-time-code"
                 pattern="[0-9]*"
-                maxLength={6}
+                maxLength={OTP_LENGTH}
                 required
                 value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-                placeholder="123456"
-                className="mt-2 w-full rounded-lg border border-rule bg-paper px-3 py-2 text-center font-mono text-lg tracking-[0.3em] text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                placeholder="12345678"
+                className="mt-2 w-full rounded-lg border border-rule bg-paper px-3 py-2 text-center font-mono text-lg tracking-[0.25em] text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               />
               <Button
                 type="submit"
                 className="mt-2 w-full"
-                disabled={status === 'verifying' || code.length < 6}
+                disabled={status === 'verifying' || code.length < OTP_LENGTH}
               >
                 {status === 'verifying' ? 'Verifying…' : 'Verify code'}
               </Button>

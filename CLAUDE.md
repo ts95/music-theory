@@ -33,6 +33,11 @@ Before implementing:
 - If multiple interpretations exist, present them — don't pick silently.
 - If a simpler approach exists, say so. Push back when warranted.
 - If something is unclear, stop. Name what's confusing. Ask.
+- **Read the source of truth; don't assume defaults or conventions.** When a value is queryable
+  (a config setting, an API response, an env var, a schema) — *especially* if you've already queried
+  that source for something else — look up the actual value instead of coding to the common default.
+  A near-universal convention (e.g. "OTP codes are 6 digits") is a guess, not a fact, until you've
+  checked this system.
 
 ### 2. Simplicity First
 **Minimum code that solves the problem. Nothing speculative.**
@@ -77,6 +82,12 @@ For multi-step tasks, state a brief plan:
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant
 clarification.
+
+**Verify against reality, not against your own assumption.** A mock, fixture, or stub you write to
+match the code's premise can only prove the code agrees with itself — if the premise is wrong, the
+test is wrong the same way and passes anyway. The check has to touch the real contract: the actual
+config value, real data, the real endpoint/response, a real end-to-end run. (A form hardcoded to a
+6-digit code, "verified" by typing 6 digits into a mocked send, passed — while the real code was 8.)
 
 ---
 
