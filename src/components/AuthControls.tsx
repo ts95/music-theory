@@ -4,15 +4,32 @@ import Button from './Button'
 import { SUPABASE_ENABLED, authRedirectTo, supabase } from '../supabase/client'
 
 /**
- * Sign-in / sign-out control for cross-device sync. Magic-link only: enter an
- * email, get a sign-in link. Renders nothing when sync isn't configured.
+ * Sign-in / sign-out control for cross-device sync. Enter an email, get a
+ * sign-in email. In a browser that's a magic link (click it). When running as an
+ * installed PWA (iOS home-screen app), the magic link would open in Safari —
+ * a *separate* storage container — so the installed app would stay signed out;
+ * there we use the 6-digit code from the same email instead (verifyOtp), which
+ * signs you in right inside the app. Renders nothing when sync isn't configured.
  */
+
+/** True when running as an installed/standalone PWA (incl. iOS home-screen). */
+function isStandalone(): boolean {
+  if (typeof window === 'undefined') return false
+  return (
+    window.matchMedia?.('(display-mode: standalone)').matches === true ||
+    (window.navigator as { standalone?: boolean }).standalone === true
+  )
+}
+
 export default function AuthControls({ session }: { session: Session | null }) {
   const [open, setOpen] = useState(false)
   const [email, setEmail] = useState('')
-  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>(
-    'idle',
-  )
+  const [code, setCode] = useState('')
+  const [status, setStatus] = useState<
+    'idle' | 'sending' | 'sent' | 'error' | 'verifying' | 'badcode'
+  >('idle')
+  // Use the code flow only in an installed PWA (see the note above).
+  const [pwa] = useState(isStandalone)
   // The panel is right-anchored to the button, but the button can wrap to the
   // left of the header on narrow screens — then a right-anchored panel runs off
   // the left edge. After it opens, nudge it horizontally so it stays on screen.
@@ -61,6 +78,21 @@ export default function AuthControls({ session }: { session: Session | null }) {
     setStatus(error ? 'error' : 'sent')
   }
 
+  async function handleVerify() {
+    setStatus('verifying')
+    const { error } = await supabase!.auth.verifyOtp({
+      email,
+      token: code.trim(),
+      type: 'email',
+    })
+    // On success the auth state change flips this component to "Sign out".
+    if (error) setStatus('badcode')
+  }
+
+  // The email has been sent; the next step depends on browser vs installed PWA.
+  const sent =
+    status === 'sent' || status === 'verifying' || status === 'badcode'
+
   return (
     <div className="relative">
       <Button variant="secondary" onClick={() => setOpen((o) => !o)}>
@@ -74,35 +106,75 @@ export default function AuthControls({ session }: { session: Session | null }) {
           className="ink absolute right-0 z-10 mt-2 w-72 max-w-[calc(100vw-1.5rem)] rounded-xl border border-rule bg-card p-4 shadow-[0_8px_30px_rgba(0,0,0,0.12)]"
         >
           <p className="marking text-ink-3">Sync across devices</p>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              void handleSend()
-            }}
-          >
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@email.com"
-              className="mt-2 w-full rounded-lg border border-rule bg-paper px-3 py-2 font-sans text-sm text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-            />
-            <Button
-              type="submit"
-              className="mt-2 w-full"
-              disabled={status === 'sending'}
+          {!sent ? (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                void handleSend()
+              }}
             >
-              {status === 'sending' ? 'Sending…' : 'Email me a link'}
-            </Button>
-          </form>
-          {status === 'sent' && (
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@email.com"
+                className="mt-2 w-full rounded-lg border border-rule bg-paper px-3 py-2 font-sans text-sm text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              />
+              <Button
+                type="submit"
+                className="mt-2 w-full"
+                disabled={status === 'sending'}
+              >
+                {status === 'sending'
+                  ? 'Sending…'
+                  : pwa
+                    ? 'Email me a code'
+                    : 'Email me a link'}
+              </Button>
+              {status === 'error' && (
+                <p className="mt-2 text-sm text-wrong">Couldn’t send — try again.</p>
+              )}
+            </form>
+          ) : pwa ? (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                void handleVerify()
+              }}
+            >
+              <p className="mt-2 text-sm text-ink-2">
+                Enter the 6-digit code we emailed to{' '}
+                <span className="text-ink">{email}</span>.
+              </p>
+              <input
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="[0-9]*"
+                maxLength={6}
+                required
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                placeholder="123456"
+                className="mt-2 w-full rounded-lg border border-rule bg-paper px-3 py-2 text-center font-mono text-lg tracking-[0.3em] text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              />
+              <Button
+                type="submit"
+                className="mt-2 w-full"
+                disabled={status === 'verifying' || code.length < 6}
+              >
+                {status === 'verifying' ? 'Verifying…' : 'Verify code'}
+              </Button>
+              {status === 'badcode' && (
+                <p className="mt-2 text-sm text-wrong">
+                  Incorrect or expired code — check the email or resend.
+                </p>
+              )}
+            </form>
+          ) : (
             <p className="mt-2 text-sm text-correct">
               Check your inbox for a sign-in link.
             </p>
-          )}
-          {status === 'error' && (
-            <p className="mt-2 text-sm text-wrong">Couldn’t send — try again.</p>
           )}
         </div>
       )}

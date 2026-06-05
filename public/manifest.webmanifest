@@ -1,0 +1,16 @@
+{
+  "name": "Music Theory",
+  "short_name": "Music Theory",
+  "description": "A personal music-theory tutor — spaced-repetition études for keys, scales, chords, ear training, and rhythm.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#efe7d6",
+  "theme_color": "#efe7d6",
+  "icons": [
+    { "src": "icon.svg", "type": "image/svg+xml", "sizes": "any", "purpose": "any" },
+    { "src": "icon-192.png", "type": "image/png", "sizes": "192x192", "purpose": "any maskable" },
+    { "src": "icon-512.png", "type": "image/png", "sizes": "512x512", "purpose": "any maskable" }
+  ]
+}

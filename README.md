@@ -97,6 +97,9 @@ progress, chosen from a table-of-contents home screen. Twelve études today, in 
 - 📖 **About page.** A short explainer on how (and why) spaced repetition works.
 - ☁️ **Optional sync.** Sign in with an **email magic link** to sync your SRS progress and practice time
   across devices. Signed out, everything stays local on the device.
+- 📱 **Installable (PWA).** Add it to your home screen for a full-screen, app-like experience. Installed
+  apps sign in with the **6-digit code** from the email (the magic link would open in the browser, a
+  separate session); in a normal browser tab you still just click the link.
 
 ## Tech stack
 
