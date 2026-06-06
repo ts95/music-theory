@@ -192,20 +192,6 @@ export default function QuestionCard({
       c.split('–').map(letterFor).join('–'),
     )
   }, [ear, earRoot, question.choices])
-  // The ascending scale ladder with the melody's degrees marked — shown on a
-  // miss so the right intervals are obvious in the scale's context. Covers a
-  // full octave (do→do), widened if the melody ranges higher.
-  const melodyScale = useMemo(() => {
-    if (ear?.kind !== 'melody' || !earRoot) return null
-    const top = Math.max(7, ...ear.degrees)
-    const degrees = Array.from({ length: top + 1 }, (_, d) => d)
-    const groups = realizeEar({ kind: 'melody', mode: ear.mode, degrees }, earRoot).target
-    return {
-      groups,
-      highlight: [...new Set(ear.degrees)],
-      labels: degrees.map((d) => solfege(ear.mode, d)),
-    }
-  }, [ear, earRoot])
   // Key signature for the reveal staff — melody/progression are in a key (drawn
   // under its signature); intervals are relative-pitch, so no signature.
   const revealKeySignature =
@@ -715,17 +701,6 @@ export default function QuestionCard({
               }
               sublabels={progressionSymbols}
             />
-          )}
-          {!isCorrect && earIsMelody && melodyScale && (
-            <div className="mt-4">
-              <p className="marking text-ink-3">The scale — your notes in claret</p>
-              <Staff
-                groups={melodyScale.groups}
-                keySignature={revealKeySignature}
-                labels={melodyScale.labels}
-                highlight={melodyScale.highlight}
-              />
-            </div>
           )}
           {question.caption && (
             <p className="mt-3 text-sm leading-relaxed text-ink-2">
