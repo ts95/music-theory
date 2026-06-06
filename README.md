@@ -101,7 +101,7 @@ progress, chosen from a table-of-contents home screen. Twelve études today, in 
 - ☁️ **Optional sync.** Sign in with an **email magic link** to sync your SRS progress and practice time
   across devices. Signed out, everything stays local on the device.
 - 📱 **Installable (PWA).** Add it to your home screen for a full-screen, app-like experience. Installed
-  apps sign in with the **6-digit code** from the email (the magic link would open in the browser, a
+  apps sign in with the **8-digit code** from the email (the magic link would open in the browser, a
   separate session); in a normal browser tab you still just click the link.
 
 ## Tech stack
@@ -137,8 +137,9 @@ dropped further the more confidently you blanked.
 - **Levels** partition or widen an étude's material into Easy / Medium / Hard / Expert; each level keeps
   its own scheduling, so progress on one doesn't leak into another.
 - **Timed recall** is sudden-death: Relative Minors and Chords by Degree (5 s), Chord Recognition (10 s,
-  +5 s for inversions; Expert 8 s), Progressions (15 s), plus Play the Scale's per-level clock. Other
-  categories are untimed. The whole timer can be switched off with the **⏱ Timed / Untimed** header toggle.
+  +5 s for inversions; Expert 8 s, 12 s for inversions), Progressions (15 s), plus Play the Scale's
+  per-level clock. Other categories are untimed. The whole timer can be switched off with the
+  **⏱ Timed / Untimed** header toggle.
 - **Pacing** caps each étude at 10 due cards per rolling 5-hour window.
 - **Sync:** progress lives in the browser's `localStorage`. Optionally **sign in** (email magic link,
   Supabase-backed) to sync progress and practice time across devices; signed out, the app stays fully
@@ -156,9 +157,11 @@ src/
 ├── questions/       # ETUDES registry + builds MC questions, explanations, distractors
 ├── components/      # React UI: review session, question card, staves, keyboard,
 │                    #   circle of fifths, interval-song pages, about page, info box, auth controls
+├── contracts.ts     # Shared domain + question types
 ├── intervalSongs.ts # Reference tunes + notes for each ascending interval
-├── levels.ts · prefs.ts · dueCap.ts · time.ts · useEtudeTimer.ts · rhythm.ts
-└── App.tsx          # Routing (one path per étude, /about, /interval-songs) + shell
+├── levels.ts · prefs.ts · dueCap.ts · time.ts · useEtudeTimer.ts · practiceHistory.ts
+├── rhythm.ts · rhythmCounting.ts · tempos.ts · midi.ts (Web-MIDI input) · touch.ts
+└── App.tsx          # Routing (one path per étude, /about, /interval-songs, /history) + shell
 ```
 
 See [CLAUDE.md](./CLAUDE.md) for the architecture, conventions, and working principles used when
