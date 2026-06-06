@@ -47,7 +47,10 @@ progress, chosen from a table-of-contents home screen. Twelve études today, in 
 - **No. 9 — Progressions by Ear.** Hear the tonic, then a progression, and name it in Roman numerals.
 - **No. 10 — Melodic Dictation.** Hear a short motif over its tonic and name it in **solfège**. A
   **hear-scale** hint plays the whole scale with a synced solfège readout (and you can hover a syllable
-  to play just that note); the melody is shown on the staff, in key, on reveal.
+  to play just that note); the melody is shown on the staff, in key, on reveal. Miss it and the **whole
+  scale** is shown as a solfège readout with the melody's notes marked in a distinct colour (so you can
+  see where they sit in the scale and learn what each syllable means); it **auto-plays the missed melody**,
+  lighting each note as it sounds, and you can hover any degree to hear that syllable on its own.
 - **No. 11 — Rhythm Dictation.** Hear a one-bar rhythm and pick the matching notation. A wide vocabulary
   of common patterns — sixteenth cells (ti-tika / tika-ti), dotted-eighth and Scotch-snap figures, the
   tresillo (3+3+2), eighth-note triplets, ties, rests and off-beat syncopation. The metres accumulate

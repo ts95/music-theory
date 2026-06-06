@@ -192,6 +192,26 @@ export default function QuestionCard({
       c.split('–').map(letterFor).join('–'),
     )
   }, [ear, earRoot, question.choices])
+  // On a miss, the whole scale (do→do, widened if the melody ranges higher) as a
+  // solfège readout: the degrees the melody used are marked, so you can see where
+  // its notes sit in the scale and learn what each syllable means. Carries MIDI
+  // for hover-to-hear any degree, and the melody's MIDI for the playback.
+  const missedScale = useMemo(() => {
+    if (ear?.kind !== 'melody' || !earRoot || !realized) return null
+    const top = Math.max(7, ...ear.degrees)
+    const cells = Array.from({ length: top + 1 }, (_, d) => d)
+    const midis = realizeEar(
+      { kind: 'melody', mode: ear.mode, degrees: cells },
+      earRoot,
+    ).target.map((ev) => voicedMidi(ev[0]))
+    return {
+      cells,
+      members: new Set(ear.degrees),
+      melodyDegrees: ear.degrees,
+      midis,
+      melodyMidis: realized.target.map((ev) => ev.map(voicedMidi)),
+    }
+  }, [ear, earRoot, realized])
   // Key signature for the reveal staff — melody/progression are in a key (drawn
   // under its signature); intervals are relative-pitch, so no signature.
   const revealKeySignature =
@@ -213,6 +233,9 @@ export default function QuestionCard({
   // Melodic-dictation "hear scale" hint: null = not shown; -1 = shown, no note
   // lit; 0..7 = the scale degree currently sounding (for the solfège readout).
   const [scaleStep, setScaleStep] = useState<number | null>(null)
+  // Melodic-dictation reveal: which melody note is currently sounding while you
+  // play back the motif you missed (-1/null = idle; index = lit), for its readout.
+  const [melodyStep, setMelodyStep] = useState<number | null>(null)
 
   // Touch answering: a tap arms a choice (selects + previews it) instead of
   // committing; a second tap on the armed choice confirms. Pressing and dragging
@@ -260,6 +283,23 @@ export default function QuestionCard({
     if (!scaleMidis || !scaleIdle) return
     cheated.current = true
     playEar([], [[scaleMidis[degree]]], 'melodic')
+  }
+  // Reveal (melody): play back the motif you were supposed to guess, lighting
+  // the matching scale degree in the readout as each note sounds. `melodyStep`
+  // holds the scale degree currently sounding (-1/null = idle).
+  const melodyIdle = melodyStep === null || melodyStep === -1
+  function playMissedMelody() {
+    if (!missedScale) return
+    setMelodyStep(-1)
+    playEar([], missedScale.melodyMidis, 'melodic', (i) =>
+      setMelodyStep(missedScale.melodyDegrees[i]),
+    )
+  }
+  // Hover/tap a scale degree to hear it on its own — so each syllable's sound
+  // can be anchored to its name (the whole point of the readout).
+  function playScaleDegree(d: number) {
+    if (!missedScale || !melodyIdle) return
+    playEar([], [[missedScale.midis[d]]], 'melodic')
   }
   // Intervals only: sound both notes at once (one block event).
   function playHarmonic() {
@@ -339,6 +379,16 @@ export default function QuestionCard({
     if (!isMuted() && (realized || earIsRhythm)) playPrompt()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [realized])
+
+  // On a wrong melody answer, play back the missed melody automatically (once).
+  const autoPlayedRef = useRef(false)
+  useEffect(() => {
+    if (answered && !isCorrect && earIsMelody && missedScale && !autoPlayedRef.current) {
+      autoPlayedRef.current = true
+      playMissedMelody()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answered, isCorrect, earIsMelody, missedScale])
 
   // Keyboard: number keys 1–N select; 0 = "I don't know"; Enter advances.
   useEffect(() => {
@@ -682,6 +732,49 @@ export default function QuestionCard({
               Next
             </Button>
           </div>
+          {!isCorrect && ear?.kind === 'melody' && missedScale && (
+            // The whole scale as a solfège readout: the melody's degrees are
+            // marked in a distinct colour so you can see where its notes sit in
+            // the scale and learn what each syllable means. "Hear the melody"
+            // (auto-plays on a miss) plays just those notes, lighting each in
+            // turn; hover any degree to hear that syllable on its own.
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={playMissedMelody}
+                className="marking text-ink-3 transition-colors hover:text-ink"
+              >
+                ▶ hear the melody
+              </button>
+              <div className="mt-2 flex flex-wrap gap-1.5 font-mono text-sm">
+                {missedScale.cells.map((d) => {
+                  const sounding = d === melodyStep
+                  const member = missedScale.members.has(d)
+                  return (
+                    <span
+                      key={d}
+                      onPointerEnter={(e) => {
+                        if (e.pointerType === 'mouse' && melodyIdle) playScaleDegree(d)
+                      }}
+                      onPointerLeave={(e) => {
+                        if (e.pointerType === 'mouse') stopHover()
+                      }}
+                      onClick={melodyIdle ? () => playScaleDegree(d) : undefined}
+                      className={`rounded px-2 py-1 transition-colors ${
+                        sounding
+                          ? 'bg-accent text-paper'
+                          : member
+                            ? 'bg-accent/10 text-accent'
+                            : 'text-ink-3'
+                      } ${melodyIdle ? 'cursor-pointer hover:bg-rule/60' : ''}`}
+                    >
+                      {solfege(ear.mode, d % 7)}
+                    </span>
+                  )
+                })}
+              </div>
+            </div>
+          )}
           {ear && realized && (
             <Staff
               groups={realized.target}
