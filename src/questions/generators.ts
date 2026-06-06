@@ -3,6 +3,7 @@ import type {
   Playable,
   Question,
   RhythmEvent,
+  ScaleKind,
   ScaleType,
   TimeSig,
 } from '../contracts'
@@ -17,8 +18,11 @@ import {
   majorFingering,
   isCleanNinth,
   keySignatureSpec,
+  locrianScale,
+  lydianScale,
   majorScale,
   minorScale,
+  mixolydianScale,
   noteToString,
   phrygianScale,
   pitchClass,
@@ -54,10 +58,16 @@ import { audibleSignature } from '../rhythm'
 
 const SCALE_TYPES: ScaleType[] = ['natural', 'harmonic', 'melodic']
 
-const TYPE_WORD: Record<ScaleType, string> = {
+const SCALE_WORD: Record<ScaleKind, string> = {
+  major: 'major',
   natural: 'natural minor',
   harmonic: 'harmonic minor',
   melodic: 'melodic minor',
+  dorian: 'Dorian',
+  phrygian: 'Phrygian',
+  lydian: 'Lydian',
+  mixolydian: 'Mixolydian',
+  locrian: 'Locrian',
 }
 
 /** ASCII, space-free, stable id fragment for a tonic, e.g. "Eb", "F#", "Cx". */
@@ -146,67 +156,135 @@ function relativeMinorQuestions(): Question[] {
   })
 }
 
+/** The notes of any asked-about scale flavour, on a given tonic. */
+function scaleKindNotes(kind: ScaleKind, tonic: Note): Note[] {
+  switch (kind) {
+    case 'major':
+      return majorScale(tonic)
+    case 'natural':
+    case 'harmonic':
+    case 'melodic':
+      return minorScale(tonic, kind)
+    case 'dorian':
+      return dorianScale(tonic)
+    case 'phrygian':
+      return phrygianScale(tonic)
+    case 'lydian':
+      return lydianScale(tonic)
+    case 'mixolydian':
+      return mixolydianScale(tonic)
+    case 'locrian':
+      return locrianScale(tonic)
+  }
+}
+
+/** True if any note needs a double sharp/flat — too ugly to ask as a mode. */
+const hasDoubleAccidental = (notes: Note[]): boolean =>
+  notes.some((n) => Math.abs(n.accidental) >= 2)
+
+interface ScaleKindDef {
+  kind: ScaleKind
+  /** Which of the key's tonics the scale is built on. */
+  on: 'major' | 'minor'
+  /** A Greek mode — only generated at Expert. */
+  mode: boolean
+}
+
+// Each level's content: major + the 3 minor forms at every level; the modes are
+// added only at Expert. Major/Lydian/Mixolydian sit on the major tonic; the
+// minor forms on the relative minor; the (minor-family) modes on the major tonic
+// so all 12 pitch classes are covered with clean spellings.
+const SCALE_KINDS: ScaleKindDef[] = [
+  { kind: 'major', on: 'major', mode: false },
+  { kind: 'natural', on: 'minor', mode: false },
+  { kind: 'harmonic', on: 'minor', mode: false },
+  { kind: 'melodic', on: 'minor', mode: false },
+  { kind: 'dorian', on: 'major', mode: true },
+  { kind: 'phrygian', on: 'major', mode: true },
+  { kind: 'lydian', on: 'major', mode: true },
+  { kind: 'mixolydian', on: 'major', mode: true },
+  { kind: 'locrian', on: 'major', mode: true },
+]
+
+// Four cumulative ABRSM-graded levels by key range (key-signature accidentals):
+// Easy ≤2, Medium ≤4, Hard / Expert all twelve (≤6). Easy ≈ grades 1–2, Medium ≈
+// grades 3–4, Hard/Expert ≈ grade 5+. Expert additionally adds the Greek modes.
+const SCALE_LEVEL_ACCIDENTALS = [2, 4, 6, 6]
+
 /**
- * 2. Scale spelling: one per (key, scale type). All four options start on the
- * SAME tonic so the first note never gives the answer away. Distractors are
- * other named scales on that tonic — the sibling minor forms plus the parallel
- * major, Dorian, and Phrygian — with the mix varied per question.
+ * 2. Scale spelling: one per (level, key, scale flavour). All four options start
+ * on the SAME tonic so the first note never gives the answer away; distractors
+ * are other named scales on that tonic, the mix varied deterministically. Each
+ * level is its own SRS set (level-prefixed ids), cumulative by key range. Major +
+ * the 3 minor forms at every level; the modes are added at Expert.
  */
 function scaleSpellingQuestions(): Question[] {
   const questions: Question[] = []
-  KEYS.forEach((key, keyIndex) => {
-    SCALE_TYPES.forEach((type, typeIndex) => {
-      const tonic = key.minorTonic
-      const audio: Record<string, Playable> = {}
-      // Render a scale to its string AND register its ascending playback.
-      const reg = (notes: Note[]): string => {
-        const s = renderScale(notes)
-        audio[s] = { kind: 'scale', events: scaleEvents(notes) }
-        return s
-      }
-      const correctNotes = minorScale(tonic, type)
-      const correct = reg(correctNotes)
+  SCALE_LEVEL_ACCIDENTALS.forEach((maxAccidentals, levelIndex) => {
+    const level = levelIndex + 1
+    const expert = level === SCALE_LEVEL_ACCIDENTALS.length
+    KEYS.forEach((key, keyIndex) => {
+      if (accidentalCount(key.majorTonic) > maxAccidentals) return
+      SCALE_KINDS.forEach((def, kindIndex) => {
+        if (def.mode && !expert) return
+        const tonic = def.on === 'major' ? key.majorTonic : key.minorTonic
+        const correctNotes = scaleKindNotes(def.kind, tonic)
+        // Skip modes whose spelling would need a double accidental (e.g. Locrian
+        // on D♭). The major/minor scales keep all 12 keys, as they always have.
+        if (def.mode && hasDoubleAccidental(correctNotes)) return
 
-      // Same-tonic candidates: the two sibling minor forms, and three
-      // distinct scale types (all start on `tonic`, all spelled differently).
-      const siblings = SCALE_TYPES.filter((t) => t !== type).map((t) =>
-        minorScale(tonic, t)
-      )
-      const others = [majorScale(tonic), dorianScale(tonic), phrygianScale(tonic)]
+        const audio: Record<string, Playable> = {}
+        // Render a scale to its string AND register its ascending playback.
+        const reg = (notes: Note[]): string => {
+          const s = renderScale(notes)
+          audio[s] = { kind: 'scale', events: scaleEvents(notes) }
+          return s
+        }
+        const correct = reg(correctNotes)
 
-      // Vary the mix deterministically (no RNG, so ids/output stay stable):
-      // alternate between "2 siblings + 1 other" and "1 sibling + 2 others",
-      // rotating which sibling/others appear.
-      const rot = keyIndex + typeIndex
-      const pickOthers = (n: number) =>
-        Array.from({ length: n }, (_, i) => others[(rot + i) % others.length])
-      const distractorNotes =
-        rot % 2 === 0
-          ? [...siblings, pickOthers(1)[0]]
-          : [siblings[rot % siblings.length], ...pickOthers(2)]
+        // Distractors: every other flavour on the SAME tonic (so the first note
+        // never reveals the answer), rotated per question so the mix varies.
+        // buildQuestion keeps the first 3 distinct from this over-supply.
+        const rot = keyIndex + kindIndex + level
+        const others = SCALE_KINDS.filter((d) => d.kind !== def.kind)
+        const distractorNotes = others.map((_, i) =>
+          scaleKindNotes(others[(i + rot) % others.length].kind, tonic)
+        )
 
-      const q = buildQuestion(
-        'scales',
-        `scale-notes:${asciiTonicId(tonic)}:${type}`,
-        'Scale spelling',
-        `What are the notes of the ${noteToString(tonic)} ${TYPE_WORD[type]} scale?`,
-        correct,
-        distractorNotes.map(reg),
-        audio,
-        scaleExplanation(tonic, type, key.majorName)
-      )
-      // Reveal lights up the answer scale on the keyboard, each key labelled
-      // with both fingerings (RH over LH). Fingering is shared across the three
-      // minor forms, so the same finger sequence applies to every scale type.
-      const rh = fingering(tonic, 'natural', 'RH')
-      const lh = fingering(tonic, 'natural', 'LH')
-      q.keyboard = {
-        marks: voiceScaleAscending(correctNotes).map((v, i) => ({
-          midi: voicedMidi(v),
-          ...(rh && lh ? { label: String(rh[i]), sublabel: String(lh[i]) } : {}),
-        })),
-      }
-      questions.push(q)
+        const q = buildQuestion(
+          'scales',
+          `scale-notes:L${level}:${asciiTonicId(tonic)}:${def.kind}`,
+          'Scale spelling',
+          `What are the notes of the ${noteToString(tonic)} ${SCALE_WORD[def.kind]} scale?`,
+          correct,
+          distractorNotes.map(reg),
+          audio,
+          scaleExplanation(tonic, def.kind, correctNotes, key.majorName)
+        )
+        q.level = level
+        // Reveal lights up the answer scale on the keyboard, each key labelled
+        // with RH/LH fingerings where we have them (major + the minor forms,
+        // which share a fingering); modes light the keys without finger numbers.
+        const rh =
+          def.kind === 'major'
+            ? majorFingering(tonic, 'RH')
+            : def.mode
+              ? null
+              : fingering(tonic, 'natural', 'RH')
+        const lh =
+          def.kind === 'major'
+            ? majorFingering(tonic, 'LH')
+            : def.mode
+              ? null
+              : fingering(tonic, 'natural', 'LH')
+        q.keyboard = {
+          marks: voiceScaleAscending(correctNotes).map((v, i) => ({
+            midi: voicedMidi(v),
+            ...(rh && lh ? { label: String(rh[i]), sublabel: String(lh[i]) } : {}),
+          })),
+        }
+        questions.push(q)
+      })
     })
   })
   return questions

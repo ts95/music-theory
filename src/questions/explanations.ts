@@ -1,4 +1,4 @@
-import type { Note, RhythmEvent, ScaleType, TimeSig } from '../contracts'
+import type { Note, RhythmEvent, ScaleKind, TimeSig } from '../contracts'
 import type { Chord, Mode, Quality } from '../theory'
 import { chordSymbol, majorScale, minorScale, noteToString, pitchClass, romanLabel } from '../theory'
 
@@ -42,23 +42,41 @@ export function relativeMinorExplanation(
   return `${minorName} is the 6th degree of ${majorName} — a minor 3rd (3 half-steps) below the tonic: ${upToSixth}. Relatives share a key signature; the minor scale just starts on that 6th note.`
 }
 
-/** "What are the notes of the E♭ harmonic minor scale?" */
+/**
+ * "What are the notes of the E♭ harmonic minor scale?" — and every other flavour
+ * the Scales étude asks about: major, the 3 minor forms, and the modes.
+ * `notes` is the already-spelled correct scale (so callers don't recompute it);
+ * `relativeMajorName` is only used by the natural-minor tip.
+ */
 export function scaleExplanation(
   tonic: Note,
-  type: ScaleType,
+  kind: ScaleKind,
+  notes: Note[],
   relativeMajorName: string
 ): string {
   const T = noteToString(tonic)
+  if (kind === 'major') {
+    return `The major scale is the W–W–H–W–W–W–H pattern from the tonic — every key's reference scale: ${spell(notes)}.`
+  }
   const nat = minorScale(tonic, 'natural')
-  if (type === 'natural') {
+  if (kind === 'natural') {
     return `${T} natural minor borrows the key signature of its relative major, ${relativeMajorName}. From the tonic the step pattern is W–H–W–W–H–W–W: ${spell(nat)}.`
   }
-  if (type === 'harmonic') {
-    const h = minorScale(tonic, 'harmonic')
-    return `Harmonic minor = natural minor with a raised 7th. In ${T}, raise ${noteToString(nat[6])} to ${noteToString(h[6])} (the leading tone): ${spell(h)}.`
+  if (kind === 'harmonic') {
+    return `Harmonic minor = natural minor with a raised 7th. In ${T}, raise ${noteToString(nat[6])} to ${noteToString(notes[6])} (the leading tone): ${spell(notes)}.`
   }
-  const m = minorScale(tonic, 'melodic')
-  return `Melodic minor (ascending) = natural minor with a raised 6th AND 7th. In ${T}, ${noteToString(nat[5])}→${noteToString(m[5])} and ${noteToString(nat[6])}→${noteToString(m[6])}: ${spell(m)}.`
+  if (kind === 'melodic') {
+    return `Melodic minor (ascending) = natural minor with a raised 6th AND 7th. In ${T}, ${noteToString(nat[5])}→${noteToString(notes[5])} and ${noteToString(nat[6])}→${noteToString(notes[6])}: ${spell(notes)}.`
+  }
+  // Modes — describe each as an alteration of the parallel major or natural minor.
+  const MODE_RULE: Record<'dorian' | 'phrygian' | 'lydian' | 'mixolydian' | 'locrian', string> = {
+    dorian: 'Dorian = natural minor with a raised 6th',
+    phrygian: 'Phrygian = natural minor with a flat 2nd',
+    lydian: 'Lydian = major with a raised 4th',
+    mixolydian: 'Mixolydian = major with a flat 7th',
+    locrian: 'Locrian = natural minor with a flat 2nd and flat 5th',
+  }
+  return `${MODE_RULE[kind]}. In ${T}: ${spell(notes)}.`
 }
 
 /** "In C major, what is the IV chord?" */

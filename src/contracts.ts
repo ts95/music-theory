@@ -25,6 +25,15 @@ export interface Note {
 }
 
 export type ScaleType = 'natural' | 'harmonic' | 'melodic'
+/** A scale flavour asked about in the Scales étude: major, the 3 minor forms, or a mode. */
+export type ScaleKind =
+  | 'major'
+  | ScaleType
+  | 'dorian'
+  | 'phrygian'
+  | 'lydian'
+  | 'mixolydian'
+  | 'locrian'
 export type Hand = 'RH' | 'LH'
 
 /** A spelled note placed at a specific octave (C4 = middle C). */

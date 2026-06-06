@@ -14,7 +14,10 @@ describe('generateAllQuestions', () => {
     const scale = questions.filter((q) => q.category === 'Scale spelling')
 
     expect(relMinor).toHaveLength(12)
-    expect(scale).toHaveLength(36)
+    // Scales: four ABRSM bands by key range (≤2/≤4/all/all = 5/9/12/12 keys) ×
+    // (major + 3 minor forms) = 20+36+48+48, plus the modes at Expert (5 modes ×
+    // 12 tonics − 5 double-accidental skips = 55) = 207.
+    expect(scale).toHaveLength(207)
 
     // Four ABRSM-aligned bands. Key-range ladder is ≤1/≤3/≤5/all = 3/7/11/12 keys.
     // chords by degree: keys × 2 modes × 7 (trimmed triads + V7) = (3+7+11+12)×2×7 = 462.
@@ -26,7 +29,7 @@ describe('generateAllQuestions', () => {
     //   175 rhythm-tap (same patterns, one tap exercise each; Medium drops 12/8,
     //   so 31+46+56+42) + 123 scale-play (10+17+48+48).
     expect(questions.length).toBe(
-      12 + 36 + 123 + 462 + 602 + 462 + 429 + 40 + 11 + 84 + 183 + 175
+      12 + 207 + 123 + 462 + 602 + 462 + 429 + 40 + 11 + 84 + 183 + 175
     )
   })
 
@@ -37,7 +40,7 @@ describe('generateAllQuestions', () => {
     const count = (id: string) =>
       questions.filter((q) => q.etudeId === id).length
     expect(count('relative-minors')).toBe(12)
-    expect(count('scales')).toBe(36)
+    expect(count('scales')).toBe(207) // 4 bands: 20+36+48 (major+3 minors) + 103 (Expert adds modes)
     expect(count('chords')).toBe(462) // (3+7+11+12) keys × 2 × 7
     expect(count('chord-recognition')).toBe(602) // (7+12+12+12) keys × 2 × 7
     expect(count('chord-spelling')).toBe(462) // same key ladder as chords
@@ -75,9 +78,23 @@ describe('generateAllQuestions', () => {
   })
 
   it('spot-checks: C harmonic minor scale notes', () => {
-    const q = questions.find((x) => x.id === 'scale-notes:C:harmonic')
+    // C minor (E♭ key, 3 accidentals) first appears at Medium (L2).
+    const q = questions.find((x) => x.id === 'scale-notes:L2:C:harmonic')
     expect(q).toBeDefined()
     expect(q!.choices[q!.answerIndex]).toBe('C – D – E♭ – F – G – A♭ – B')
+  })
+
+  it('spot-checks: major and modal scale spellings', () => {
+    // Major arrives at Easy; a missed answer's tip names the major pattern.
+    const cMajor = questions.find((x) => x.id === 'scale-notes:L1:C:major')
+    expect(cMajor!.choices[cMajor!.answerIndex]).toBe('C – D – E – F – G – A – B')
+    // The Greek modes are Expert-only (L4); spellings via theory/scales.ts.
+    const dDorian = questions.find((x) => x.id === 'scale-notes:L4:D:dorian')
+    expect(dDorian!.choices[dDorian!.answerIndex]).toBe('D – E – F – G – A – B – C')
+    const cLydian = questions.find((x) => x.id === 'scale-notes:L4:C:lydian')
+    expect(cLydian!.choices[cLydian!.answerIndex]).toBe('C – D – E – F♯ – G – A – B')
+    // Modes do NOT appear below Expert.
+    expect(questions.some((x) => /^scale-notes:L[123]:.*:dorian$/.test(x.id))).toBe(false)
   })
 
   function correctFor(prompt: string): string {
@@ -177,7 +194,7 @@ describe('generateAllQuestions', () => {
 
     it('spot-checks playback data', () => {
       // C major scale ascends C4..B4.
-      const scale = questions.find((x) => x.id === 'scale-notes:A:natural')
+      const scale = questions.find((x) => x.id === 'scale-notes:L1:A:natural')
       expect(scale!.audio!['A – B – C – D – E – F – G'].kind).toBe('scale')
 
       // Étude 2 "F" major triad.
@@ -249,7 +266,7 @@ describe('generateAllQuestions', () => {
     })
 
     it('keeps the question counts and ids stable', () => {
-      expect(scaleQ).toHaveLength(36)
+      expect(scaleQ).toHaveLength(207)
       expect(chordQ).toHaveLength(462)
       expect(progQ).toHaveLength(429)
     })
@@ -273,7 +290,7 @@ describe('generateAllQuestions', () => {
     })
 
     it('harmonic-minor scale tip names the raised 7th', () => {
-      const q = questions.find((x) => x.id === 'scale-notes:C:harmonic')!
+      const q = questions.find((x) => x.id === 'scale-notes:L2:C:harmonic')!
       expect(q.explanation).toMatch(/raised 7th/)
       expect(q.explanation).toContain('B♭') // the raised note: B♭ → B♮
     })
@@ -342,18 +359,28 @@ describe('generateAllQuestions', () => {
   })
 
   describe('keyboard & circle notation (études 1 & 2)', () => {
-    it('scale-spelling questions light up the 7 scale keys, labelled RH/LH', () => {
+    it('scale-spelling questions light up the 7 scale keys; major/minor labelled RH/LH, modes unlabelled', () => {
+      const isMode = (id: string) =>
+        /:(dorian|phrygian|lydian|mixolydian|locrian)$/.test(id)
       for (const q of questions.filter((x) => x.category === 'Scale spelling')) {
         expect(q.keyboard, q.id).toBeDefined()
-        expect(q.keyboard!.marks).toHaveLength(7)
-        // Every key carries both fingerings (RH = label, LH = sublabel).
-        expect(
-          q.keyboard!.marks.every((m) => m.label !== undefined && m.sublabel !== undefined),
-          q.id
-        ).toBe(true)
+        expect(q.keyboard!.marks, q.id).toHaveLength(7)
+        if (isMode(q.id)) {
+          // Modes have no verified fingering — keys lit, but no finger numbers.
+          expect(
+            q.keyboard!.marks.every((m) => m.label === undefined && m.sublabel === undefined),
+            q.id
+          ).toBe(true)
+        } else {
+          // Major + the 3 minor forms carry both fingerings (RH label, LH sublabel).
+          expect(
+            q.keyboard!.marks.every((m) => m.label !== undefined && m.sublabel !== undefined),
+            q.id
+          ).toBe(true)
+        }
       }
       // A natural minor: A4 B4 C5 D5 E5 F5 G5 (C wraps up an octave).
-      const a = questions.find((x) => x.id === 'scale-notes:A:natural')!
+      const a = questions.find((x) => x.id === 'scale-notes:L1:A:natural')!
       expect(a.keyboard!.marks.map((m) => m.midi)).toEqual([69, 71, 72, 74, 76, 77, 79])
       expect(a.keyboard!.marks.map((m) => m.label)).toEqual(['1', '2', '3', '1', '2', '3', '4'])
       expect(a.keyboard!.marks.map((m) => m.sublabel)).toEqual(['5', '4', '3', '2', '1', '3', '2'])

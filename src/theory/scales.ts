@@ -46,13 +46,31 @@ export function minorScale(tonic: Note, type: ScaleType): Note[] {
 
 const DORIAN_STEPS = [2, 1, 2, 2, 2, 1, 2]
 const PHRYGIAN_STEPS = [1, 2, 2, 2, 1, 2, 2]
+const LYDIAN_STEPS = [2, 2, 2, 1, 2, 2, 1]
+const MIXOLYDIAN_STEPS = [2, 2, 1, 2, 2, 1, 2]
+const LOCRIAN_STEPS = [1, 2, 2, 1, 2, 2, 2]
 
-/** The Dorian mode (a minor-family mode with a raised 6th). For distractors. */
+/** The Dorian mode (a minor-family mode with a raised 6th). */
 export function dorianScale(tonic: Note): Note[] {
   return spellScale(tonic, DORIAN_STEPS)
 }
 
-/** The Phrygian mode (a minor-family mode with a flat 2nd). For distractors. */
+/** The Phrygian mode (a minor-family mode with a flat 2nd). */
 export function phrygianScale(tonic: Note): Note[] {
   return spellScale(tonic, PHRYGIAN_STEPS)
+}
+
+/** The Lydian mode (a major-family mode with a raised 4th). */
+export function lydianScale(tonic: Note): Note[] {
+  return spellScale(tonic, LYDIAN_STEPS)
+}
+
+/** The Mixolydian mode (a major-family mode with a flat 7th). */
+export function mixolydianScale(tonic: Note): Note[] {
+  return spellScale(tonic, MIXOLYDIAN_STEPS)
+}
+
+/** The Locrian mode (a minor-family mode with a flat 2nd and flat 5th). */
+export function locrianScale(tonic: Note): Note[] {
+  return spellScale(tonic, LOCRIAN_STEPS)
 }

@@ -14,7 +14,9 @@ export const ETUDES: Etude[] = [
     section: 'Keys & Scales',
     number: 2,
     title: 'Scales',
-    subtitle: 'Natural / harmonic / melodic minor scale spellings',
+    subtitle: 'Spell major & minor scales — plus the modes at Expert',
+    levels: ['Easy', 'Medium', 'Hard', 'Expert'],
+    version: 2,
   },
   {
     id: 'scale-play',

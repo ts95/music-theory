@@ -135,14 +135,20 @@ const REFERENCES: Record<string, EtudeReference> = {
     ),
   },
   scales: {
-    title: 'Minor-scale formulas',
+    title: 'Scale formulas',
     body: (
       <div className="space-y-2">
-        <Line label="Natural">{mono('W–H–W–W–H–W–W')}</Line>
+        <Line label="Major">{mono('W–W–H–W–W–W–H')}</Line>
+        <Line label="Natural">{mono('W–H–W–W–H–W–W')} — natural minor</Line>
         <Line label="Harmonic">natural minor with a raised 7th (leading tone)</Line>
         <Line label="Melodic">
           raised 6th &amp; 7th ascending; natural minor descending
         </Line>
+        <p className="text-ink-3">
+          Levels track ABRSM grades by key range — Easy ≤2 sharps/flats, widening
+          to all 12 keys by Hard. <span className="text-ink-2">Expert</span> adds the
+          Greek modes: Dorian, Phrygian, Lydian, Mixolydian, Locrian.
+        </p>
         <p className="text-ink-3">
           One letter per scale degree — keep the accidentals consistent.
         </p>

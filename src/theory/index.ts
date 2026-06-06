@@ -5,6 +5,9 @@ export {
   minorScale,
   dorianScale,
   phrygianScale,
+  lydianScale,
+  mixolydianScale,
+  locrianScale,
 } from './scales'
 export { fingering, majorFingering, chordFingering } from './fingerings'
 export type { Mode, Quality, Chord } from './chords'

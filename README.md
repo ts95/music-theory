@@ -16,7 +16,9 @@ progress, chosen from a table-of-contents home screen. Twelve études today, in 
 
 - **No. 1 — Relative Minors.** Name the relative minor of a major key ("What is the relative minor of
   E♭ major?"); the circle of fifths is shown on reveal. Timed (5 s sudden-death).
-- **No. 2 — Scales.** Spell the natural / harmonic / melodic minor scales of every key.
+- **No. 2 — Scales.** Spell the major and natural / harmonic / melodic minor scales of every key, across
+  four ABRSM-graded levels (the key range widens from ≤2 sharps/flats at Easy to all 12 keys by Hard).
+  **Expert** adds the Greek modes — Dorian, Phrygian, Lydian, Mixolydian, Locrian.
 - **No. 3 — Play the Scale.** You're given a key and **play the scale ascending** on an interactive
   keyboard — tap/click, or strike a connected **MIDI keyboard**. Each correct note lights with its
   RH+LH fingering; a few wrong notes are forgiven (Easy/Medium two, Hard one, Expert none) before the run
