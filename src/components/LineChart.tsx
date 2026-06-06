@@ -1,7 +1,10 @@
 /**
  * Minimal hand-rolled SVG line chart (no chart dependency) for the accuracy
- * trends. Y axis is fixed 0–100%. Each series' `values` align to `xLabels`;
- * a null value breaks the line (a gap), so weeks without data aren't faked.
+ * trends. Y axis is fixed 0–100%. Each series' `values` align to `xLabels`; a
+ * null value is a day/period with no data. By default that breaks the line (a
+ * gap); with `connectGaps` the line bridges straight to the next data point
+ * (markers still only sit on real points), keeping a trajectory continuous
+ * across the odd unpractised day on a fixed date axis.
  */
 
 // Axis hairline colors mirror the @theme tokens (--color-rule / --color-ink-3);
@@ -19,6 +22,8 @@ interface LineChartProps {
   xLabels: string[]
   series: ChartSeries[]
   ariaLabel?: string
+  /** Bridge across null values instead of breaking the line. */
+  connectGaps?: boolean
 }
 
 const W = 640
@@ -29,7 +34,7 @@ const PAD_T = 10
 const PAD_B = 26
 const GRID = [0, 25, 50, 75, 100]
 
-export default function LineChart({ xLabels, series, ariaLabel }: LineChartProps) {
+export default function LineChart({ xLabels, series, ariaLabel, connectGaps = false }: LineChartProps) {
   const n = xLabels.length
   const plotW = W - PAD_L - PAD_R
   const plotH = H - PAD_T - PAD_B
@@ -45,7 +50,7 @@ export default function LineChart({ xLabels, series, ariaLabel }: LineChartProps
     let pen = false
     values.forEach((v, i) => {
       if (v == null) {
-        pen = false
+        if (!connectGaps) pen = false
         return
       }
       d += `${pen ? 'L' : 'M'} ${xAt(i).toFixed(1)} ${yAt(v).toFixed(1)} `

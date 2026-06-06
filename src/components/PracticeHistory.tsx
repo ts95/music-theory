@@ -3,12 +3,13 @@ import { ETUDES } from '../questions'
 import { formatMinutes, localDate } from '../time'
 import { pullPracticeHistory } from '../supabase/sync'
 import {
+  accuracyByDay,
   accuracyPct,
   aggregateByDay,
   etudeAccuracy,
   monthCsv,
   summarize,
-  weeklyAccuracy,
+  trendDays,
   type PracticeHistoryRow,
 } from '../practiceHistory'
 import { PRACTICE_LABELS } from './EtudeMenu'
@@ -25,6 +26,8 @@ const ACCENT = '#7a2540'
 
 const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 type Scope = 'overall' | 'sections' | 'etude'
+/** Accuracy trend window: the past two weeks, daily. */
+const TREND_DAYS = 14
 
 const pad = (n: number) => String(n).padStart(2, '0')
 const dayStr = (y: number, m: number, d: number) => `${y}-${pad(m + 1)}-${pad(d)}`
@@ -105,34 +108,38 @@ export default function PracticeHistory({
 
   const effectiveEtude = pickedEtude ?? ranked[0]?.id ?? ETUDES[0].id
 
+  // Daily accuracy over the past two weeks, on a date axis so an upward trajectory
+  // reads clearly. The axis trims to the days actually practised when there's less
+  // than two weeks of history. Days with no practice are gaps (null); the chart
+  // bridges them so the line stays continuous.
   const trend = useMemo(() => {
     const data = rows ?? []
+    const axis = trendDays(data, today, TREND_DAYS)
+    const xLabels = axis.map(shortDate)
+    const seriesFor = (
+      label: string,
+      color: string,
+      filter: (r: PracticeHistoryRow) => boolean,
+    ): ChartSeries => {
+      const byDay = accuracyByDay(data, filter)
+      return { label, color, values: axis.map((d) => byDay.get(d)?.accuracy ?? null) }
+    }
     if (scope === 'overall') {
-      const pts = weeklyAccuracy(data, () => true)
-      return {
-        xLabels: pts.map((p) => shortDate(p.weekStart)),
-        series: [{ label: 'Overall', color: ACCENT, values: pts.map((p) => p.accuracy) }] as ChartSeries[],
-      }
+      return { xLabels, series: [seriesFor('Overall', ACCENT, () => true)] }
     }
     if (scope === 'etude') {
-      const pts = weeklyAccuracy(data, (r) => r.etude_id === effectiveEtude)
       return {
-        xLabels: pts.map((p) => shortDate(p.weekStart)),
-        series: [{ label: etudeLabel(effectiveEtude), color: ACCENT, values: pts.map((p) => p.accuracy) }] as ChartSeries[],
+        xLabels,
+        series: [seriesFor(etudeLabel(effectiveEtude), ACCENT, (r) => r.etude_id === effectiveEtude)],
       }
     }
-    const perSection = SECTIONS.map((s, i) => ({
-      label: s,
-      color: SECTION_COLORS[i % SECTION_COLORS.length],
-      pts: weeklyAccuracy(data, (r) => ETUDE_SECTION[r.etude_id] === s),
-    }))
-    const weeks = [...new Set(perSection.flatMap((ps) => ps.pts.map((p) => p.weekStart)))].sort()
-    const series: ChartSeries[] = perSection.map((ps) => {
-      const m = new Map(ps.pts.map((p) => [p.weekStart, p.accuracy]))
-      return { label: ps.label, color: ps.color, values: weeks.map((w) => (m.has(w) ? m.get(w)! : null)) }
-    })
-    return { xLabels: weeks.map(shortDate), series }
-  }, [rows, scope, effectiveEtude])
+    const series = SECTIONS.map((s, i) =>
+      seriesFor(s, SECTION_COLORS[i % SECTION_COLORS.length], (r) => ETUDE_SECTION[r.etude_id] === s),
+    )
+    return { xLabels, series }
+  }, [rows, scope, effectiveEtude, today])
+
+  const trendHasData = trend.series.some((s) => s.values.some((v) => v != null))
 
   const firstDay = useMemo(
     () => (rows && rows.length ? rows.reduce((min, r) => (r.day < min ? r.day : min), rows[0].day) : today),
@@ -242,7 +249,7 @@ export default function PracticeHistory({
       {/* Accuracy trends */}
       <section className="rise mt-10" style={{ animationDelay: '160ms' }}>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="marking text-ink-2">Accuracy over time</h2>
+          <h2 className="marking text-ink-2">Accuracy over time · past 2 weeks</h2>
           <div className="inline-flex rounded-full border border-rule bg-card p-0.5">
             {(['overall', 'sections', 'etude'] as Scope[]).map((s) => (
               <button
@@ -272,10 +279,15 @@ export default function PracticeHistory({
         )}
 
         <div className="mt-4">
-          {trend.xLabels.length > 0 ? (
-            <LineChart xLabels={trend.xLabels} series={trend.series} ariaLabel="Accuracy over time" />
+          {trendHasData ? (
+            <LineChart
+              xLabels={trend.xLabels}
+              series={trend.series}
+              ariaLabel="Accuracy over the past 2 weeks"
+              connectGaps
+            />
           ) : (
-            <p className="text-sm text-ink-3">Not enough answers yet to chart a trend.</p>
+            <p className="text-sm text-ink-3">No answers in the past 2 weeks yet to chart a trend.</p>
           )}
         </div>
 

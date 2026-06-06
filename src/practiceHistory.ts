@@ -78,42 +78,72 @@ export function summarize(byDay: Record<string, DayStat>): HistorySummary {
   return { totalSeconds, totalAnswered, totalCorrect, daysPracticed }
 }
 
-/** Sunday-start week key (date-only, UTC) for a 'YYYY-MM-DD' day. */
-function weekStartOf(day: string): string {
-  const [y, m, d] = day.split('-').map(Number)
-  const date = new Date(Date.UTC(y, m - 1, d))
-  date.setUTCDate(date.getUTCDate() - date.getUTCDay())
-  return date.toISOString().slice(0, 10)
+/**
+ * The `n` calendar days ending at (and including) `today`, as 'YYYY-MM-DD',
+ * chronological. UTC date math, so it's stable regardless of the host timezone.
+ * The accuracy trend uses this as a true time axis (a 2-week window = `n` 14).
+ */
+export function recentDays(today: string, n: number): string[] {
+  const [y, m, d] = today.split('-').map(Number)
+  const end = Date.UTC(y, m - 1, d)
+  const out: string[] = []
+  for (let i = n - 1; i >= 0; i--) {
+    const date = new Date(end)
+    date.setUTCDate(date.getUTCDate() - i)
+    out.push(date.toISOString().slice(0, 10))
+  }
+  return out
 }
 
-export interface TrendPoint {
-  weekStart: string
+/**
+ * The accuracy trend's day axis: the last `maxDays` days, but trimmed to start no
+ * earlier than the first day with any answers — so a user with under two weeks of
+ * history sees just the days they have, not a mostly-empty fortnight. Falls back
+ * to the full window when there are no answers yet (the caller shows an empty
+ * state in that case). The axis always ends at `today`.
+ */
+export function trendDays(
+  rows: PracticeHistoryRow[],
+  today: string,
+  maxDays = 14,
+): string[] {
+  const full = recentDays(today, maxDays)
+  let earliest: string | null = null
+  for (const r of rows) {
+    if (r.answered <= 0) continue
+    if (earliest === null || r.day < earliest) earliest = r.day
+  }
+  if (earliest === null) return full
+  return full.filter((d) => d >= earliest!)
+}
+
+export interface DayAccuracy {
   accuracy: number
   answered: number
 }
 
 /**
- * Weekly accuracy series for the rows matching `filter` (scope = overall /
- * section / étude). One point per week that has answers, chronological.
+ * Per-day accuracy for the rows matching `filter` (scope = overall / section /
+ * étude). Keyed by 'YYYY-MM-DD'; only days that have answers are present, so the
+ * caller decides how to treat days with no practice (the trend plots them as a
+ * gap on a fixed date axis). Aggregates all of a day's answers across levels.
  */
-export function weeklyAccuracy(
+export function accuracyByDay(
   rows: PracticeHistoryRow[],
   filter: (row: PracticeHistoryRow) => boolean,
-): TrendPoint[] {
-  const byWeek: Record<string, { answered: number; correct: number }> = {}
+): Map<string, DayAccuracy> {
+  const byDay: Record<string, { answered: number; correct: number }> = {}
   for (const r of rows) {
     if (!filter(r) || r.answered <= 0) continue
-    const b = (byWeek[weekStartOf(r.day)] ??= { answered: 0, correct: 0 })
+    const b = (byDay[r.day] ??= { answered: 0, correct: 0 })
     b.answered += r.answered
     b.correct += r.correct
   }
-  return Object.entries(byWeek)
-    .map(([weekStart, b]) => ({
-      weekStart,
-      accuracy: accuracyPct(b.correct, b.answered),
-      answered: b.answered,
-    }))
-    .sort((a, b) => a.weekStart.localeCompare(b.weekStart))
+  const out = new Map<string, DayAccuracy>()
+  for (const [day, b] of Object.entries(byDay)) {
+    out.set(day, { accuracy: accuracyPct(b.correct, b.answered), answered: b.answered })
+  }
+  return out
 }
 
 export interface EtudeAccuracy {

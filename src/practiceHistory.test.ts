@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
+  accuracyByDay,
   accuracyPct,
   aggregateByDay,
   etudeAccuracy,
   monthCsv,
+  recentDays,
   summarize,
-  weeklyAccuracy,
+  trendDays,
   type PracticeHistoryRow,
 } from './practiceHistory'
 
@@ -62,28 +64,70 @@ describe('summarize', () => {
   })
 })
 
-describe('weeklyAccuracy', () => {
-  it('buckets by Sunday-start week and applies the scope filter', () => {
-    // 2026-05-04 (Mon) & 05-06 (Wed) share the week of Sun 2026-05-03;
-    // 2026-05-11 (Mon) is the week of Sun 2026-05-10.
-    const all = weeklyAccuracy(rows, () => true)
-    expect(all.map((p) => p.weekStart)).toEqual(['2026-05-03', '2026-05-10'])
-    // week 1: correct 3+1+2=6 of answered 4+2+2=8 -> 75%
-    expect(all[0]).toMatchObject({ accuracy: 75, answered: 8 })
-    // week 2: 0 of 1 -> 0%
-    expect(all[1]).toMatchObject({ accuracy: 0, answered: 1 })
+describe('recentDays', () => {
+  it('returns the n days ending at today, inclusive and chronological', () => {
+    expect(recentDays('2026-06-06', 14)).toEqual([
+      '2026-05-24', '2026-05-25', '2026-05-26', '2026-05-27', '2026-05-28',
+      '2026-05-29', '2026-05-30', '2026-05-31', '2026-06-01', '2026-06-02',
+      '2026-06-03', '2026-06-04', '2026-06-05', '2026-06-06',
+    ])
+  })
+  it('crosses a month/year boundary correctly', () => {
+    expect(recentDays('2026-01-01', 3)).toEqual(['2025-12-30', '2025-12-31', '2026-01-01'])
+  })
+})
+
+describe('trendDays', () => {
+  const mk = (day: string, answered = 1): PracticeHistoryRow => ({
+    day, etude_id: 'scales', level: 1, version: 1, seconds: 60, answered, correct: 1,
+  })
+
+  it('returns the full window when history spans more than maxDays', () => {
+    const rows14 = [mk('2026-05-20'), mk('2026-06-06')]
+    expect(trendDays(rows14, '2026-06-06', 14)).toEqual(recentDays('2026-06-06', 14))
+  })
+
+  it('trims to the first practised day when history is under maxDays', () => {
+    // First answers on 2026-06-04 → axis is just 06-04..06-06 (3 days).
+    const rows = [mk('2026-06-04'), mk('2026-06-06')]
+    expect(trendDays(rows, '2026-06-06', 14)).toEqual(['2026-06-04', '2026-06-05', '2026-06-06'])
+  })
+
+  it('collapses to a single day when only today has practice', () => {
+    expect(trendDays([mk('2026-06-06')], '2026-06-06', 14)).toEqual(['2026-06-06'])
+  })
+
+  it('ignores days with no answers when finding the start', () => {
+    // The 06-01 row has no answers, so the axis starts at the first answered day.
+    const rows = [mk('2026-06-01', 0), mk('2026-06-05')]
+    expect(trendDays(rows, '2026-06-06', 14)).toEqual(['2026-06-05', '2026-06-06'])
+  })
+
+  it('falls back to the full window when there are no answers', () => {
+    expect(trendDays([], '2026-06-06', 14)).toEqual(recentDays('2026-06-06', 14))
+  })
+})
+
+describe('accuracyByDay', () => {
+  it('aggregates per day and applies the scope filter', () => {
+    const all = accuracyByDay(rows, () => true)
+    // 2026-05-04: correct 3+1=4 of answered 4+2=6 -> 67%
+    expect(all.get('2026-05-04')).toEqual({ accuracy: 67, answered: 6 })
+    // 2026-05-06: 2 of 2 -> 100%; 2026-05-11: 0 of 1 -> 0%
+    expect(all.get('2026-05-06')).toEqual({ accuracy: 100, answered: 2 })
+    expect(all.get('2026-05-11')).toEqual({ accuracy: 0, answered: 1 })
   })
   it('filters to a single étude scope', () => {
-    const scales = weeklyAccuracy(rows, (r) => r.etude_id === 'scales')
-    // week 1 scales: correct 3+2=5 of 4+2=6 -> 83%
-    expect(scales[0]).toMatchObject({ weekStart: '2026-05-03', accuracy: 83 })
+    const scales = accuracyByDay(rows, (r) => r.etude_id === 'scales')
+    // 2026-05-04 scales only: 3 of 4 -> 75%
+    expect(scales.get('2026-05-04')).toEqual({ accuracy: 75, answered: 4 })
   })
-  it('omits weeks with no answers', () => {
-    const none = weeklyAccuracy(
+  it('omits days with no answers', () => {
+    const none = accuracyByDay(
       [{ day: '2026-05-04', etude_id: 'scales', level: 1, version: 1, seconds: 120, answered: 0, correct: 0 }],
       () => true,
     )
-    expect(none).toEqual([])
+    expect(none.size).toBe(0)
   })
 })
 
