@@ -56,7 +56,9 @@ progress, chosen from a table-of-contents home screen. Twelve études today, in 
   tresillo (3+3+2), eighth-note triplets, ties, rests and off-beat syncopation. The metres accumulate
   with difficulty: Easy adds **2/4** (to 4/4, 3/4, 6/8), Medium adds **cut time (₵)** and **12/8**, Hard
   adds **5/4**, and **Expert** keeps the metres but pushes the tempo and density (full 32nd runs,
-  continuous triplets, heavy syncopation); a count-in sets the tempo and metre.
+  continuous triplets, heavy syncopation); a count-in sets the tempo and metre. A **time-signature
+  picker** lets you narrow practice to any subset of a level's metres (all on by default), remembered
+  per level and synced across devices.
 - **No. 12 — Tap the Rhythm.** The performance flip side of Rhythm Dictation: **read** a one-bar rhythm
   and **tap-and-hold it in time** (Space, press the screen, or any key of a connected **MIDI keyboard** —
   the pitch is irrelevant, only the rhythm) over a count-in and a steady metronome click on every beat. The **tempo is adjustable** (a 30–90 BPM slider, remembered per level); a count-in with a

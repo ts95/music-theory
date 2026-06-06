@@ -14,6 +14,12 @@
  */
 
 import type { SrsData } from '../contracts'
+import {
+  getAllRhythmMeters,
+  mergeRhythmMeters,
+  replaceAllRhythmMeters,
+  type RhythmMetersStore,
+} from '../rhythmMeters'
 import { coerceSrsData, save } from '../srs'
 import {
   getTodayAnswersByLevel,
@@ -93,6 +99,60 @@ async function flushSrs(): Promise<void> {
   }
   pendingSrs = null
   await upsertSrs(remote ? mergeSrs(local, remote) : local)
+}
+
+// --- Settings (per-user preferences blob) ---------------------------------
+//
+// A single JSONB blob per user in `user_settings`, modeled on `srs_state`:
+// last-write-wins per key on merge so two devices don't clobber each other.
+// Currently holds only the rhythm-meter selection; namespaced for future growth.
+
+interface SettingsData {
+  rhythmMeters?: RhythmMetersStore
+}
+
+async function pullSettings(): Promise<{ data: SettingsData | null; failed: boolean }> {
+  if (!supabase || !userId) return { data: null, failed: false }
+  const { data, error } = await supabase
+    .from('user_settings')
+    .select('data')
+    .eq('user_id', userId)
+    .maybeSingle()
+  if (error) return { data: null, failed: true }
+  return { data: (data?.data as SettingsData) ?? null, failed: false }
+}
+
+async function upsertSettings(data: SettingsData): Promise<void> {
+  if (!supabase || !userId) return
+  await supabase
+    .from('user_settings')
+    .upsert({ user_id: userId, data, updated_at: new Date().toISOString() })
+}
+
+let settingsTimer: ReturnType<typeof setTimeout> | null = null
+
+/**
+ * Debounced read-merge-write of the settings blob (called when the user changes
+ * a preference, e.g. the practiced time signatures). Merges the local store
+ * against the current cloud one per key so a stale tab can't clobber a newer
+ * device, then writes the union back to both cloud and local.
+ */
+export function pushSettings(): void {
+  if (!supabase || !userId) return
+  if (settingsTimer) return
+  settingsTimer = setTimeout(() => {
+    settingsTimer = null
+    void flushSettings()
+  }, 2500)
+}
+
+async function flushSettings(): Promise<void> {
+  if (!supabase || !userId) return
+  const { data: remote, failed } = await pullSettings()
+  if (failed) return // leave local as the source of truth; retry on next change
+  const merged = mergeRhythmMeters(getAllRhythmMeters(), remote?.rhythmMeters ?? {})
+  replaceAllRhythmMeters(merged)
+  await upsertSettings({ ...remote, rhythmMeters: merged })
 }
 
 // --- Practice time --------------------------------------------------------
@@ -302,6 +362,7 @@ export async function syncOnSignIn(local: SrsData): Promise<SrsData> {
   // If the pull failed we can't safely push (we might clobber a cloud blob we
   // just couldn't read); adopt local, leave the cloud, retry on the next grade.
   if (!failed) await upsertSrs(merged)
+  await flushSettings() // adopt + push the cloud preference selection
   await flushPractice()
   return merged
 }
@@ -352,7 +413,12 @@ export async function flushOnSignOut(): Promise<void> {
     clearTimeout(practiceTimer)
     practiceTimer = null
   }
+  if (settingsTimer) {
+    clearTimeout(settingsTimer)
+    settingsTimer = null
+  }
   await flushSrs()
+  await flushSettings()
   await flushPractice()
   userId = null
   accessToken = null

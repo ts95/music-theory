@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import type { RhythmEvent } from './contracts'
-import { audibleSignature, onsets, patternBeats, scoreTaps } from './rhythm'
+import type { Question, RhythmEvent } from './contracts'
+import {
+  audibleSignature,
+  onsets,
+  patternBeats,
+  questionMeter,
+  scoreTaps,
+} from './rhythm'
 
 const Q: RhythmEvent = { dur: 'q' }
 const QD: RhythmEvent = { dur: 'q', dots: 1 }
@@ -154,5 +160,37 @@ describe('scoreTaps', () => {
       { beat: 0.5, beats: 0.25, hold: 0.25 },
       { beat: 0.75, beats: 0.25, hold: 0.25 },
     ])
+  })
+})
+
+describe('questionMeter', () => {
+  const base = {
+    id: 'x',
+    etudeId: 'rhythm-dictation',
+    category: 'c',
+    prompt: 'p',
+    choices: [],
+    answerIndex: -1,
+  }
+
+  it('reads the meter from an ear (dictation) question', () => {
+    const q = {
+      ...base,
+      ear: { kind: 'rhythm', meter: '6/8', tempo: 100, pattern: [Q] },
+    } as Question
+    expect(questionMeter(q)).toBe('6/8')
+  })
+
+  it('reads the meter from a tapAlong question', () => {
+    const q = {
+      ...base,
+      etudeId: 'rhythm-tap',
+      tapAlong: { meter: '5/4', tempo: 138, pattern: [Q] },
+    } as Question
+    expect(questionMeter(q)).toBe('5/4')
+  })
+
+  it('returns null for a non-rhythm question', () => {
+    expect(questionMeter(base as Question)).toBeNull()
   })
 })

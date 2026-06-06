@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useReducer, useState, type ReactNode } from 'react'
-import type { Etude, Question, SrsData } from './contracts'
+import type { Etude, Question, SrsData, TimeSig } from './contracts'
 import { ETUDES, generateAllQuestions } from './questions'
 import { getState, initialState, isDue, load } from './srs'
 import ReviewSession from './components/ReviewSession'
@@ -14,6 +14,8 @@ import Button from './components/Button'
 import { isMuted, setMuted } from './audio/player'
 import { formatMinutes, getTodaySeconds, resetAllAnswers, resetAllSeconds } from './time'
 import { getSavedLevel, saveLevel } from './levels'
+import { getSavedMeters, saveMeters } from './rhythmMeters'
+import { METER_ORDER, questionMeter } from './rhythm'
 import { getBoolPref, setBoolPref } from './prefs'
 import { remainingDue } from './dueCap'
 import { useEtudeTimer } from './useEtudeTimer'
@@ -23,6 +25,7 @@ import {
   flushOnSignOut,
   flushPracticeBeacon,
   pullPracticeToday,
+  pushSettings,
   pushSrs,
   resetPracticeSync,
   setSyncAccessToken,
@@ -332,9 +335,64 @@ function EtudeScreen({
     () => allQuestions.filter((q) => q.etudeId === etude.id),
     [allQuestions, etude.id],
   )
+
+  // Time signatures present at this level (rhythm études only — empty otherwise),
+  // in canonical order. The user can practice any non-empty subset of them.
+  const availableMeters = useMemo<TimeSig[]>(() => {
+    const present = new Set<TimeSig>()
+    for (const q of fullBank) {
+      if (q.level !== level) continue
+      const m = questionMeter(q)
+      if (m) present.add(m)
+    }
+    return METER_ORDER.filter((m) => present.has(m))
+  }, [fullBank, level])
+
+  // Bumped on every toggle so the selection memo re-reads the saved choice.
+  const [metersVersion, setMetersVersion] = useState(0)
+  // The effective selection: the saved subset intersected with what's available,
+  // or all available meters when nothing's saved (or the saved set no longer
+  // overlaps — e.g. after a version change). Derived synchronously so the bank
+  // never flashes an empty/stale set when the level changes.
+  const selectedMeters = useMemo<TimeSig[]>(() => {
+    if (availableMeters.length === 0) return []
+    const saved = getSavedMeters(etude.id, level)
+    const chosen = saved
+      ? availableMeters.filter((m) => saved.includes(m))
+      : []
+    return chosen.length > 0 ? chosen : availableMeters
+    // metersVersion forces a re-read after the user toggles a meter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [etude.id, level, availableMeters, metersVersion])
+
+  const toggleMeter = (m: TimeSig) => {
+    const set = new Set(selectedMeters)
+    if (set.has(m)) {
+      if (set.size === 1) return // keep at least one selected — empty bank breaks the session
+      set.delete(m)
+    } else {
+      set.add(m)
+    }
+    saveMeters(
+      etude.id,
+      level,
+      METER_ORDER.filter((x) => set.has(x)),
+    )
+    pushSettings()
+    setMetersVersion((v) => v + 1)
+  }
+
   const bank = useMemo(
-    () => (etude.levels ? fullBank.filter((q) => q.level === level) : fullBank),
-    [fullBank, etude.levels, level],
+    () =>
+      etude.levels
+        ? fullBank.filter(
+            (q) =>
+              q.level === level &&
+              (availableMeters.length === 0 ||
+                selectedMeters.includes(questionMeter(q)!)),
+          )
+        : fullBank,
+    [fullBank, etude.levels, level, availableMeters, selectedMeters],
   )
 
   const now = Date.now()
@@ -407,6 +465,33 @@ function EtudeScreen({
                     }`}
                   >
                     {label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {availableMeters.length > 0 && (
+          <div
+            className="rise mt-4 flex flex-wrap items-center gap-3"
+            style={{ animationDelay: '125ms' }}
+          >
+            <span className="marking text-ink-3">Time sig.</span>
+            <div className="inline-flex flex-wrap rounded-full border border-rule bg-card p-0.5">
+              {availableMeters.map((m) => {
+                const active = selectedMeters.includes(m)
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => toggleMeter(m)}
+                    aria-pressed={active}
+                    className={`rounded-full px-3.5 py-1.5 font-mono text-sm transition-colors ${
+                      active ? 'bg-ink text-paper' : 'text-ink-2 hover:text-ink'
+                    }`}
+                  >
+                    {m}
                   </button>
                 )
               })}

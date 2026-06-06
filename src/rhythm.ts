@@ -1,4 +1,4 @@
-import type { RhythmEvent, TimeSig } from './contracts'
+import type { Question, RhythmEvent, TimeSig } from './contracts'
 
 /** Per-meter facts in quarter-note beats (quarter = 1). */
 export interface MeterInfo {
@@ -16,6 +16,19 @@ export const METERS: Record<TimeSig, MeterInfo> = {
   '12/8': { totalBeats: 6, countIn: [0, 1.5, 3, 4.5] }, // four dotted-quarter beats
   '5/4': { totalBeats: 5, countIn: [0, 1, 2, 3, 4] }, // five quarter beats (felt 3+2)
   '2/2': { totalBeats: 4, countIn: [0, 2] }, // cut time — two half-note beats
+}
+
+/** Canonical display order for time signatures (the `METERS` key order). */
+export const METER_ORDER = Object.keys(METERS) as TimeSig[]
+
+/**
+ * The time signature a question is set in, or null if it carries none. Rhythm
+ * dictation stores it on `ear`, Tap the Rhythm on `tapAlong`; this reads either
+ * so callers needn't know which étude a question came from.
+ */
+export function questionMeter(q: Question): TimeSig | null {
+  if (q.ear?.kind === 'rhythm') return q.ear.meter
+  return q.tapAlong?.meter ?? null
 }
 
 const BASE_BEATS: Record<RhythmEvent['dur'], number> = {

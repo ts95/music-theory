@@ -4,6 +4,8 @@ import { getState, initialState, isDue } from '../srs'
 import { formatMinutes } from '../time'
 import { remainingDue, windowResetAt } from '../dueCap'
 import { getSavedLevel } from '../levels'
+import { getSavedMeters } from '../rhythmMeters'
+import { questionMeter } from '../rhythm'
 
 interface EtudeMenuProps {
   etudes: Etude[]
@@ -96,9 +98,17 @@ export default function EtudeMenu({
         const savedLevel = e.levels
           ? Math.min(getSavedLevel(e.id), e.levels.length)
           : null
+        // Rhythm études also remember which time signatures to practice, so the
+        // preview counts match what a session will actually serve.
+        const savedMeters =
+          savedLevel !== null ? getSavedMeters(e.id, savedLevel) : null
         const questions = allQuestions.filter(
           (q) =>
-            q.etudeId === e.id && (savedLevel === null || q.level === savedLevel),
+            q.etudeId === e.id &&
+            (savedLevel === null || q.level === savedLevel) &&
+            (savedMeters === null ||
+              !questionMeter(q) ||
+              savedMeters.includes(questionMeter(q)!)),
         )
         const total = questions.length
         const due = questions.filter((q) =>
