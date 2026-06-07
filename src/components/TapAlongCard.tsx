@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Question } from '../contracts'
 import { METERS, eventBeats, holdMinFor, onsets, scoreTaps, type OnsetResult, type Tap } from '../rhythm'
-import { countSyllables } from '../rhythmCounting'
+import { countSyllables, granularCounting } from '../rhythmCounting'
 import { isMuted, playClick, playRhythm, prime, stop } from '../audio/player'
 import { getSavedTempo, saveTempo } from '../tempos'
 import { getBoolPref, setBoolPref } from '../prefs'
@@ -72,6 +72,21 @@ export default function TapAlongCard({
     () => countSyllables(pattern, meter, kodaly ? 'kodaly' : 'traditional'),
     [pattern, meter, kodaly]
   )
+  // The full subdivision count, always shown below the staff: on-beats bold,
+  // off-beats greyed, and each subdivision lights up (accent) as the count-in and
+  // the bar play through it. Positional (Traditional), independent of the Kodály
+  // toggle above. `subRows` keeps the beat grouping with a flat index `k` per
+  // token; `flatSubs` is that flat list (its index === `k`) used to schedule the
+  // playhead. `activeSub` is the flat index currently lit, or null.
+  const subRows = useMemo(() => {
+    let k = 0
+    return granularCounting(pattern, meter).map((bc) => ({
+      beat: bc.beat,
+      tokens: bc.tokens.map((t) => ({ ...t, k: k++ })),
+    }))
+  }, [pattern, meter])
+  const flatSubs = useMemo(() => subRows.flatMap((r) => r.tokens), [subRows])
+  const [activeSub, setActiveSub] = useState<number | null>(null)
   // The duration bars below the staff (count-in warm-up + your taps + the
   // expected target) are a timing aid; hide them to test with less assistance.
   const [showBars, setShowBarsState] = useState(() => getBoolPref('rhythm-bars', true))
@@ -302,6 +317,7 @@ export default function TapAlongCard({
     setLive(null)
     setResult(null)
     setHighlight(null)
+    setActiveSub(null)
     setStatus('tapping')
     // Count-in preview: light each struck note head at its onset across the
     // count-in bar, so you watch the rhythm once before tapping it. Aligned with
@@ -323,6 +339,17 @@ export default function TapAlongCard({
         }, c.ms)
       )
     }
+    // Sweep the counting playhead through the grid in time — once over the
+    // count-in bar, then again over the tapping bar — so each subdivision lights
+    // as it's counted/played. Cleared as the bar ends.
+    for (let bar = 0; bar < 2; bar++) {
+      for (const t of flatSubs) {
+        timers.current.push(
+          setTimeout(() => setActiveSub(t.k), (bar * totalBeats + t.pos) * beatMs)
+        )
+      }
+    }
+    timers.current.push(setTimeout(() => setActiveSub(null), 2 * totalBeats * beatMs))
     // The downbeat: flip to the tapping phase, clear the count, flash green.
     timers.current.push(
       setTimeout(() => {
@@ -556,6 +583,31 @@ export default function TapAlongCard({
     </div>
   )
 
+  // The always-on subdivision count below the staff. On-beats are bold, off-beats
+  // greyed, and the subdivision under the playhead (`activeSub`) lights up accent.
+  const subCount = (
+    <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1 font-mono text-sm">
+      {subRows.map((row) => (
+        <span key={row.beat} className="inline-flex gap-x-1.5">
+          {row.tokens.map((t) => (
+            <span
+              key={t.k}
+              className={`transition-colors duration-100 ${
+                t.k === activeSub
+                  ? 'font-semibold text-accent'
+                  : t.onBeat
+                    ? 'font-medium text-ink'
+                    : 'text-ink-3'
+              }`}
+            >
+              {t.label}
+            </span>
+          ))}
+        </span>
+      ))}
+    </div>
+  )
+
   return (
     <article
       className="relative overflow-hidden rounded-3xl border border-rule bg-card px-6 py-7 shadow-[0_22px_60px_-32px_rgba(33,28,21,0.5)] sm:px-9 sm:py-9"
@@ -757,6 +809,8 @@ export default function TapAlongCard({
           </span>
         )}
       </div>
+
+      {subCount}
 
       {status === 'ready' && (
         <>

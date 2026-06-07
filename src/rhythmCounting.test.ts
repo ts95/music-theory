@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { RhythmEvent } from './contracts'
-import { countSyllables } from './rhythmCounting'
+import { countSyllables, granularCounting } from './rhythmCounting'
 
 const Q: RhythmEvent = { dur: 'q' }
 const QD: RhythmEvent = { dur: 'q', dots: 1 }
@@ -62,6 +62,61 @@ describe('traditional counting', () => {
 
   it('does not re-count a tied continuation', () => {
     expect(trad([tie(Q), Q, Q, Q], '4/4')).toEqual(['1', null, '3', '4'])
+  })
+})
+
+describe('granular counting (sub-beat hint)', () => {
+  // Each beat → its token labels (a plain array per felt beat).
+  const labels = (p: RhythmEvent[], m: Parameters<typeof countSyllables>[1]) =>
+    granularCounting(p, m).map((b) => b.tokens.map((t) => t.label))
+
+  it('shows just the numbers when nothing subdivides', () => {
+    expect(labels([Q, Q, Q, Q], '4/4')).toEqual([['1'], ['2'], ['3'], ['4']])
+    expect(labels([Q, Q, Q], '3/4')).toEqual([['1'], ['2'], ['3']])
+  })
+
+  it('fills in the off-beats on every beat, even where no note lands', () => {
+    // Quarters on beats 1 & 3, eighths on 2 & 4 — the whole bar still counts in
+    // eighths, so the & shows under the quarters too.
+    expect(labels([Q, E, E, Q, E, E], '4/4')).toEqual([
+      ['1', '&'],
+      ['2', '&'],
+      ['3', '&'],
+      ['4', '&'],
+    ])
+    // One beat of sixteenths makes the whole bar count in sixteenths.
+    expect(labels([S, S, S, S, Q], '3/4')).toEqual([
+      ['1', 'e', '&', 'a'],
+      ['2', 'e', '&', 'a'],
+      ['3', 'e', '&', 'a'],
+    ])
+  })
+
+  it('uses trip/let for triplet beats and la/li for compound', () => {
+    expect(labels([T, T, T, Q, Q, Q], '4/4')).toEqual([
+      ['1', 'trip', 'let'],
+      ['2'],
+      ['3'],
+      ['4'],
+    ])
+    expect(labels([E, E, E, E, E, E], '6/8')).toEqual([
+      ['1', 'la', 'li'],
+      ['2', 'la', 'li'],
+    ])
+  })
+
+  it('marks only the beat number as on-beat', () => {
+    const beat = granularCounting([S, S, S, S], '2/4')[0]
+    expect(beat.tokens.map((t) => t.onBeat)).toEqual([true, false, false, false])
+  })
+
+  it('positions each token in quarter-beats from the bar start (for the playhead)', () => {
+    // 4/4 sixteenths: beat 2's e/&/a land at 1.25, 1.5, 1.75.
+    const flat = granularCounting([S, S, S, S, S, S, S, S, S, S, S, S, S, S, S, S], '4/4')
+      .flatMap((b) => b.tokens)
+    expect(flat.slice(0, 6).map((t) => t.pos)).toEqual([0, 0.25, 0.5, 0.75, 1, 1.25])
+    // 6/8: the felt beats sit a dotted-quarter (1.5) apart.
+    expect(granularCounting([E, E, E, E, E, E], '6/8').map((b) => b.tokens[0].pos)).toEqual([0, 1.5])
   })
 })
 

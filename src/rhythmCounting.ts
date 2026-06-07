@@ -5,7 +5,7 @@
  * a rest in Kodály). Derived from each event's position/value — never hardcoded.
  */
 import type { RhythmEvent, TimeSig } from './contracts'
-import { eventBeats } from './rhythm'
+import { METERS, eventBeats } from './rhythm'
 
 export type CountSystem = 'traditional' | 'kodaly'
 
@@ -131,4 +131,63 @@ export function countSyllables(
   system: CountSystem
 ): (string | null)[] {
   return system === 'kodaly' ? kodaly(pattern, meter) : traditional(pattern, meter)
+}
+
+/** One felt beat's full count: its number plus every named sub-beat in it. */
+export interface BeatCount {
+  beat: number
+  /** `pos` is the token's onset in quarter-beats from the bar start (for syncing
+   *  a playhead to it); `onBeat` marks the beat numbers. */
+  tokens: { label: string; onBeat: boolean; pos: number }[]
+}
+
+/**
+ * The complete Traditional counting grid for a bar — every subdivision of every
+ * felt beat, not just the ones a note lands on (the "how to count it" hint). The
+ * whole bar is subdivided to the finest level it uses, so a quarter-note beat
+ * still shows the `&` you'd count through it: simple beats read `1 (e) & (a)`,
+ * compound `1 la li`, and a triplet beat `1 trip let`. The beat number is the
+ * on-beat token; the rest are off-beats. Always positional, so it's independent
+ * of the per-note Kodály/Traditional choice.
+ */
+export function granularCounting(pattern: RhythmEvent[], meter: TimeSig): BeatCount[] {
+  const { beatUnit, compound } = METER_FACTS[meter]
+  const sub = compound ? COMPOUND_SUB : SIMPLE_SUB
+  const feltBeats = Math.round(METERS[meter].totalBeats / beatUnit)
+
+  // The bar's finest *non-triplet* subdivision (rests included — a 16th rest
+  // still divides the beat), applied to every beat for a steady count; triplet
+  // beats divide in three instead.
+  const tripletBeat = new Array<boolean>(feltBeats).fill(false)
+  let duple = 1
+  let pos = 0
+  for (const e of pattern) {
+    const beatIndex = Math.floor(pos / beatUnit + 1e-6)
+    if (e.triplet) {
+      if (beatIndex >= 0 && beatIndex < feltBeats) tripletBeat[beatIndex] = true
+    } else {
+      duple = Math.max(duple, Math.round(beatUnit / eventBeats(e)))
+    }
+    pos += eventBeats(e)
+  }
+
+  const out: BeatCount[] = []
+  for (let b = 0; b < feltBeats; b++) {
+    const triplet = tripletBeat[b]
+    const r = triplet ? 3 : Math.max(1, duple)
+    const table = triplet ? SIMPLE_SUB : sub // trip/let live in SIMPLE_SUB
+    const beatStart = b * beatUnit
+    const tokens: BeatCount['tokens'] = []
+    for (let j = 0; j < r; j++) {
+      if (j === 0) {
+        tokens.push({ label: String(b + 1), onBeat: true, pos: beatStart })
+        continue
+      }
+      const key = Math.round((j * 24) / r)
+      const syl = table[key]
+      if (syl) tokens.push({ label: syl, onBeat: false, pos: beatStart + (key / 24) * beatUnit })
+    }
+    out.push({ beat: b + 1, tokens })
+  }
+  return out
 }
