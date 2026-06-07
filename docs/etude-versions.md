@@ -306,7 +306,18 @@ untimed.
 
 ---
 
-## No. 10 — Progressions by Ear (`progressions-ear`) — current version: 1
+## No. 10 — Progressions by Ear (`progressions-ear`) — current version: 2
+
+### v2 — 2026-06-07: voice-led realization (occasional inversions)
+
+- **Realization change (audio + reveal staff):** the block chords are now **voice-led** instead of all
+  root position. In `realizeEar`'s progression branch (`src/theory/eartraining.ts`), each chord is voiced
+  in whichever inversion (its tones spaced up from the tonic's octave) moves the least from the previous
+  chord — root position unless an inversion is strictly smoother — so the chords connect instead of
+  leaping and inversions appear where they help. The reveal staff shows the inverted voicing and the
+  chord-symbol sublabels gain **slash notation** (e.g. `F/C`) when a chord is inverted.
+- **No question change / no SRS reset:** the 11 questions, their ids, choices, and answers are unchanged
+  — only how a presentation is voiced. The version bump just records the audible change.
 
 ### v1
 

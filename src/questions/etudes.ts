@@ -87,6 +87,7 @@ export const ETUDES: Etude[] = [
     number: 10,
     title: 'Progressions by Ear',
     subtitle: 'Hear a progression over its tonic and name it',
+    version: 2,
   },
   {
     id: 'melodic-dictation',

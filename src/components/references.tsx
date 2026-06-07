@@ -283,6 +283,10 @@ const REFERENCES: Record<string, EtudeReference> = {
         <p className="text-ink-3">
           The first chord you hear is the tonic — judge each chord relative to it.
         </p>
+        <p className="text-ink-3">
+          Chords may appear in inversions for smoother voice leading — the bass
+          note can change, but the Roman numeral (and your answer) is the same.
+        </p>
       </div>
     ),
   },

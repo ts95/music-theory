@@ -9,12 +9,19 @@ import {
 } from './eartraining'
 import { majorScale, minorScale } from './scales'
 import { romanToChord } from './chords'
+import { pitchClass } from './notes'
 
 const root = (letter: Note['letter'], accidental = 0, octave = 4): Voiced => ({
   note: { letter, accidental },
   octave,
 })
 const midi = (events: Voiced[][]) => events.map((ev) => ev.map(voicedMidi))
+/** Sorted-pairing semitone motion between two voiced chords (smoothness proxy). */
+const motion = (a: Voiced[], b: Voiced[]): number => {
+  const am = a.map(voicedMidi).sort((x, y) => x - y)
+  const bm = b.map(voicedMidi).sort((x, y) => x - y)
+  return am.reduce((s, m, i) => s + Math.abs(m - bm[i]), 0)
+}
 const interval = (semitones: number, letterSteps: number): EarSpec => ({
   kind: 'interval',
   semitones,
@@ -51,36 +58,48 @@ describe('realizeEar — progressions', () => {
     degrees,
   })
 
-  it('C major I–IV–V → tonic reference + C/F/G triads', () => {
+  it('C major I–IV–V → tonic reference, voice-led with inversions', () => {
     const r = realizeEar(prog('major', [0, 3, 4]), root('C'))
     expect(midi(r.reference)).toEqual([[60, 64, 67]]) // C major tonic
+    // Smooth voice leading: I root position, then IV and V inverted so each
+    // chord barely moves (C–E–G → C–F–A → D–G–B).
     expect(midi(r.target)).toEqual([
-      [60, 64, 67], // C
-      [65, 69, 72], // F
-      [67, 71, 74], // G
+      [60, 64, 67], // C   (root)
+      [60, 65, 69], // F/C (2nd inversion)
+      [62, 67, 71], // G/D (2nd inversion)
     ])
     expect(r.style).toBe('block')
   })
 
-  it('A minor i–iv–V uses a major V (raised leading tone G♯)', () => {
+  it('A minor i–iv–V uses a major V (raised leading tone G♯), voice-led', () => {
     const r = realizeEar(prog('minor', [0, 3, 4]), root('A'))
-    // Chord roots sit in the one-octave band at/above the A4 tonic, so iv (D)
-    // and V (E) ride up an octave rather than dropping below it.
     expect(midi(r.target)).toEqual([
-      [69, 72, 76], // Am
-      [74, 77, 81], // Dm (D5, up an octave to stay above the tonic)
-      [76, 80, 83], // E major — G♯ (80), not G♮
+      [69, 72, 76], // Am  (root)
+      [69, 74, 77], // Dm/A (2nd inversion)
+      [68, 71, 76], // E/G♯ (1st inversion) — G♯ (68), not G♮ (67)
     ])
   })
 
-  it('keeps every chord root within one octave above the tonic', () => {
+  it('voice-leads smoothly — each chord no farther than root position, with inversions', () => {
     const r = realizeEar(prog('major', [0, 4, 5, 3]), root('F')) // F: I–V–vi–IV
-    const tonicMidi = voicedMidi(root('F'))
-    for (const chord of r.target) {
-      const rootMidi = voicedMidi(chord[0])
-      expect(rootMidi).toBeGreaterThanOrEqual(tonicMidi)
-      expect(rootMidi).toBeLessThan(tonicMidi + 12)
-    }
+    const pcSet = (notes: Note[]) => new Set(notes.map(pitchClass)).size
+    const degrees = [0, 4, 5, 3]
+    let inverted = 0
+    let prev = r.reference[0]
+    r.target.forEach((chord, i) => {
+      // Each chord is a complete triad (3 distinct pitch classes) of the right chord.
+      const want = romanToChord(root('F').note, 'major', degrees[i], false)
+      expect(pcSet(chord.map((v) => v.note))).toBe(3)
+      expect(chord.map((v) => pitchClass(v.note)).sort()).toEqual(
+        voiceChordRootPosition(want).map((v) => pitchClass(v.note)).sort()
+      )
+      // The voiced motion never exceeds plain root position (it's the floor we beat).
+      const rootPos = voiceChordRootPosition(want, root('F').octave)
+      expect(motion(chord, prev)).toBeLessThanOrEqual(motion(rootPos, prev))
+      if (pitchClass(chord[0].note) !== pitchClass(want.root)) inverted++
+      prev = chord
+    })
+    expect(inverted).toBeGreaterThan(0) // at least one chord is inverted to voice-lead
   })
 })
 

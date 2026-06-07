@@ -52,6 +52,7 @@ progress, chosen from a table-of-contents home screen. Twelve études today, in 
   and *consonant or dissonant?* — plus a set of **reference songs**: a familiar tune for every interval,
   notated, that you can play to recognise the leap.
 - **No. 10 — Progressions by Ear.** Hear the tonic, then a progression, and name it in Roman numerals.
+  The chords are **voice-led** — occasionally inverted so the parts connect smoothly rather than leaping.
 - **No. 11 — Melodic Dictation.** Hear a short motif over its tonic and name it in **solfège**. A
   **hear-scale** hint plays the whole scale with a synced solfège readout (and you can hover a syllable
   to play just that note); the melody is shown on the staff, in key, on reveal. Miss it and the **whole

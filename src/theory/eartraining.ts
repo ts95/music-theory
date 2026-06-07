@@ -78,6 +78,47 @@ export function voiceChordRootPosition(chord: Chord, octave = 4): Voiced[] {
   return spellChordFrom({ note: chord.root, octave }, chord.quality)
 }
 
+/** Total semitone motion between two voiced chords, pairing by sorted pitch — a
+ *  good proxy for how smoothly a triad's voices connect. */
+function voiceMotion(a: Voiced[], b: Voiced[]): number {
+  const am = a.map(voicedMidi).sort((x, y) => x - y)
+  const bm = b.map(voicedMidi).sort((x, y) => x - y)
+  return am.reduce((sum, m, i) => sum + Math.abs(m - bm[i]), 0)
+}
+
+/**
+ * Voice a progression with smooth voice leading from the tonic reference: each
+ * chord is placed in whichever inversion (its tones spaced upward from the
+ * tonic's octave) moves the least from the previous chord — root position unless
+ * an inversion is strictly smoother — so the line connects instead of leaping and
+ * inversions appear where they help.
+ */
+function voiceLeadProgression(chords: Chord[], reference: Voiced[], root: Voiced): Voiced[][] {
+  const out: Voiced[][] = []
+  let prev = reference
+  for (const chord of chords) {
+    const tones = spellChordFrom({ note: chord.root, octave: root.octave }, chord.quality).map(
+      (v) => v.note
+    )
+    let best = voiceScaleAscending(tones, root.octave) // root position
+    let bestCost = voiceMotion(best, prev)
+    for (let inv = 1; inv < tones.length; inv++) {
+      const cand = voiceScaleAscending(
+        [...tones.slice(inv), ...tones.slice(0, inv)],
+        root.octave
+      )
+      const cost = voiceMotion(cand, prev)
+      if (cost < bestCost) {
+        bestCost = cost
+        best = cand
+      }
+    }
+    out.push(best)
+    prev = best
+  }
+  return out
+}
+
 /**
  * Voice a scale's notes ascending from `octave`, bumping the octave whenever the
  * pitch class wraps (so B → C rises, and a repeated tonic lands an octave up),
@@ -127,9 +168,8 @@ export function realizeEar(spec: EarSpec, root: Voiced): RealizedEar {
     const target = spec.degrees.map((d) => [scale15[d]])
     return { reference, target, style: 'melodic' }
   }
-  const target = spec.degrees.map((d) =>
-    voiceChord(romanToChord(tonic, spec.mode, d, false), root)
-  )
+  const chords = spec.degrees.map((d) => romanToChord(tonic, spec.mode, d, false))
+  const target = voiceLeadProgression(chords, reference[0], root)
   return { reference, target, style: 'block' }
 }
 

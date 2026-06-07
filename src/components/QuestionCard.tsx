@@ -13,6 +13,7 @@ import {
   chordSymbol,
   keySignatureSpec,
   noteToString,
+  pitchClass,
   progressionTonics,
   realizeEar,
   romanToChord,
@@ -219,12 +220,18 @@ export default function QuestionCard({
       ? keySignatureSpec(earRoot.note, ear.mode)
       : undefined
   // Progression-by-ear reveal: the concrete chord symbols in the chosen key,
-  // shown under the Roman numerals.
+  // shown under the Roman numerals — with slash notation when the voice leading
+  // put a chord in an inversion (the bass isn't the root).
   const progressionSymbols =
-    ear?.kind === 'progression' && earRoot
-      ? ear.degrees.map((d) =>
-          chordSymbol(romanToChord(earRoot.note, ear.mode, d, false)),
-        )
+    ear?.kind === 'progression' && earRoot && realized
+      ? ear.degrees.map((d, i) => {
+          const chord = romanToChord(earRoot.note, ear.mode, d, false)
+          const sym = chordSymbol(chord)
+          const bass = realized.target[i]?.[0]?.note
+          return bass && pitchClass(bass) !== pitchClass(chord.root)
+            ? `${sym}/${noteToString(bass)}`
+            : sym
+        })
       : undefined
   // Optional interval "training wheels", revealed only on request and reset
   // each question (the card remounts per question id).
