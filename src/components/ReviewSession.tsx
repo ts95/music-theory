@@ -21,6 +21,8 @@ const DONT_KNOW = -1
 const TIMED_LIMITS: Record<string, number> = {
   'Relative minor': 5000,
   'Diatonic chord': 5000,
+  // Recalling a key's sharps/flats from memory.
+  'Key signature': 15000,
   // Reading a staff with inversions/extensions takes longer.
   'Chord recognition': 10000,
   // Working out a Roman-numeral progression needs a bit more thinking time.

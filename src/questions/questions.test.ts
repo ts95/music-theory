@@ -28,8 +28,10 @@ describe('generateAllQuestions', () => {
     //   (10+12+10+10 motifs × 2 modes) + 183 rhythm-dictation (31+54+56+42) +
     //   175 rhythm-tap (same patterns, one tap exercise each; Medium drops 12/8,
     //   so 31+46+56+42) + 123 scale-play (10+17+48+48).
+    // + 84 key-signatures: 30 keys (15 major + 15 minor) banded ≤2/≤4/≤6/≤7 =
+    //   10+18+26+30 (key,level) pairs.
     expect(questions.length).toBe(
-      12 + 207 + 123 + 462 + 602 + 462 + 429 + 40 + 11 + 84 + 183 + 175
+      12 + 207 + 84 + 123 + 462 + 602 + 462 + 429 + 40 + 11 + 84 + 183 + 175
     )
   })
 
@@ -41,6 +43,7 @@ describe('generateAllQuestions', () => {
       questions.filter((q) => q.etudeId === id).length
     expect(count('relative-minors')).toBe(12)
     expect(count('scales')).toBe(207) // 4 bands: 20+36+48 (major+3 minors) + 103 (Expert adds modes)
+    expect(count('key-signatures')).toBe(84) // 30 keys banded ≤2/≤4/≤6/≤7 = 10+18+26+30
     expect(count('chords')).toBe(462) // (3+7+11+12) keys × 2 × 7
     expect(count('chord-recognition')).toBe(602) // (7+12+12+12) keys × 2 × 7
     expect(count('chord-spelling')).toBe(462) // same key ladder as chords
@@ -95,6 +98,45 @@ describe('generateAllQuestions', () => {
     expect(cLydian!.choices[cLydian!.answerIndex]).toBe('C – D – E – F♯ – G – A – B')
     // Modes do NOT appear below Expert.
     expect(questions.some((x) => /^scale-notes:L[123]:.*:dorian$/.test(x.id))).toBe(false)
+  })
+
+  it('spot-checks: key signatures (accidentals, scale & keyboard)', () => {
+    const ksig = questions.filter((q) => q.etudeId === 'key-signatures')
+    const correct = (id: string) => {
+      const q = ksig.find((x) => x.id === id)
+      expect(q, id).toBeDefined()
+      return q!.choices[q!.answerIndex]
+    }
+    // Accidentals named in key-signature order.
+    expect(correct('key-sig:L2:A:major')).toBe('F♯, C♯, G♯')
+    expect(correct('key-sig:L1:C:major')).toBe('None')
+    expect(correct('key-sig:L1:A:minor')).toBe('None') // relative of C major
+    expect(correct('key-sig:L2:E:minor')).toBe('F♯')
+    expect(correct('key-sig:L1:F:major')).toBe('B♭')
+    // The 7-accidental keys are Expert-only (≤7 band) — all sharps / all flats.
+    expect(correct('key-sig:L4:C#:major')).toBe('F♯, C♯, G♯, D♯, A♯, E♯, B♯')
+    expect(correct('key-sig:L4:Cb:major')).toBe('B♭, E♭, A♭, D♭, G♭, C♭, F♭')
+    expect(questions.some((x) => /^key-sig:L[123]:C#:major$/.test(x.id))).toBe(false)
+
+    // Reveal shows ONLY the accidentals: the staff carries the key signature and
+    // one notehead per accidental, and the keyboard highlights those same keys
+    // (labelled). C major / A minor have none → no staff and no keyboard.
+    const aMaj = ksig.find((x) => x.id === 'key-sig:L2:A:major')!
+    expect(aMaj.notation?.keySignature).toBe('A')
+    expect(aMaj.notation?.onReveal).toBe(true)
+    expect(aMaj.notation?.groups).toHaveLength(3) // only F♯, C♯, G♯ — not the whole scale
+    expect(aMaj.keyboard?.marks).toHaveLength(3)
+    // Voiced low→high in the octave at/above middle C: C♯4, F♯4, G♯4.
+    expect(aMaj.keyboard!.marks.map((m) => m.label)).toEqual(['C♯', 'F♯', 'G♯'])
+    expect(aMaj.keyboard!.marks.map((m) => m.midi)).toEqual([61, 66, 68])
+    // Every accidental sits at or above middle C (60), within the octave above.
+    const ksMarks = ksig.flatMap((q) => q.keyboard?.marks ?? [])
+    expect(ksMarks.every((m) => m.midi >= 60 && m.midi <= 71)).toBe(true)
+    const cMaj = ksig.find((x) => x.id === 'key-sig:L1:C:major')!
+    expect(cMaj.notation).toBeUndefined()
+    expect(cMaj.keyboard).toBeUndefined()
+    expect(ksig.find((x) => x.id === 'key-sig:L1:A:minor')!.notation).toBeUndefined()
+    expect(questions.find((x) => x.id === 'key-sig:L2:E:minor')!.notation?.keySignature).toBe('Em')
   })
 
   function correctFor(prompt: string): string {

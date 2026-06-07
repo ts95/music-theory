@@ -116,33 +116,37 @@ export default function Staff({
 
   return (
     <div className="mt-3 overflow-x-auto">
-      <div ref={ref} />
-      {showLabels && (
-        <div className="relative" style={{ width, height: 20 }}>
-          {labels!.map((label, i) => (
-            <span
-              key={i}
-              className="absolute font-mono text-sm text-ink-2 -translate-x-1/2"
-              style={{ left: noteXs[i] }}
-            >
-              {label}
-            </span>
-          ))}
-        </div>
-      )}
-      {showSublabels && (
-        <div className="relative" style={{ width, height: 18 }}>
-          {sublabels!.map((label, i) => (
-            <span
-              key={i}
-              className="absolute font-mono text-xs text-ink-3 -translate-x-1/2"
-              style={{ left: noteXs[i] }}
-            >
-              {label}
-            </span>
-          ))}
-        </div>
-      )}
+      {/* `mx-auto w-fit` centres the staff (like the keyboard) in a block context,
+          while staying a no-op where the parent already hugs its width. */}
+      <div className="mx-auto w-fit">
+        <div ref={ref} />
+        {showLabels && (
+          <div className="relative" style={{ width, height: 20 }}>
+            {labels!.map((label, i) => (
+              <span
+                key={i}
+                className="absolute font-mono text-sm text-ink-2 -translate-x-1/2"
+                style={{ left: noteXs[i] }}
+              >
+                {label}
+              </span>
+            ))}
+          </div>
+        )}
+        {showSublabels && (
+          <div className="relative" style={{ width, height: 18 }}>
+            {sublabels!.map((label, i) => (
+              <span
+                key={i}
+                className="absolute font-mono text-xs text-ink-3 -translate-x-1/2"
+                style={{ left: noteXs[i] }}
+              >
+                {label}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

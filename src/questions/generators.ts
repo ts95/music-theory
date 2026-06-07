@@ -44,6 +44,7 @@ import {
 import type { Chord, ChordSize, Mode, Quality, Voiced } from '../theory'
 import {
   chordExplanation,
+  keySignatureExplanation,
   chordRecognitionExplanation,
   chordSpellingExplanation,
   intervalEarExplanation,
@@ -286,6 +287,145 @@ function scaleSpellingQuestions(): Question[] {
         questions.push(q)
       })
     })
+  })
+  return questions
+}
+
+// ── Key Signatures ───────────────────────────────────────────────────────────
+// "Which notes are sharp/flat in this key?" across the full circle of fifths.
+
+/** The 15 major tonics, 7♯ (C♯) → 7♭ (C♭), incl. the enharmonic pairs. */
+const SIG_MAJOR_TONICS: Note[] = [
+  { letter: 'C', accidental: 0 },
+  { letter: 'G', accidental: 0 },
+  { letter: 'D', accidental: 0 },
+  { letter: 'A', accidental: 0 },
+  { letter: 'E', accidental: 0 },
+  { letter: 'B', accidental: 0 },
+  { letter: 'F', accidental: 1 }, // F♯ (6♯)
+  { letter: 'C', accidental: 1 }, // C♯ (7♯)
+  { letter: 'F', accidental: 0 },
+  { letter: 'B', accidental: -1 }, // B♭
+  { letter: 'E', accidental: -1 }, // E♭
+  { letter: 'A', accidental: -1 }, // A♭
+  { letter: 'D', accidental: -1 }, // D♭
+  { letter: 'G', accidental: -1 }, // G♭ (6♭)
+  { letter: 'C', accidental: -1 }, // C♭ (7♭)
+]
+
+/** The seven sharps / flats in the order they're added to a key signature. */
+const SHARP_ORDER: Note[] = (['F', 'C', 'G', 'D', 'A', 'E', 'B'] as const).map(
+  (letter) => ({ letter, accidental: 1 })
+)
+const FLAT_ORDER: Note[] = (['B', 'E', 'A', 'D', 'G', 'C', 'F'] as const).map(
+  (letter) => ({ letter, accidental: -1 })
+)
+
+/** Render an accidental set as a choice string ("F♯, C♯, G♯", or "None"). */
+const renderAccidentals = (notes: Note[]): string =>
+  notes.length === 0 ? 'None' : notes.map(noteToString).join(', ')
+
+/**
+ * Voice a note as close to middle C (C4 = 60) as possible but never below it —
+ * the lowest octave whose pitch is at or above middle C (so it lands within the
+ * octave just above, never under the staff).
+ */
+function nearMiddleC(note: Note): Voiced {
+  let octave = 2
+  while (voicedMidi({ note, octave }) < 60) octave++
+  return { note, octave }
+}
+
+// Four cumulative ABRSM-style bands by key-signature accidentals, scaling like
+// the Scales étude: Easy ≤2, Medium ≤4, Hard ≤6, Expert ≤7 (adds C♯/C♭ major,
+// A♯/A♭ minor — the seven-accidental keys).
+const SIG_LEVEL_ACCIDENTALS = [2, 4, 6, 7]
+
+/**
+ * 3. Key signatures: name the sharps/flats of each major and minor key. Four
+ * cumulative levels by key range (level-prefixed ids, each its own SRS set). On
+ * reveal, a treble staff shows the key signature + ascending scale, and the
+ * keyboard highlights only the sharpened/flattened keys (labelled, so an E♯ on
+ * the F key reads clearly). Minor keys use the natural minor (= the signature).
+ */
+function keySignatureQuestions(): Question[] {
+  const questions: Question[] = []
+  SIG_LEVEL_ACCIDENTALS.forEach((maxAccidentals, levelIndex) => {
+    const level = levelIndex + 1
+    for (const majorTonic of SIG_MAJOR_TONICS) {
+      const majorNotes = majorScale(majorTonic)
+      const minorTonic = majorNotes[5] // relative minor = 6th degree
+      const accNotes = majorNotes.filter((n) => n.accidental !== 0)
+      const count = accNotes.length
+      if (count > maxAccidentals) continue
+      const sharp = accNotes.length > 0 && accNotes[0].accidental > 0
+      const order = sharp ? SHARP_ORDER : FLAT_ORDER
+      const opposite = sharp ? FLAT_ORDER : SHARP_ORDER
+
+      const correct = renderAccidentals(order.slice(0, count))
+      // Distractors: one fewer / one more of the same sign, and the same count of
+      // the opposite sign — forcing the exact count AND sharp-vs-flat. (count 0
+      // has no sign, so offer small sharp/flat sets instead.)
+      const distractors =
+        count === 0
+          ? [
+              renderAccidentals(SHARP_ORDER.slice(0, 1)),
+              renderAccidentals(FLAT_ORDER.slice(0, 1)),
+              renderAccidentals(SHARP_ORDER.slice(0, 2)),
+              renderAccidentals(FLAT_ORDER.slice(0, 2)),
+            ]
+          : [
+              renderAccidentals(order.slice(0, count - 1)),
+              renderAccidentals(order.slice(0, Math.min(count + 1, 7))),
+              renderAccidentals(opposite.slice(0, count)),
+              renderAccidentals(opposite.slice(0, Math.max(count - 1, 1))),
+            ]
+
+      for (const mode of ['major', 'minor'] as Mode[]) {
+        const tonic = mode === 'major' ? majorTonic : minorTonic
+        const scale = mode === 'major' ? majorNotes : minorScale(minorTonic, 'natural')
+        // The signature is shared with the relative key (the other mode).
+        const relativeKeyName =
+          mode === 'major'
+            ? `${noteToString(minorTonic)} minor`
+            : `${noteToString(majorTonic)} major`
+        const q = buildQuestion(
+          'key-signatures',
+          `key-sig:L${level}:${asciiTonicId(tonic)}:${mode}`,
+          'Key signature',
+          `What notes are sharpened or flattened in ${noteToString(tonic)} ${mode}?`,
+          correct,
+          distractors,
+          undefined,
+          keySignatureExplanation(tonic, mode, order.slice(0, count), relativeKeyName)
+        )
+        q.level = level
+        // Reveal shows ONLY the sharpened/flattened notes: on the staff (under
+        // the key signature) and highlighted on the keyboard (labelled with the
+        // note name, so a white-key enharmonic like E♯ is unambiguous). Each note
+        // is voiced as close to middle C as possible, then ordered low→high. Keys
+        // with no accidentals (C major / A minor) get neither — nothing to show.
+        const accidentals = scale
+          .filter((n) => n.accidental !== 0)
+          .map(nearMiddleC)
+          .sort((a, b) => voicedMidi(a) - voicedMidi(b))
+        if (accidentals.length > 0) {
+          q.notation = {
+            groups: accidentals.map((v) => [v]),
+            clef: 'treble',
+            keySignature: keySignatureSpec(tonic, mode),
+            onReveal: true,
+          }
+          q.keyboard = {
+            marks: accidentals.map((v) => ({
+              midi: voicedMidi(v),
+              label: noteToString(v.note),
+            })),
+          }
+        }
+        questions.push(q)
+      }
+    }
   })
   return questions
 }
@@ -1551,6 +1691,7 @@ export function generateAllQuestions(): Question[] {
   return [
     ...relativeMinorQuestions(),
     ...scaleSpellingQuestions(),
+    ...keySignatureQuestions(),
     ...chordDegreeQuestions(),
     ...chordRecognitionQuestions(),
     ...chordSpellingQuestions(),

@@ -25,35 +25,40 @@ progress, chosen from a table-of-contents home screen. Twelve études today, in 
   ends and reveals the whole scale. An optional **show-fingering** hint flashes the whole scale's finger
   numbers for 3 s (any key hides them) — but peeking grades the exercise as failed. Sudden-death;
   cumulative ABRSM-grade scope (Easy 1 octave / 15 s, Medium 2 / 20 s, Hard 2 / 18 s, Expert 2 / 12 s).
+- **No. 4 — Key Signatures.** Name the sharps or flats of each key, across the full circle of fifths
+  (15 major keys + relative minors) — **15 s sudden-death**. On reveal, a treble staff shows the key
+  signature with just its sharpened/flattened notes and the keyboard highlights those keys (each
+  labelled); C major / A minor show neither. Four ABRSM-style levels by key range — Easy ≤2 accidentals
+  up to **Expert** at the seven-sharp/flat keys (C♯/C♭ major).
 
 ### 🎶 Chords & Harmony
 
-- **No. 4 — Chords by Degree.** Recall the diatonic chord on a scale degree ("In C major, what is the
+- **No. 5 — Chords by Degree.** Recall the diatonic chord on a scale degree ("In C major, what is the
   IV chord?" → F), across every major and minor key — the common triads plus V7. Timed (5 s).
-- **No. 5 — Chord Recognition.** Read a chord drawn on the staff (under its key signature) and name it
+- **No. 6 — Chord Recognition.** Read a chord drawn on the staff (under its key signature) and name it
   as a symbol, with slash notation for inversions. Timed (10 s, +5 s when the chord is in an inversion).
-- **No. 6 — Spell the Chord.** The inverse of Chord Recognition: read a chord **symbol** and pick its
+- **No. 7 — Spell the Chord.** The inverse of Chord Recognition: read a chord **symbol** and pick its
   notes ("Spell the chord Cm7" → C – E♭ – G – B♭), drawn from the diatonic chords of every key. Choices
   share the root and differ only in quality. On reveal the chord is shown on a staff **beside** a piano
   keyboard with RH/LH fingerings. Untimed. Levels add sevenths then ninths and widen the key range.
-- **No. 7 — Progressions.** Map a Roman-numeral progression to concrete chords ("In G major, spell
+- **No. 8 — Progressions.** Map a Roman-numeral progression to concrete chords ("In G major, spell
   ii–V–I" → Am – D – G), including ii–V–I seventh forms. The spelled chords are shown on a treble staff
   under the key's signature on reveal. Timed (15 s).
 
 ### 👂 Ear Training
 
-- **No. 8 — Intervals by Ear.** Hear an interval and name it; the lower note is randomized each time
+- **No. 9 — Intervals by Ear.** Hear an interval and name it; the lower note is randomized each time
   (relative-pitch training). Optional hints — *step up to it* (walks the distance a semitone at a time)
   and *consonant or dissonant?* — plus a set of **reference songs**: a familiar tune for every interval,
   notated, that you can play to recognise the leap.
-- **No. 9 — Progressions by Ear.** Hear the tonic, then a progression, and name it in Roman numerals.
-- **No. 10 — Melodic Dictation.** Hear a short motif over its tonic and name it in **solfège**. A
+- **No. 10 — Progressions by Ear.** Hear the tonic, then a progression, and name it in Roman numerals.
+- **No. 11 — Melodic Dictation.** Hear a short motif over its tonic and name it in **solfège**. A
   **hear-scale** hint plays the whole scale with a synced solfège readout (and you can hover a syllable
   to play just that note); the melody is shown on the staff, in key, on reveal. Miss it and the **whole
   scale** is shown as a solfège readout with the melody's notes marked in a distinct colour (so you can
   see where they sit in the scale and learn what each syllable means); it **auto-plays the missed melody**,
   lighting each note as it sounds, and you can hover any degree to hear that syllable on its own.
-- **No. 11 — Rhythm Dictation.** Hear a one-bar rhythm and pick the matching notation. A wide vocabulary
+- **No. 12 — Rhythm Dictation.** Hear a one-bar rhythm and pick the matching notation. A wide vocabulary
   of common patterns — sixteenth cells (ti-tika / tika-ti), dotted-eighth and Scotch-snap figures, the
   tresillo (3+3+2), eighth-note triplets, ties, rests and off-beat syncopation. The metres accumulate
   with difficulty: Easy adds **2/4** (to 4/4, 3/4, 6/8), Medium adds **cut time (₵)** and **12/8**, Hard
@@ -61,7 +66,7 @@ progress, chosen from a table-of-contents home screen. Twelve études today, in 
   continuous triplets, heavy syncopation); a count-in sets the tempo and metre. A **time-signature
   picker** lets you narrow practice to any subset of a level's metres (all on by default), remembered
   per level and synced across devices.
-- **No. 12 — Tap the Rhythm.** The performance flip side of Rhythm Dictation: **read** a one-bar rhythm
+- **No. 13 — Tap the Rhythm.** The performance flip side of Rhythm Dictation: **read** a one-bar rhythm
   and **tap-and-hold it in time** (Space, press the screen, or any key of a connected **MIDI keyboard** —
   the pitch is irrelevant, only the rhythm) over a count-in and a steady metronome click on every beat. The **tempo is adjustable** (a 30–90 BPM slider, remembered per level); a count-in with a
   beat count (**1·2·3·4**) sets it, then the staff flashes **green** to mark the downbeat where your bar begins.

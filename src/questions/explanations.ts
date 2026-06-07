@@ -79,6 +79,27 @@ export function scaleExplanation(
   return `${MODE_RULE[kind]}. In ${T}: ${spell(notes)}.`
 }
 
+/** "What notes are sharpened or flattened in A major?" */
+export function keySignatureExplanation(
+  tonic: Note,
+  mode: Mode,
+  accidentals: Note[],
+  relativeKeyName: string
+): string {
+  const key = `${noteToString(tonic)} ${mode}`
+  if (accidentals.length === 0) {
+    return `${key} has no sharps or flats — it shares the empty key signature with ${relativeKeyName}.`
+  }
+  const sharp = accidentals[0].accidental > 0
+  const names = accidentals.map(noteToString).join(', ')
+  const n = accidentals.length
+  const word = sharp ? (n === 1 ? 'sharp' : 'sharps') : n === 1 ? 'flat' : 'flats'
+  const order = sharp
+    ? 'Sharps are added in the order F C G D A E B ("Father Charles Goes Down And Ends Battle")'
+    : 'Flats are added in the order B E A D G C F ("Battle Ends And Down Goes Charles’ Father")'
+  return `${key} has ${n} ${word}: ${names}. ${order}. Its relative key, ${relativeKeyName}, shares the same signature.`
+}
+
 /** "In C major, what is the IV chord?" */
 export function chordExplanation(
   keyName: string,

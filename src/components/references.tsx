@@ -177,6 +177,31 @@ const REFERENCES: Record<string, EtudeReference> = {
       </div>
     ),
   },
+  'key-signatures': {
+    title: 'Order of sharps & flats',
+    body: (
+      <div className="space-y-2">
+        <Line label="Sharps">
+          {mono('F C G D A E B')} — <span className="text-ink">F</span>ather{' '}
+          <span className="text-ink">C</span>harles <span className="text-ink">G</span>oes{' '}
+          <span className="text-ink">D</span>own <span className="text-ink">A</span>nd{' '}
+          <span className="text-ink">E</span>nds <span className="text-ink">B</span>attle
+        </Line>
+        <Line label="Flats">
+          {mono('B E A D G C F')} — the reverse: <span className="text-ink">B</span>attle{' '}
+          <span className="text-ink">E</span>nds <span className="text-ink">A</span>nd{' '}
+          <span className="text-ink">D</span>own <span className="text-ink">G</span>oes{' '}
+          <span className="text-ink">C</span>harles’ <span className="text-ink">F</span>ather
+        </Line>
+        <p className="text-ink-3">
+          Each new key adds the next accidental in that order (A major = the first
+          three sharps, F♯ C♯ G♯). A key signature is all sharps or all flats, never
+          both. A minor key shares the signature of its relative major (a minor 3rd
+          up) — so A minor, like C major, has none.
+        </p>
+      </div>
+    ),
+  },
   chords: {
     title: 'Diatonic triads',
     body: (

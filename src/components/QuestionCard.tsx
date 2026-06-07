@@ -800,9 +800,15 @@ export default function QuestionCard({
               {question.caption}
             </p>
           )}
-          {question.notation?.onReveal && !ear && question.keyboard ? (
-            // Chord-spelling reveal: staff and fingered keyboard, side by side.
-            // The keyboard scales down (fit) to share the row with the staff.
+          {question.notation?.onReveal &&
+          !ear &&
+          question.keyboard &&
+          question.notation.groups.length === 1 &&
+          question.notation.groups[0].length > 1 ? (
+            // Chord-spelling reveal: a single-chord staff and the fingered keyboard,
+            // side by side (the keyboard scales down to share the row). A staff of
+            // separate notes — e.g. a key signature's accidentals — instead stacks
+            // above the keyboard below.
             <div className="flex flex-nowrap items-end gap-4">
               <Staff
                 groups={question.notation.groups}
