@@ -77,8 +77,19 @@ export default function LineChart({ xLabels, series, ariaLabel, connectGaps = fa
       ))}
 
       {xLabels.map((lbl, i) =>
-        i % step === 0 || i === n - 1 ? (
-          <text key={i} x={xAt(i)} y={H - 8} textAnchor="middle" fill={INK3} fontSize={10} fontFamily="monospace">
+        // Show every `step`th label plus the last — but drop a step label that
+        // would crowd against the always-shown last one.
+        i === n - 1 || (i % step === 0 && n - 1 - i >= step) ? (
+          // Anchor the edge labels inward so they don't clip past the SVG bounds.
+          <text
+            key={i}
+            x={xAt(i)}
+            y={H - 8}
+            textAnchor={i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'}
+            fill={INK3}
+            fontSize={10}
+            fontFamily="monospace"
+          >
             {lbl}
           </text>
         ) : null,
