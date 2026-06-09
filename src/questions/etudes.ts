@@ -105,7 +105,7 @@ export const ETUDES: Etude[] = [
     title: 'Rhythm Dictation',
     subtitle: 'Hear a one-bar rhythm and pick the matching notation',
     levels: ['Easy', 'Medium', 'Hard', 'Expert'],
-    version: 2,
+    version: 3,
   },
   {
     id: 'rhythm-tap',
@@ -114,6 +114,6 @@ export const ETUDES: Etude[] = [
     title: 'Tap the Rhythm',
     subtitle: 'Read a one-bar rhythm and tap it in time',
     levels: ['Easy', 'Medium', 'Hard', 'Expert'],
-    version: 4,
+    version: 5,
   },
 ]

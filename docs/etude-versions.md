@@ -359,7 +359,7 @@ untimed.
 
 ---
 
-## No. 12 — Rhythm Dictation (`rhythm-dictation`) — current version: 2
+## No. 12 — Rhythm Dictation (`rhythm-dictation`) — current version: 3
 
 ### v1
 
@@ -390,9 +390,37 @@ untimed.
   sixteenth cells, heavy tied/off-beat syncopation) across all seven metres including 5/4. The
   `audibleSignature` dedupe applies to the new pool too. L1–L3 ids/progress are unchanged; `L4` is new.
 
+### v3 — 2026-06-09: research-graded vocabulary, full triplet family, 5/8 & 7/8
+
+- **Pools rebuilt** from cross-verified graded sources (ABRSM/RCM syllabi, Kodály sequences,
+  Alfred/Faber, Starer, Ted Reed, Berklee, Afro-Cuban references) so each level matches its grade band;
+  counts 183 → **256** (36 + 66 + 84 + 70). Patterns whose notation changed get new ids and reschedule
+  fresh; unchanged patterns keep their ids.
+  - **Easy (≈ gr 1–2):** scope unchanged (validated by the research) + one dotted-quarter+eighth cell and
+    a few more rest placements. Still no triplets, no compound metre, no syncopation.
+  - **Medium (≈ gr 3–5):** adds the **named syncopation family** — syncopa (`8 q 8`), tresillo,
+    Charleston, and in 2/4 the cinquillo & habanera — a fuller 6/8 (short–long), and the first
+    **quarter-note triplet** (`3:2 q` over beats 1–2).
+  - **Hard (≈ gr 6–7):** anticipation pushes (tied into the next beat), off-beat quarters, sixteenth
+    syncopes, **triplet syncopation** (tied-first/last-two shuffle cells, gapped/rested triplets),
+    quarter-note triplets both placements, and **introduces 5/8 (3+2) and 7/8 (2+2+3)** with clear
+    groupings.
+  - **Expert (≈ gr 8+):** **half-note triplets** (three over the whole bar — also in cut time),
+    back-to-back quarter triplets, tied-triplet **shuffle lines**, **sixteenth triplets**,
+    **double-dotted** quarters, displaced funk/Latin sixteenth cells, the 6/8 **hemiola**, and denser
+    5/8 & 7/8.
+- **Metres:** `TimeSig` gains **5/8** (`totalBeats 2.5`, count-in 0/1.5 — felt 3+2) and **7/8**
+  (`totalBeats 3.5`, count-in 0/1/2 — felt 2+2+3); asymmetric beam groups are passed explicitly in
+  `RhythmStaff`. The engine (`eventBeats`, `onsets`, `scoreTaps`, playback) was already
+  duration-generic; the counting model (`rhythmCounting.ts`) moved from a scalar `beatUnit` to
+  **per-felt-beat boundary lists** so asymmetric metres mix simple and compound beats, and
+  `granularCounting` now spreads a triplet group's three tokens across its true span (so quarter/half/
+  sixteenth triplets light correctly in Tap the Rhythm).
+- Distractor logic, dedupe, audio, and timing unchanged.
+
 ---
 
-## No. 13 — Tap the Rhythm (`rhythm-tap`) — current version: 4
+## No. 13 — Tap the Rhythm (`rhythm-tap`) — current version: 5
 
 ### v1 — 2026-06-02
 
@@ -448,6 +476,20 @@ untimed.
   **eighth-note triplets**, not just sixteenths/thirty-seconds — `holdMinFor` keys off the note's written
   value (`beats ≤ 0.34`, i.e. anything shorter than an eighth). The expected-trace target line (hold + 20pp)
   follows suit. Nothing else changed.
+
+### v5 — 2026-06-09: rebuilt vocabulary (shared with Rhythm Dictation v3)
+
+- **Patterns:** follows the Rhythm Dictation **v3** pool rebuild (see above) — research-graded levels,
+  the full triplet family (quarter/half/sixteenth triplets, shuffle/gapped cells), double dots, and the
+  new **5/8** & **7/8** metres from Hard. Counts 175 → **248** (36 + 58 + 84 + 70); Medium still drops
+  12/8 (`TAP_EXCLUDE_METERS`). Changed-notation patterns reschedule fresh.
+- **Counting lane:** `granularCounting` spreads each triplet group's `1·trip·let` across the group's
+  real span, so a quarter-note triplet lights across two felt beats and a half-note triplet across the
+  bar (a felt beat it skips shows no token); asymmetric metres count per-beat — 5/8 `1 la li · 2 &`,
+  7/8 `1 & · 2 & · 3 la li` — and the count-in clicks are correspondingly uneven. The 6/8 hemiola keeps
+  the compound `1 la li` grid.
+- **Grading unchanged** — `eventBeats`/`onsets`/`scoreTaps` were already generic: a quarter-triplet
+  member (≈0.67 beats) needs the 70 % hold, a sixteenth-triplet member (≈0.17) the fast 40 % hold.
 
 ---
 

@@ -323,20 +323,31 @@ const REFERENCES: Record<string, EtudeReference> = {
           <span className="text-ink-3">beats</span>
         </div>
         <p className="text-ink-3">
-          A dot adds half; a triplet = three in the time of two; a tie holds across.
+          A dot adds half (two dots add three quarters); a triplet = three in the
+          time of two — of any value: eighth triplets fill one beat, quarter
+          triplets two, half-note triplets four, sixteenth triplets half; a tie
+          holds across.
         </p>
         <Line label="Easy">
           {mono('4/4')} · {mono('3/4')} · {mono('2/4')}
         </Line>
         <Line label="Medium">
-          adds {mono('6/8')} · {mono('₵')} cut time · {mono('12/8')}
+          adds {mono('6/8')} · {mono('₵')} cut time · {mono('12/8')} — and the
+          named syncopations: syncopa, tresillo, Charleston, cinquillo, habanera
         </Line>
         <Line label="Hard">
-          adds {mono('5/4')} (felt 3+2)
+          adds {mono('5/4')} (felt 3+2) · {mono('5/8')} (3+2 eighths) ·{' '}
+          {mono('7/8')} (2+2+3) — tied cross-beat pushes, quarter triplets,
+          shuffled &amp; gapped triplets
+        </Line>
+        <Line label="Expert">
+          half-note triplets, sixteenth triplets, double dots, hemiola, dense
+          off-beat sixteenths
         </Line>
         <p className="text-ink-3">
           Each level keeps the earlier metres. The count-in clicks set the tempo
-          and metre.
+          and metre — in {mono('5/8')}/{mono('7/8')} the clicks are uneven (the
+          long beat lasts three eighths).
         </p>
       </div>
     ),
@@ -389,7 +400,10 @@ const REFERENCES: Record<string, EtudeReference> = {
           <span className="text-ink">Try again</span> is a practice run — your
           first attempt is the one that counts, so a retry can't turn a miss into a
           pass. Same metres and levels as Rhythm Dictation — the tempo rises with
-          the level.
+          the level. In the asymmetric metres ({mono('5/8')} 3+2, {mono('7/8')}{' '}
+          2+2+3) the count-in beats are uneven — the long beat spans three
+          eighths; a triplet's count stretches across its whole span (a
+          half-note triplet counts across the bar).
         </p>
       </div>
     ),

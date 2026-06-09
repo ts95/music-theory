@@ -59,14 +59,17 @@ progress, chosen from a table-of-contents home screen. Twelve études today, in 
   scale** is shown as a solfège readout with the melody's notes marked in a distinct colour (so you can
   see where they sit in the scale and learn what each syllable means); it **auto-plays the missed melody**,
   lighting each note as it sounds, and you can hover any degree to hear that syllable on its own.
-- **No. 12 — Rhythm Dictation.** Hear a one-bar rhythm and pick the matching notation. A wide vocabulary
-  of common patterns — sixteenth cells (ti-tika / tika-ti), dotted-eighth and Scotch-snap figures, the
-  tresillo (3+3+2), eighth-note triplets, ties, rests and off-beat syncopation. The metres accumulate
-  with difficulty: Easy adds **2/4** (to 4/4, 3/4, 6/8), Medium adds **cut time (₵)** and **12/8**, Hard
-  adds **5/4**, and **Expert** keeps the metres but pushes the tempo and density (full 32nd runs,
-  continuous triplets, heavy syncopation); a count-in sets the tempo and metre. A **time-signature
-  picker** lets you narrow practice to any subset of a level's metres (all on by default), remembered
-  per level and synced across devices.
+- **No. 12 — Rhythm Dictation.** Hear a one-bar rhythm and pick the matching notation. A
+  research-graded vocabulary that follows the grade bands: sixteenth cells (ti-tika / tika-ti),
+  dotted-eighth and Scotch-snap figures, the **named syncopations** (syncopa, tresillo 3+3+2,
+  Charleston, cinquillo, habanera), ties and anticipation pushes, and the **full triplet family** —
+  eighth, **quarter- and half-note triplets**, sixteenth triplets, shuffled (tied) and gapped triplet
+  cells — plus double dots and the 6/8 hemiola at the top. The metres accumulate with difficulty: Easy
+  is **4/4, 3/4, 2/4**, Medium adds **6/8**, **cut time (₵)** and **12/8**, Hard adds **5/4** and the
+  asymmetric **5/8 (3+2)** and **7/8 (2+2+3)**, and **Expert** pushes the tempo and density; a count-in
+  sets the tempo and metre (uneven clicks in 5/8 & 7/8 — the long beat spans three eighths). A
+  **time-signature picker** lets you narrow practice to any subset of a level's metres (all on by
+  default), remembered per level and synced across devices.
 - **No. 13 — Tap the Rhythm.** The performance flip side of Rhythm Dictation: **read** a one-bar rhythm
   and **tap-and-hold it in time** (Space, press the screen, or any key of a connected **MIDI keyboard** —
   the pitch is irrelevant, only the rhythm) over a count-in and a steady metronome click on every beat. The **tempo is adjustable** (a 30–90 BPM slider, remembered per level); a count-in with a
@@ -81,7 +84,9 @@ progress, chosen from a table-of-contents home screen. Twelve études today, in 
   to count, so a note is sustained, not clipped. The result colours each note
   **on the beat / a little off / missed or too short**, with **Hear it** to compare and **Try again** for a
   practice run (your first attempt is the one that's graded). On a connected **MIDI keyboard**, middle C
-  begins / advances, B retries, and A plays it back. Same metres and four levels as Rhythm Dictation.
+  begins / advances, B retries, and A plays it back. Same metres and four levels as Rhythm Dictation —
+  including the asymmetric **5/8** and **7/8**, whose count-in beats are uneven, and the multi-beat
+  triplets, whose `1·trip·let` count stretches across their true span in the sub-beat lane.
 
 ### Across the études
 
