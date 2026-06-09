@@ -219,8 +219,13 @@ export function granularCounting(pattern: RhythmEvent[], meter: TimeSig): BeatCo
     const len = beats[b]
     const sub = isCompound(len) ? COMPOUND_SUB : SIMPLE_SUB
     // Grid divisions for this beat at the bar's finest duple level (every beat
-    // counts the same level — the steady-count rule).
-    const r = finest === Infinity ? 1 : Math.max(1, Math.round(len / finest))
+    // counts the same level — the steady-count rule), snapped up to a division
+    // the beat can actually make: a compound beat splits in 3s, a simple one in
+    // 2s. (A 6/8 hemiola's quarters don't divide the dotted beat — it still
+    // counts `1 la li`.)
+    const allowed = isCompound(len) ? [1, 3, 6, 12] : [1, 2, 4, 8, 16]
+    const need = finest === Infinity ? 1 : len / finest
+    const r = allowed.find((n) => n >= need - 1e-6) ?? allowed[allowed.length - 1]
     const tokens: BeatCount['tokens'] = []
     for (let j = 0; j < r; j++) {
       const key = Math.round((j * 24) / r)

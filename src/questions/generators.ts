@@ -1187,6 +1187,11 @@ const ED: RhythmEvent = { dur: '8', dots: 1 } // dotted eighth = 0.75 beat
 const S: RhythmEvent = { dur: '16' }
 const X: RhythmEvent = { dur: '32' }
 const T: RhythmEvent = { dur: '8', triplet: true } // eighth-note triplet member
+const QT: RhythmEvent = { dur: 'q', triplet: true } // quarter-note triplet member (three over two beats)
+const HT: RhythmEvent = { dur: 'h', triplet: true } // half-note triplet member (three over four beats)
+const ST: RhythmEvent = { dur: '16', triplet: true } // sixteenth triplet member (three per half-beat)
+const TR: RhythmEvent = { dur: '8', triplet: true, rest: true } // eighth rest inside a triplet
+const QDD: RhythmEvent = { dur: 'q', dots: 2 } // double-dotted quarter = 1.75 beats
 const QR: RhythmEvent = { dur: 'q', rest: true }
 const ER: RhythmEvent = { dur: '8', rest: true }
 const SR: RhythmEvent = { dur: '16', rest: true }
@@ -1199,9 +1204,13 @@ interface RhythmLevelDef {
   pools: Partial<Record<TimeSig, RhythmEvent[][]>>
 }
 
-// Three difficulty levels: vocabulary, syncopation, and tempo grow per level.
-const RHYTHM_LEVELS: RhythmLevelDef[] = [
-  // L1 Easy — whole/half/quarter/eighth + simple rests; little syncopation.
+// Four difficulty levels: vocabulary, syncopation, and tempo grow per level,
+// following the graded sources (ABRSM/RCM syllabi, Kodály sequences, Starer):
+// Easy ≈ grade 1–2, Medium ≈ 3–5, Hard ≈ 6–7, Expert ≈ 8+.
+export const RHYTHM_LEVELS: RhythmLevelDef[] = [
+  // L1 Easy (≈ grade 1–2) — whole/half/quarter/paired-eighth values and simple
+  // rests in the simple metres; no triplets, no compound metre, no syncopation.
+  // One up-edge melodic cell: dotted-quarter + eighth.
   {
     tempo: 76,
     pools: {
@@ -1213,6 +1222,7 @@ const RHYTHM_LEVELS: RhythmLevelDef[] = [
         [Q, Q, H],
         [Q, H, Q],
         [HD, Q],
+        [QD, E, H], // dotted quarter + eighth — the one Easy dotted figure
         [E, E, Q, Q, Q],
         [Q, E, E, Q, Q],
         [Q, Q, Q, E, E],
@@ -1221,17 +1231,20 @@ const RHYTHM_LEVELS: RhythmLevelDef[] = [
         [QR, Q, Q, Q],
         [Q, QR, Q, Q],
         [Q, QR, H],
+        [H, QR, Q],
       ],
       '3/4': [
         [Q, Q, Q],
         [H, Q],
         [Q, H],
         [HD],
+        [QD, E, Q],
         [E, E, Q, Q],
         [Q, E, E, Q],
         [Q, Q, E, E],
         [H, E, E],
         [Q, QR, Q],
+        [QR, Q, Q],
       ],
       // Easy is simple-metre only — 6/8 (compound) is introduced at Medium.
       '2/4': [
@@ -1242,16 +1255,20 @@ const RHYTHM_LEVELS: RhythmLevelDef[] = [
         [E, E, E, E],
         [Q, QR],
         [QR, Q],
+        [E, E, QR],
       ],
     },
   },
-  // L2 Medium — sixteenth cells (ti-tika, tika-ti), dotted-eighth figures and the
-  // Scotch snap, eighth triplets, the tresillo, a tie, and off-beat eighths.
+  // L2 Medium (≈ grade 3–5) — sixteenth cells (ti-tika, tika-ti), dotted-eighth
+  // figures and the Scotch snap, the named syncopation family (syncopa,
+  // tresillo, Charleston; cinquillo and habanera in 2/4), eighth triplets, a
+  // first quarter-note triplet, simple ties, fuller 6/8, cut time.
   {
     tempo: 100,
     pools: {
       '4/4': [
         [S, S, S, S, Q, Q, Q],
+        [Q, S, S, S, S, Q, Q],
         [E, S, S, E, S, S, Q, Q],
         [S, S, E, S, S, E, Q, Q],
         [ED, S, Q, Q, Q], // dotted-eighth + sixteenth (long-short)
@@ -1259,8 +1276,11 @@ const RHYTHM_LEVELS: RhythmLevelDef[] = [
         [QD, E, Q, Q],
         [Q, QD, E, Q],
         [QD, QD, Q], // tresillo (3+3+2)
+        [QD, E, QR, Q], // Charleston — the "& of 2" anticipation, then space
+        [E, Q, E, Q, Q], // syncopa — eighth, quarter, eighth
         [T, T, T, Q, Q, Q],
         [Q, Q, T, T, T, Q],
+        [QT, QT, QT, H], // quarter-note triplet — three over beats 1–2
         [E, E, S, S, S, S, Q, Q],
         [Q, tie(Q), Q, Q],
         [S, SR, S, S, Q, Q, Q],
@@ -1268,11 +1288,13 @@ const RHYTHM_LEVELS: RhythmLevelDef[] = [
       ],
       '3/4': [
         [S, S, S, S, Q, Q],
+        [Q, S, S, S, S, Q],
         [E, S, S, E, S, S, Q],
         [ED, S, Q, Q],
         [S, ED, Q, Q],
         [QD, E, Q],
         [Q, QD, E],
+        [E, Q, E, Q], // syncopa
         [T, T, T, Q, Q],
         [E, E, Q, E, E],
         [Q, tie(Q), Q],
@@ -1282,13 +1304,16 @@ const RHYTHM_LEVELS: RhythmLevelDef[] = [
         [E, E, E, E, E, E],
         [QD, E, E, E],
         [E, E, E, QD],
-        [Q, E, Q, E],
+        [Q, E, Q, E], // long–short on each beat
+        [E, Q, E, Q], // short–long on each beat
         [Q, E, QD],
         [QD, Q, E],
         [E, E, E, Q, E],
         [S, S, E, E, QD],
+        [QD, E, ER, E],
       ],
-      // 2/4 inherited from Easy — now with sixteenth and dotted cells.
+      // 2/4 inherited from Easy — sixteenth and dotted cells plus the Cuban
+      // one-bar cells (cinquillo, habanera).
       '2/4': [
         [S, S, S, S, Q],
         [E, S, S, Q],
@@ -1297,6 +1322,8 @@ const RHYTHM_LEVELS: RhythmLevelDef[] = [
         [S, ED, Q],
         [QD, E],
         [T, T, T, Q],
+        [E, S, E, S, E], // cinquillo
+        [ED, S, E, E], // habanera
       ],
       // 12/8 — compound quadruple (four dotted-quarter beats).
       '12/8': [
@@ -1318,11 +1345,15 @@ const RHYTHM_LEVELS: RhythmLevelDef[] = [
         [Q, Q, Q, Q],
         [E, E, Q, Q, Q],
         [H, E, E, Q],
+        [Q, H, Q], // syncopa at the half-note-beat level
+        [QD, E, H],
       ],
     },
   },
-  // L3 Hard — sixteenth runs, paired dotted-eighth/snap cells, tresillo and
-  // Charleston-style syncopation, tied off-beats, triplet beats, a 32nd run.
+  // L3 Hard (≈ grade 6–7) — tied cross-beat syncopation and anticipation
+  // pushes, off-beat quarters, sixteenth syncopes, the triplet-syncopation
+  // family (tied-first-two shuffle, tied-last-two, gapped), quarter-note
+  // triplets, 32nd runs, 5/4, and first 5/8 (3+2) & 7/8 (2+2+3) bars.
   {
     tempo: 138,
     pools: {
@@ -1333,10 +1364,19 @@ const RHYTHM_LEVELS: RhythmLevelDef[] = [
         [S, ED, S, ED, Q, Q],
         [QD, QD, Q], // tresillo
         [E, QD, QD, E], // Charleston-style off-beats
-        [E, Q, Q, Q, E],
+        [E, Q, Q, Q, E], // off-beat quarters
+        [E, Q, Q, E, Q],
         [E, tie(Q), E, E, tie(Q), E],
+        [Q, E, tie(Q), E, Q], // anticipation — pushed into beat 3 and held
+        [S, E, S, Q, Q, Q], // sixteenth syncope (short-long-short)
         [T, T, T, T, T, T, Q, Q],
         [T, T, T, Q, T, T, T, Q],
+        [tie(T), T, T, Q, Q, Q], // shuffle — first two triplet notes tied
+        [T, tie(T), T, Q, Q, Q], // last two triplet notes tied
+        [T, TR, T, Q, Q, Q], // gapped triplet — rest in the middle
+        [TR, T, T, Q, Q, Q], // triplet starting off a rest
+        [QT, QT, QT, Q, Q], // quarter-note triplet over beats 1–2
+        [Q, Q, QT, QT, QT], // quarter-note triplet over beats 3–4
         [X, X, X, X, E, Q, Q, Q],
         [ED, S, E, E, Q, Q],
       ],
@@ -1349,6 +1389,9 @@ const RHYTHM_LEVELS: RhythmLevelDef[] = [
         [E, tie(Q), E, Q],
         [E, QD, Q],
         [S, S, E, S, S, E, Q],
+        [QT, QT, QT, Q],
+        [tie(T), T, T, Q, Q],
+        [S, E, S, Q, Q],
       ],
       '6/8': [
         [QD, E, E, E],
@@ -1359,6 +1402,8 @@ const RHYTHM_LEVELS: RhythmLevelDef[] = [
         [E, S, S, E, QD],
         [QD, S, S, E, E],
         [E, E, E, E, S, S, E],
+        [E, Q, Q, E], // cross-beat syncopation
+        [E, ER, E, E, ER, E], // off-beat eighths in compound
       ],
       // 2/4 inherited — dense sixteenth runs, snaps, triplets, syncopation.
       '2/4': [
@@ -1369,6 +1414,8 @@ const RHYTHM_LEVELS: RhythmLevelDef[] = [
         [T, T, T, T, T, T],
         [E, tie(Q), E],
         [E, Q, E],
+        [S, E, S, Q],
+        [tie(T), T, T, Q],
       ],
       // 12/8 inherited — sixteenth cells and off-beat compound syncopation.
       '12/8': [
@@ -1400,12 +1447,31 @@ const RHYTHM_LEVELS: RhythmLevelDef[] = [
         [S, S, S, S, Q, Q, Q],
         [E, Q, Q, Q, E],
         [QD, QD, Q],
+        [E, tie(Q), E, H], // tied cross-beat push in cut time
+      ],
+      // 5/8 — asymmetric, felt 3+2 (a dotted-quarter beat then a quarter beat).
+      '5/8': [
+        [QD, Q],
+        [E, E, E, E, E],
+        [QD, E, E],
+        [E, E, E, Q],
+        [QD, E, ER],
+      ],
+      // 7/8 — asymmetric, felt 2+2+3 (two quarter beats then a dotted-quarter).
+      '7/8': [
+        [Q, Q, QD],
+        [E, E, E, E, E, E, E],
+        [Q, Q, E, E, E],
+        [E, E, Q, QD],
+        [Q, E, E, QD],
+        [Q, Q, Q, E],
       ],
     },
   },
-  // L4 Expert — fastest, densest: full 32nd runs, continuous triplet beats,
-  // wall-to-wall sixteenth cells, and heavy tied/off-beat syncopation across all
-  // metres including the asymmetric 5/4.
+  // L4 Expert (≈ grade 8+) — quarter- and half-note triplets, tied-triplet
+  // shuffle lines, sixteenth triplets, double-dotted figures, dense displaced
+  // sixteenth (funk/Latin) cells, full 32nd runs, wall-to-wall tied/off-beat
+  // syncopation, and denser 5/8 & 7/8.
   {
     tempo: 152,
     pools: {
@@ -1418,6 +1484,15 @@ const RHYTHM_LEVELS: RhythmLevelDef[] = [
         [S, S, S, S, X, X, X, X, X, X, X, X, Q, Q],
         [E, QD, QD, E],
         [X, X, X, X, E, T, T, T, Q, Q],
+        [HT, HT, HT], // half-note triplet — three over the whole bar
+        [QT, QT, QT, QT, QT, QT], // back-to-back quarter-note triplets
+        [tie(T), T, T, tie(T), T, T, Q, Q], // shuffle line
+        [ST, ST, ST, ST, ST, ST, Q, Q, Q], // sixteenth triplets — six per beat
+        [ST, ST, ST, E, ST, ST, ST, E, Q, Q],
+        [QDD, S, QDD, S], // double-dotted quarters
+        [S, E, S, S, E, S, Q, Q], // paired sixteenth syncopes
+        [S, E, E, E, S, Q, Q], // displaced off-beat sixteenth chain
+        [E, Q, E, E, Q, E], // double syncopa
       ],
       '3/4': [
         [X, X, X, X, X, X, X, X, Q, Q],
@@ -1426,6 +1501,9 @@ const RHYTHM_LEVELS: RhythmLevelDef[] = [
         [E, tie(Q), tie(E), E, E],
         [X, X, X, X, E, T, T, T, Q],
         [ED, S, ED, S, E, E],
+        [Q, QT, QT, QT],
+        [ST, ST, ST, ST, ST, ST, Q, Q],
+        [QDD, S, Q],
       ],
       '2/4': [
         [X, X, X, X, X, X, X, X, Q],
@@ -1433,6 +1511,9 @@ const RHYTHM_LEVELS: RhythmLevelDef[] = [
         [S, S, E, S, S, E],
         [X, X, X, X, E, Q],
         [ED, S, ED, S],
+        [ST, ST, ST, ST, ST, ST, Q],
+        [S, E, S, S, E, S],
+        [E, S, tie(E), S, E], // compressed cinquillo — tied middle
       ],
       '6/8': [
         [S, S, S, S, S, S, S, S, S, S, S, S],
@@ -1441,6 +1522,8 @@ const RHYTHM_LEVELS: RhythmLevelDef[] = [
         [QD, S, S, E, E],
         [S, S, S, S, E, QD],
         [E, tie(Q), E, Q],
+        [Q, Q, Q], // hemiola — three quarters against the two dotted beats
+        [E, Q, E, E, E],
       ],
       '12/8': [
         [E, S, S, E, QD, E, S, S, E, QD],
@@ -1464,6 +1547,21 @@ const RHYTHM_LEVELS: RhythmLevelDef[] = [
         [E, tie(Q), E, E, tie(Q), E],
         [E, QD, QD, E],
         [QD, QD, Q],
+        [HT, HT, HT], // half-note triplet across the cut-time bar
+      ],
+      '5/8': [
+        [S, S, S, S, S, S, E, E],
+        [E, S, S, E, S, S, E],
+        [QD, S, S, S, S],
+        [E, E, E, S, S, E],
+        [E, Q, Q], // syncope across the 3+2 seam
+      ],
+      '7/8': [
+        [S, S, S, S, Q, E, E, E],
+        [E, S, S, E, S, S, QD],
+        [E, E, E, E, E, S, S, E],
+        [Q, E, Q, E, E],
+        [S, S, S, S, E, E, E, E, E],
       ],
     },
   },

@@ -241,15 +241,23 @@ export function rhythmDictationExplanation(
   for (let i = 0; i < pattern.length; i++) {
     const e = pattern[i]
     if (e.triplet) {
-      words.push('eighth-note triplet')
+      const run = pattern.slice(i, i + 3)
+      const gapped = run.some((t) => t.rest) ? ' (with a rest)' : ''
+      words.push(`${NOTE_NAME[e.dur]}-note triplet${gapped}`)
       i += 2 // collapse the run of three
       continue
     }
-    const dotted = e.dots ? 'dotted ' : ''
+    const dotted = e.dots ? (e.dots > 1 ? 'double-dotted ' : 'dotted ') : ''
     words.push(e.rest ? REST_NAME[e.dur] : `${dotted}${NOTE_NAME[e.dur]}`)
   }
   const feel =
-    meter === '6/8' ? 'two dotted-quarter beats' : `${meter.split('/')[0]} beats`
+    meter === '6/8'
+      ? 'two dotted-quarter beats'
+      : meter === '5/8'
+        ? 'eighths grouped 3+2'
+        : meter === '7/8'
+          ? 'eighths grouped 2+2+3'
+          : `${meter.split('/')[0]} beats`
   const tied = pattern.some((e) => e.tie)
     ? ' A tie holds a note across — its second notehead isn’t re-struck.'
     : ''

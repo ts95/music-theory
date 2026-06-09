@@ -1,12 +1,14 @@
 import { describe, it, expect } from 'vitest'
-import type { Question, RhythmEvent } from './contracts'
+import type { Question, RhythmEvent, TimeSig } from './contracts'
 import {
+  METERS,
   audibleSignature,
   onsets,
   patternBeats,
   questionMeter,
   scoreTaps,
 } from './rhythm'
+import { RHYTHM_LEVELS } from './questions/generators'
 
 const Q: RhythmEvent = { dur: 'q' }
 const QD: RhythmEvent = { dur: 'q', dots: 1 }
@@ -160,6 +162,45 @@ describe('scoreTaps', () => {
       { beat: 0.5, beats: 0.25, hold: 0.25 },
       { beat: 0.75, beats: 0.25, hold: 0.25 },
     ])
+  })
+})
+
+describe('RHYTHM_LEVELS pools', () => {
+  // The music-correctness guardrail: a pattern that doesn't fill its bar plays,
+  // grades, and renders wrong everywhere downstream.
+  it('every pattern fills its bar exactly', () => {
+    RHYTHM_LEVELS.forEach((def, i) => {
+      for (const [meter, pool] of Object.entries(def.pools) as [TimeSig, RhythmEvent[][]][]) {
+        for (const p of pool) {
+          const key = p
+            .map((e) => `${e.rest ? 'r' : ''}${e.triplet ? 't' : ''}${e.dur}${'.'.repeat(e.dots ?? 0)}`)
+            .join(' ')
+          expect
+            .soft(patternBeats(p), `L${i + 1} ${meter} [${key}]`)
+            .toBeCloseTo(METERS[meter].totalBeats, 5)
+        }
+      }
+    })
+  })
+
+  // The staff renderer and the counting lane both group triplets three at a
+  // time, of one written value per group.
+  it('triplet members come in consecutive groups of three of one value', () => {
+    RHYTHM_LEVELS.forEach((def, i) => {
+      for (const [meter, pool] of Object.entries(def.pools) as [TimeSig, RhythmEvent[][]][]) {
+        for (const p of pool) {
+          for (let j = 0; j < p.length; j++) {
+            if (!p[j].triplet) continue
+            const group = p.slice(j, j + 3)
+            expect.soft(group.length, `L${i + 1} ${meter} truncated triplet`).toBe(3)
+            expect
+              .soft(group.every((e) => e.triplet && e.dur === p[j].dur), `L${i + 1} ${meter} mixed triplet group at ${j}`)
+              .toBe(true)
+            j += 2
+          }
+        }
+      }
+    })
   })
 })
 

@@ -25,13 +25,13 @@ describe('generateAllQuestions', () => {
     // chord spelling: same key ladder as chords = 462.
     // progressions: 13 variants × (3+7+11+12) keys = 429.
     // ear: 40 intervals (4+8+12+16) + 11 progression types + 84 melodic
-    //   (10+12+10+10 motifs × 2 modes) + 183 rhythm-dictation (31+54+56+42) +
-    //   175 rhythm-tap (same patterns, one tap exercise each; Medium drops 12/8,
-    //   so 31+46+56+42) + 123 scale-play (10+17+48+48).
+    //   (10+12+10+10 motifs × 2 modes) + 256 rhythm-dictation (36+66+84+70) +
+    //   248 rhythm-tap (same patterns, one tap exercise each; Medium drops 12/8,
+    //   so 36+58+84+70) + 123 scale-play (10+17+48+48).
     // + 84 key-signatures: 30 keys (15 major + 15 minor) banded ≤2/≤4/≤6/≤7 =
     //   10+18+26+30 (key,level) pairs.
     expect(questions.length).toBe(
-      12 + 207 + 84 + 123 + 462 + 602 + 462 + 429 + 40 + 11 + 84 + 183 + 175
+      12 + 207 + 84 + 123 + 462 + 602 + 462 + 429 + 40 + 11 + 84 + 256 + 248
     )
   })
 
@@ -51,8 +51,8 @@ describe('generateAllQuestions', () => {
     expect(count('intervals-ear')).toBe(40) // cumulative levels: 4 + 8 + 12 + 16
     expect(count('progressions-ear')).toBe(11)
     expect(count('melodic-dictation')).toBe(84) // (10+12+10+10) motifs × 2 modes
-    expect(count('rhythm-dictation')).toBe(183) // L1 31 + L2 54 + L3 56 + L4 42
-    expect(count('rhythm-tap')).toBe(175) // 31+46+56+42 — Medium drops 12/8 vs dictation
+    expect(count('rhythm-dictation')).toBe(256) // L1 36 + L2 66 + L3 84 + L4 70
+    expect(count('rhythm-tap')).toBe(248) // 36+58+84+70 — Medium drops 12/8 vs dictation
     expect(count('scale-play')).toBe(123) // 10 + 17 + 48 + 48
   })
 
@@ -357,8 +357,8 @@ describe('generateAllQuestions', () => {
     const earQ = questions.filter((q) => q.ear)
 
     it('every ear question carries an ear spec, distinct choices, and a tip', () => {
-      // 40 intervals + 11 progressions + 84 melodic + 183 rhythm.
-      expect(earQ.length).toBe(40 + 11 + 84 + 183)
+      // 40 intervals + 11 progressions + 84 melodic + 256 rhythm.
+      expect(earQ.length).toBe(40 + 11 + 84 + 256)
       for (const q of earQ) {
         expect(q.ear, q.id).toBeDefined()
         expect(q.choices.length, q.id).toBeGreaterThanOrEqual(4)
@@ -588,7 +588,7 @@ describe('generateAllQuestions', () => {
       q.ear as { kind: 'rhythm'; meter: keyof typeof METERS; pattern: Ev[] }
 
     it('every choice is a valid one-bar pattern in its metre, aligned to choices', () => {
-      expect(rhythm).toHaveLength(183) // L1 31 + L2 54 + L3 56 + L4 42
+      expect(rhythm).toHaveLength(256) // L1 36 + L2 66 + L3 84 + L4 70
       for (const q of rhythm) {
         expect(q.ear?.kind).toBe('rhythm')
         const total = METERS[specOf(q).meter].totalBeats
@@ -610,7 +610,7 @@ describe('generateAllQuestions', () => {
       }
     })
 
-    it('covers all seven metres and four levels', () => {
+    it('covers all nine metres and four levels', () => {
       expect([...new Set(rhythm.map((q) => specOf(q).meter))].sort()).toEqual([
         '12/8',
         '2/2',
@@ -618,7 +618,9 @@ describe('generateAllQuestions', () => {
         '3/4',
         '4/4',
         '5/4',
+        '5/8',
         '6/8',
+        '7/8',
       ])
       expect([...new Set(rhythm.map((q) => q.level))].sort()).toEqual([1, 2, 3, 4])
     })
@@ -637,6 +639,7 @@ describe('generateAllQuestions', () => {
       expect(easy.has('6/8')).toBe(false) // 6/8 is compound — Medium and up only
       expect(medium.has('6/8') && medium.has('12/8') && medium.has('2/2')).toBe(true)
       expect(hard.has('5/4')).toBe(true) // Hard adds 5/4
+      expect(hard.has('5/8') && hard.has('7/8')).toBe(true) // …and the asymmetric eighth metres
     })
 
     it('ties are valid: adjacent, never on a rest or the last event', () => {

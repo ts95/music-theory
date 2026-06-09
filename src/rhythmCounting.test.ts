@@ -105,6 +105,15 @@ describe('granular counting (sub-beat hint)', () => {
     ])
   })
 
+  it('keeps a compound beat dividing in three — a 6/8 hemiola counts 1 la li', () => {
+    // Three quarters across two dotted-quarter beats: the quarters don't divide
+    // the felt beat, so the grid stays at the eighth level.
+    expect(labels([Q, Q, Q], '6/8')).toEqual([
+      ['1', 'la', 'li'],
+      ['2', 'la', 'li'],
+    ])
+  })
+
   it('marks only the beat number as on-beat', () => {
     const beat = granularCounting([S, S, S, S], '2/4')[0]
     expect(beat.tokens.map((t) => t.onBeat)).toEqual([true, false, false, false])
