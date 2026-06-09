@@ -70,6 +70,7 @@ export default function RhythmStaff({
           StaveNote,
           Dot,
           Beam,
+          Fraction,
           Tuplet,
           StaveTie,
           Stem,
@@ -119,8 +120,9 @@ export default function RhythmStaff({
             Dot.buildAndAttach([note], { all: true })
           }
         })
-        // Each run of 3 triplet eighths becomes a 3:2 tuplet (adjusts ticks to
-        // one beat, and shows the "3" bracket).
+        // Each run of 3 triplet events becomes a 3:2 tuplet (three in the time
+        // of two of the written value — eighth, quarter, half, or sixteenth —
+        // with the "3" bracket).
         const tuplets = []
         for (let i = 0; i < pattern.length; i++) {
           if (pattern[i].triplet) {
@@ -134,7 +136,15 @@ export default function RhythmStaff({
         voice.setMode(Voice.Mode.SOFT)
         voice.addTickables(notes)
         // Beam by the metre's beat groups (e.g. 6/8 → two groups of three).
-        const beams = Beam.applyAndGetBeams(voice, Stem.UP, Beam.getDefaultBeamGroups(meter))
+        // VexFlow's defaults don't know the asymmetric groupings, so 5/8 (3+2)
+        // and 7/8 (2+2+3) pass theirs explicitly.
+        const beamGroups =
+          meter === '5/8'
+            ? [new Fraction(3, 8), new Fraction(2, 8)]
+            : meter === '7/8'
+              ? [new Fraction(2, 8), new Fraction(2, 8), new Fraction(3, 8)]
+              : Beam.getDefaultBeamGroups(meter)
+        const beams = Beam.applyAndGetBeams(voice, Stem.UP, beamGroups)
         new Formatter()
           .joinVoices([voice])
           .format([voice], width - stave.getNoteStartX() - 14)

@@ -135,7 +135,7 @@ export type EarSpec =
   | { kind: 'rhythm'; meter: TimeSig; tempo: number; pattern: RhythmEvent[] }
 
 /** Supported time signatures for the rhythm-dictation étude. */
-export type TimeSig = '4/4' | '3/4' | '6/8' | '2/4' | '12/8' | '5/4' | '2/2'
+export type TimeSig = '4/4' | '3/4' | '6/8' | '2/4' | '12/8' | '5/4' | '2/2' | '5/8' | '7/8'
 
 /** One event in a rhythm pattern (a note or a rest). */
 export interface RhythmEvent {
@@ -146,8 +146,10 @@ export interface RhythmEvent {
   /** True for a rest. */
   rest?: boolean
   /**
-   * Member of an eighth-note triplet: three consecutive `triplet` eighths fill
-   * one beat (so each is ⅓ beat instead of ½), drawn beamed with a "3" bracket.
+   * Member of a triplet: three consecutive `triplet` events of one written
+   * value fill the span of two (each is ⅔ of its value — eighth triplets fill
+   * one beat, quarter triplets two, half-note triplets four), drawn with a "3"
+   * bracket.
    */
   triplet?: boolean
   /** Tied to the next event (same pitch, durations combined and held). */

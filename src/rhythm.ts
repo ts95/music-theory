@@ -16,6 +16,8 @@ export const METERS: Record<TimeSig, MeterInfo> = {
   '12/8': { totalBeats: 6, countIn: [0, 1.5, 3, 4.5] }, // four dotted-quarter beats
   '5/4': { totalBeats: 5, countIn: [0, 1, 2, 3, 4] }, // five quarter beats (felt 3+2)
   '2/2': { totalBeats: 4, countIn: [0, 2] }, // cut time — two half-note beats
+  '5/8': { totalBeats: 2.5, countIn: [0, 1.5] }, // 3+2 eighths — long then short beat
+  '7/8': { totalBeats: 3.5, countIn: [0, 1, 2] }, // 2+2+3 eighths — short, short, long
 }
 
 /** Canonical display order for time signatures (the `METERS` key order). */

@@ -120,6 +120,72 @@ describe('granular counting (sub-beat hint)', () => {
   })
 })
 
+describe('multi-beat and sub-beat triplets', () => {
+  const QT: RhythmEvent = { dur: 'q', triplet: true }
+  const HT: RhythmEvent = { dur: 'h', triplet: true }
+  const ST: RhythmEvent = { dur: '16', triplet: true }
+  const TR: RhythmEvent = { dur: '8', triplet: true, rest: true }
+  const labels = (p: RhythmEvent[], m: Parameters<typeof countSyllables>[1]) =>
+    granularCounting(p, m).map((b) => b.tokens.map((t) => t.label))
+
+  it('counts a quarter-note triplet across two beats', () => {
+    expect(trad([Q, Q, QT, QT, QT], '4/4')).toEqual(['1', '2', '3', 'trip', 'let'])
+    expect(labels([Q, Q, QT, QT, QT], '4/4')).toEqual([['1'], ['2'], ['3', 'trip'], ['let']])
+    // Tokens sit at thirds of the two-beat span (for the playhead).
+    const flat = granularCounting([Q, Q, QT, QT, QT], '4/4').flatMap((b) => b.tokens)
+    expect(flat.map((t) => t.pos)).toEqual([0, 1, 2, 2 + 2 / 3, 2 + 4 / 3])
+  })
+
+  it('counts a half-note triplet across the whole bar (one empty felt beat)', () => {
+    expect(trad([HT, HT, HT], '4/4')).toEqual(['1', 'trip', 'let'])
+    // Beat 4 has no token of its own — the triplet stretches straight over it.
+    expect(labels([HT, HT, HT], '4/4')).toEqual([['1'], ['trip'], ['let'], []])
+  })
+
+  it('counts sixteenth triplets — two groups of three within one beat', () => {
+    const p = [ST, ST, ST, ST, ST, ST, Q, Q, Q]
+    expect(trad(p, '4/4')).toEqual(['1', 'trip', 'let', '&', 'trip', 'let', '2', '3', '4'])
+    expect(labels(p, '4/4')).toEqual([
+      ['1', 'trip', 'let', '&', 'trip', 'let'],
+      ['2'],
+      ['3'],
+      ['4'],
+    ])
+  })
+
+  it('keeps counting through tied and rested triplet members', () => {
+    expect(trad([T, TR, T, Q, Q, Q], '4/4')).toEqual(['1', '(trip)', 'let', '2', '3', '4'])
+    expect(kod([T, TR, T, Q, Q, Q], '4/4')).toEqual(['tri', null, 'la', 'ta', 'ta', 'ta'])
+    expect(kod([Q, tie(T), T, T, Q, Q], '4/4')).toEqual(['ta', 'tri', null, 'la', 'ta', 'ta'])
+  })
+})
+
+describe('asymmetric metres (5/8 and 7/8)', () => {
+  const labels = (p: RhythmEvent[], m: Parameters<typeof countSyllables>[1]) =>
+    granularCounting(p, m).map((b) => b.tokens.map((t) => t.label))
+
+  it('counts 5/8 as 3+2 (a compound beat then a simple one)', () => {
+    expect(trad([E, E, E, E, E], '5/8')).toEqual(['1', 'la', 'li', '2', '&'])
+    expect(labels([E, E, E, E, E], '5/8')).toEqual([
+      ['1', 'la', 'li'],
+      ['2', '&'],
+    ])
+    expect(trad([QD, Q], '5/8')).toEqual(['1', '2'])
+  })
+
+  it('counts 7/8 as 2+2+3 (two simple beats then a compound one)', () => {
+    expect(trad([E, E, E, E, E, E, E], '7/8')).toEqual(['1', '&', '2', '&', '3', 'la', 'li'])
+    expect(labels([E, E, E, E, E, E, E], '7/8')).toEqual([
+      ['1', '&'],
+      ['2', '&'],
+      ['3', 'la', 'li'],
+    ])
+    expect(trad([Q, Q, QD], '7/8')).toEqual(['1', '2', '3'])
+    // Felt-beat starts: 0, 1, 2 quarters (the playhead grid).
+    expect(granularCounting([Q, Q, QD], '7/8').map((b) => b.tokens[0].pos)).toEqual([0, 1, 2])
+  })
+})
+
 describe('kodály counting', () => {
   it('names note values: ta / ti / ti-ka', () => {
     expect(kod([Q, Q, Q, Q], '4/4')).toEqual(['ta', 'ta', 'ta', 'ta'])
