@@ -137,6 +137,19 @@ describe('generateAllQuestions', () => {
     expect(cMaj.keyboard).toBeUndefined()
     expect(ksig.find((x) => x.id === 'key-sig:L1:A:minor')!.notation).toBeUndefined()
     expect(questions.find((x) => x.id === 'key-sig:L2:E:minor')!.notation?.keySignature).toBe('Em')
+
+    // After answering (right or wrong), the caption names the relative key that
+    // shares the signature — major→relative minor, minor→relative major.
+    expect(aMaj.caption).toBe(
+      "A major's relative minor is F♯ minor, which shares this key signature.",
+    )
+    expect(ksig.find((x) => x.id === 'key-sig:L2:E:minor')!.caption).toBe(
+      "E minor's relative major is G major, which shares this key signature.",
+    )
+    // Even the empty signature pairs C major with A minor.
+    expect(cMaj.caption).toBe(
+      "C major's relative minor is A minor, which shares this key signature.",
+    )
   })
 
   function correctFor(prompt: string): string {

@@ -398,9 +398,13 @@ function keySignatureQuestions(): Question[] {
           correct,
           distractors,
           undefined,
-          keySignatureExplanation(tonic, mode, order.slice(0, count), relativeKeyName)
+          keySignatureExplanation(tonic, mode, order.slice(0, count))
         )
         q.level = level
+        // Named on reveal whether right or wrong: every key signature is shared
+        // with a relative key (the same notes, a minor third away).
+        const relativeLabel = mode === 'major' ? 'relative minor' : 'relative major'
+        q.caption = `${noteToString(tonic)} ${mode}'s ${relativeLabel} is ${relativeKeyName}, which shares this key signature.`
         // Reveal shows ONLY the sharpened/flattened notes: on the staff (under
         // the key signature) and highlighted on the keyboard (labelled with the
         // note name, so a white-key enharmonic like E♯ is unambiguous). Each note
