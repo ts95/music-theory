@@ -7,6 +7,7 @@ import {
   minorScale,
   fingering,
   chordFingering,
+  chordInversionFingering,
   pitchClass,
   recChordTones,
   recChordSymbol,
@@ -104,6 +105,24 @@ describe('fingering', () => {
     expect(chordFingering(3, 'LH')).toEqual([5, 3, 1])
     expect(chordFingering(4, 'RH')).toEqual([1, 2, 3, 5])
     expect(chordFingering(4, 'LH')).toEqual([5, 3, 2, 1])
+  })
+  it('triad inversion fingerings shift the middle finger for the fourth', () => {
+    // RH: root & 2nd inv keep 1-3-5; 1st inv pulls the middle in to 2.
+    expect(chordInversionFingering(3, 0, 'RH')).toEqual([1, 3, 5])
+    expect(chordInversionFingering(3, 1, 'RH')).toEqual([1, 2, 5])
+    expect(chordInversionFingering(3, 2, 'RH')).toEqual([1, 3, 5])
+    // LH: root & 1st inv keep 5-3-1; 2nd inv pulls the middle in to 2.
+    expect(chordInversionFingering(3, 0, 'LH')).toEqual([5, 3, 1])
+    expect(chordInversionFingering(3, 1, 'LH')).toEqual([5, 3, 1])
+    expect(chordInversionFingering(3, 2, 'LH')).toEqual([5, 2, 1])
+  })
+  it('sevenths and ninths use the generic close-position fingering in any inversion', () => {
+    for (const inv of [0, 1, 2, 3]) {
+      expect(chordInversionFingering(4, inv, 'RH')).toEqual([1, 2, 3, 5])
+      expect(chordInversionFingering(4, inv, 'LH')).toEqual([5, 3, 2, 1])
+    }
+    expect(chordInversionFingering(5, 4, 'RH')).toEqual([1, 2, 3, 4, 5])
+    expect(chordInversionFingering(5, 4, 'LH')).toEqual([5, 4, 3, 2, 1])
   })
   it('shares fingering across the three forms', () => {
     expect(fingering(sharp('F'), 'natural', 'RH')).toEqual(

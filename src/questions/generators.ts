@@ -12,6 +12,7 @@ import {
   alternateQuality,
   chordEvents,
   chordFingering,
+  chordInversionFingering,
   chordSymbol,
   dorianScale,
   fingering,
@@ -852,7 +853,10 @@ function chordRecognitionQuestions(): Question[] {
           const offer = (sym: string, voiced: Voiced[]) => {
             audio[sym] = { kind: 'chord', events: [voiced.map(voicedMidi)] }
           }
-          offer(correct, voiceInversion(tones, inversion, 4))
+          // The correct chord voiced in a comfortable register — its own block
+          // sound, and (on reveal) the keys to light on the fingering keyboard.
+          const voiced = voiceInversion(tones, inversion, 4)
+          offer(correct, voiced)
 
           // Different-root distractors: the same degree/size in neighbour keys.
           const neighbours: string[] = []
@@ -914,6 +918,17 @@ function chordRecognitionQuestions(): Question[] {
             groups: [voiceInversion(tones, inversion, octave)],
             clef,
             keySignature,
+          }
+          // Reveal lights up the answer chord on the keyboard — the same voicing
+          // shown on the staff (its inversion), each key labelled RH over LH.
+          const rhFng = chordInversionFingering(tones.length, inversion, 'RH')
+          const lhFng = chordInversionFingering(tones.length, inversion, 'LH')
+          q.keyboard = {
+            marks: voiced.map((v, i) => ({
+              midi: voicedMidi(v),
+              label: String(rhFng[i]),
+              sublabel: String(lhFng[i]),
+            })),
           }
           questions.push(q)
         }

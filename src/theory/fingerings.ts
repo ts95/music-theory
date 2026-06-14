@@ -129,3 +129,39 @@ export function chordFingering(noteCount: number, hand: Hand): number[] {
   if (noteCount >= 4) return hand === 'RH' ? [1, 2, 3, 5] : [5, 3, 2, 1]
   return hand === 'RH' ? [1, 3, 5] : [5, 3, 1]
 }
+
+// Triad inversion fingerings (close position, notes ascending bottom→top). The
+// perfect fourth in each inversion takes the wider finger spread, so the middle
+// finger shifts: root and 2nd inversion keep 1-3-5 (RH) / 5-?-1 (LH), 1st
+// inversion pulls the middle in to 2 (RH) while the LH keeps its spread on top.
+// These are the standard major/minor triad fingerings (Alfred/Faber method
+// books); they apply to diminished and augmented triads too.
+const TRIAD_INVERSION: Record<Hand, number[][]> = {
+  RH: [
+    [1, 3, 5], // root      C E G
+    [1, 2, 5], // 1st inv   E G C
+    [1, 3, 5], // 2nd inv   G C E
+  ],
+  LH: [
+    [5, 3, 1], // root      C E G
+    [5, 3, 1], // 1st inv   E G C
+    [5, 2, 1], // 2nd inv   G C E
+  ],
+}
+
+/**
+ * Fingering for a close-position block chord in a given inversion (notes
+ * ascending bottom→top). Triads have well-established inversion fingerings
+ * (`TRIAD_INVERSION`); sevenths and ninths use the generic close-position
+ * `chordFingering` regardless of inversion (their inversion fingerings vary by
+ * source and hand size, so a sensible default is shown rather than a fabricated
+ * "standard"). `inversion` is the bass chord-tone index (0 = root position).
+ */
+export function chordInversionFingering(
+  noteCount: number,
+  inversion: number,
+  hand: Hand
+): number[] {
+  if (noteCount === 3) return TRIAD_INVERSION[hand][inversion % 3]
+  return chordFingering(noteCount, hand)
+}

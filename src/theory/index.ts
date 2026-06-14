@@ -9,7 +9,7 @@ export {
   mixolydianScale,
   locrianScale,
 } from './scales'
-export { fingering, majorFingering, chordFingering } from './fingerings'
+export { fingering, majorFingering, chordFingering, chordInversionFingering } from './fingerings'
 export type { Mode, Quality, Chord } from './chords'
 export {
   chordSymbol,

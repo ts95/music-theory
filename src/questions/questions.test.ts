@@ -483,11 +483,41 @@ describe('generateAllQuestions', () => {
         expect(n, q.id).toBeLessThanOrEqual(5)
         expect(['treble', 'bass']).toContain(q.notation!.clef)
         expect(q.notation!.keySignature.length, q.id).toBeGreaterThan(0)
-        expect(q.keyboard, q.id).toBeUndefined()
+        // Reveal lights up the chord on the keyboard — one mark per voiced note,
+        // each carrying RH (label) and LH (sublabel) finger numbers.
+        expect(q.keyboard, q.id).toBeDefined()
+        expect(q.keyboard!.marks, q.id).toHaveLength(n)
+        for (const m of q.keyboard!.marks) {
+          expect(m.label, q.id).toMatch(/^[1-5]$/)
+          expect(m.sublabel, q.id).toMatch(/^[1-5]$/)
+        }
         expect(q.level, q.id).toBeGreaterThanOrEqual(1)
         expect(q.level, q.id).toBeLessThanOrEqual(4)
         expect(q.explanation, q.id).toBeTruthy() // memory tip on a miss
       }
+    })
+
+    it('keyboard mirrors the voiced inversion (same shape), with inversion fingering', () => {
+      // The keys carry the same inversion shape as the staff chord: identical
+      // pitch classes in the same ascending order (the keyboard sits in a fixed
+      // register, so absolute octaves may differ from a bass-clef staff).
+      for (const q of recog) {
+        const kb = q.keyboard!.marks.map((m) => m.midi % 12)
+        const staff = q.notation!.groups[0].map((v) => voicedMidi(v) % 12)
+        expect(kb, q.id).toEqual(staff)
+      }
+      // Triads carry inversion-aware fingerings (the fourth takes the spread):
+      // root 1-3-5 / 5-3-1, 1st 1-2-5 / 5-3-1, 2nd 1-3-5 / 5-2-1.
+      const triadFng = (inv: number, key: 'label' | 'sublabel') => {
+        const q = recog.find((x) => x.id.includes(':triad:') && x.id.endsWith(`:${inv}`))!
+        return q.keyboard!.marks.map((m) => m[key]).join('')
+      }
+      expect(triadFng(0, 'label')).toBe('135')
+      expect(triadFng(1, 'label')).toBe('125')
+      expect(triadFng(2, 'label')).toBe('135')
+      expect(triadFng(0, 'sublabel')).toBe('531')
+      expect(triadFng(1, 'sublabel')).toBe('531')
+      expect(triadFng(2, 'sublabel')).toBe('521')
     })
 
     it('uses only root / first / second inversion', () => {
