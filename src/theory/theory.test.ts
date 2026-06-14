@@ -17,6 +17,7 @@ import {
   realizeEar,
   solfege,
   voicedMidi,
+  intervalShorthand,
 } from './index'
 
 const nat = (letter: Note['letter']): Note => ({ letter, accidental: 0 })
@@ -123,6 +124,25 @@ describe('fingering', () => {
     }
     expect(chordInversionFingering(5, 4, 'RH')).toEqual([1, 2, 3, 4, 5])
     expect(chordInversionFingering(5, 4, 'LH')).toEqual([5, 4, 3, 2, 1])
+  })
+  it('names intervals between voiced notes, spelled (quality + number)', () => {
+    const v = (note: Note, octave: number) => ({ note, octave })
+    // Quality from spelling, not just semitones: C–E♭ is m3, C–D♯ is A2.
+    expect(intervalShorthand(v(nat('C'), 4), v(flat('E'), 4))).toBe('m3')
+    expect(intervalShorthand(v(nat('C'), 4), v(sharp('D'), 4))).toBe('A2')
+    expect(intervalShorthand(v(nat('C'), 4), v(nat('E'), 4))).toBe('M3')
+    // Perfect family + the tritone's two spellings.
+    expect(intervalShorthand(v(nat('C'), 4), v(nat('G'), 4))).toBe('P5')
+    expect(intervalShorthand(v(nat('C'), 4), v(nat('F'), 4))).toBe('P4')
+    expect(intervalShorthand(v(nat('F'), 4), v(nat('B'), 4))).toBe('A4')
+    expect(intervalShorthand(v(nat('B'), 4), v(nat('F'), 5))).toBe('d5')
+    // Direction-agnostic (descending reads the same magnitude).
+    expect(intervalShorthand(v(nat('E'), 4), v(nat('C'), 4))).toBe('M3')
+    // Unison, octave, and compound numbers.
+    expect(intervalShorthand(v(nat('C'), 4), v(nat('C'), 4))).toBe('P1')
+    expect(intervalShorthand(v(nat('C'), 4), v(nat('C'), 5))).toBe('P8')
+    expect(intervalShorthand(v(nat('C'), 4), v(nat('E'), 5))).toBe('M10')
+    expect(intervalShorthand(v(nat('C'), 4), v(flat('E'), 5))).toBe('m10')
   })
   it('shares fingering across the three forms', () => {
     expect(fingering(sharp('F'), 'natural', 'RH')).toEqual(

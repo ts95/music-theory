@@ -32,6 +32,7 @@ export {
   keySignatureSpec,
 } from './recognition'
 export { noteMidi, scaleEvents, chordEvents, progressionEvents } from './midi'
+export { intervalShorthand } from './intervals'
 export {
   realizeEar,
   solfege,

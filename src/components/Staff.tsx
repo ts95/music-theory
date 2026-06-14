@@ -22,6 +22,11 @@ interface StaffProps {
   labels?: string[]
   /** Optional second, muted label row under `labels` (e.g. concrete chords). */
   sublabels?: string[]
+  /**
+   * Optional labels sitting *between* consecutive notes (length = groups − 1),
+   * centred on each gap — the melodic interval from one note to the next.
+   */
+  interLabels?: string[]
   /** Clef to render in (default treble). */
   clef?: 'treble' | 'bass'
   /**
@@ -38,6 +43,7 @@ export default function Staff({
   groups,
   labels,
   sublabels,
+  interLabels,
   clef = 'treble',
   keySignature,
   highlight,
@@ -113,6 +119,7 @@ export default function Staff({
 
   const showLabels = labels && noteXs.length === labels.length
   const showSublabels = sublabels && noteXs.length === sublabels.length
+  const showInter = interLabels && noteXs.length === interLabels.length + 1
 
   return (
     <div className="mt-3 overflow-x-auto">
@@ -120,6 +127,21 @@ export default function Staff({
           while staying a no-op where the parent already hugs its width. */}
       <div className="mx-auto w-fit">
         <div ref={ref} />
+        {showInter && (
+          // The interval from each note to the next, centred on the gap between
+          // their noteheads (sits just under the staff, above the per-note labels).
+          <div className="relative" style={{ width, height: 18 }}>
+            {interLabels!.map((label, i) => (
+              <span
+                key={i}
+                className="absolute font-mono text-xs text-accent -translate-x-1/2"
+                style={{ left: (noteXs[i] + noteXs[i + 1]) / 2 }}
+              >
+                {label}
+              </span>
+            ))}
+          </div>
+        )}
         {showLabels && (
           <div className="relative" style={{ width, height: 20 }}>
             {labels!.map((label, i) => (

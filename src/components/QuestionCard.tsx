@@ -11,6 +11,7 @@ import { useIsTouch, wasTouch } from '../touch'
 import {
   INTERVAL_ROOTS,
   chordSymbol,
+  intervalShorthand,
   keySignatureSpec,
   noteToString,
   pitchClass,
@@ -798,6 +799,23 @@ export default function QuestionCard({
                             : s,
                         )
                     : question.choices[question.answerIndex].split('–')
+              }
+              // For a melody, annotate the gap between each pair of notes with the
+              // interval that connects them — direction (↑/↓) + spelled shorthand.
+              interLabels={
+                earIsMelody
+                  ? realized.target.slice(1).map((ev, i) => {
+                      const a = realized.target[i][0]
+                      const b = ev[0]
+                      const dir =
+                        voicedMidi(b) > voicedMidi(a)
+                          ? '↑'
+                          : voicedMidi(b) < voicedMidi(a)
+                            ? '↓'
+                            : ''
+                      return `${dir}${intervalShorthand(a, b)}`
+                    })
+                  : undefined
               }
               sublabels={progressionSymbols}
             />

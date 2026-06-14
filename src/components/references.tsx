@@ -306,6 +306,22 @@ const REFERENCES: Record<string, EtudeReference> = {
           Movable do — {mono('do')} is the tonic of whatever key plays; minor
           lowers the 3rd, 6th &amp; 7th (me, le, te).
         </p>
+        <div>
+          <p className="marking mb-1 text-ink-3">Reading the intervals</p>
+          <p className="text-ink-3">
+            After you answer, the staff marks the{' '}
+            <span className="text-accent">interval</span> between each note and the
+            next — its direction, then quality and size. Direction:{' '}
+            <span className="text-accent">↑</span> up,{' '}
+            <span className="text-accent">↓</span> down. Quality:{' '}
+            {mono('P')} perfect, {mono('M')} major, {mono('m')} minor,{' '}
+            {mono('A')} augmented, {mono('d')} diminished. The number is the size
+            (a 3rd, 5th, …). So{' '}
+            <span className="font-mono text-accent">↑M3</span> is up a major
+            third, <span className="font-mono text-accent">↓P5</span> down a
+            perfect fifth.
+          </p>
+        </div>
       </div>
     ),
   },
