@@ -831,6 +831,19 @@ const accidentalCount = (majorTonic: Note): number => {
  * well-mixed. Minor uses harmonic forms at III/V/vii° (so the augmented III+,
  * dominant V, and diminished vii° all appear).
  */
+// The traditional name of each scale degree's harmonic function (degree 0..6).
+// The degree-6 chord here is vii° (raised leading tone in minor too), so
+// "leading tone" fits both modes.
+const FUNCTION_NAMES = [
+  'tonic',
+  'supertonic',
+  'mediant',
+  'subdominant',
+  'dominant',
+  'submediant',
+  'leading tone',
+]
+
 function chordRecognitionQuestions(): Question[] {
   const modes: Mode[] = ['major', 'minor']
   const questions: Question[] = []
@@ -922,6 +935,9 @@ function chordRecognitionQuestions(): Question[] {
             )
           )
           q.level = level.n
+          // On reveal, name the chord's scale degree (Roman numeral) and the
+          // traditional function of that degree, e.g. "V7 — the dominant of …".
+          q.caption = `${romanLabel(mode, degree, seventh)} — the ${FUNCTION_NAMES[degree]} of ${name}.`
           // Inversions take longer to read (re-stack the notes in thirds to
           // find the root), so grant 5 s on top of the 10 s category default.
           // Expert runs against a tighter clock (8 s, +4 s for inversions).
