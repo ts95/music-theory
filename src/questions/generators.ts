@@ -453,6 +453,69 @@ const CHORD_DEGREES = [0, 1, 3, 4, 5, 6]
 // across four bands tracks ABRSM, where the full set of keys arrives by grade 5.
 const CHORD_LEVEL_ACCIDENTALS = [1, 3, 5, 6]
 
+// The traditional name of each scale degree's harmonic function (degree 0..6).
+// The degree-6 chord built here is vii° (raised leading tone in minor too), so
+// "leading tone" fits both modes.
+const FUNCTION_NAMES = [
+  'tonic',
+  'supertonic',
+  'mediant',
+  'subdominant',
+  'dominant',
+  'submediant',
+  'leading tone',
+]
+
+/**
+ * A circle-of-fifths memory aid for a diatonic chord, using the best trick per
+ * degree. The six diatonic triads sit on three adjacent spokes of the circle,
+ * each spoke holding a major chord and its relative minor:
+ *   subdominant spoke (one step counterclockwise): IV + ii   (iv + VI in minor)
+ *   tonic spoke      (no travel):                  I  + vi   (i  + III in minor)
+ *   dominant spoke   (one step clockwise):         V  + iii
+ * So IV/V/iv are one step round the circle; ii/vi/VI are found as the relative
+ * minor/major of a chord already on a known spoke (no counting). Returns null
+ * for the tonic, sevenths, and the diminished chords (vii°/ii° — no plain key).
+ */
+function chordCircleIdentity(
+  mode: Mode,
+  degree: number,
+  seventh: boolean,
+  tonic: Note,
+  chord: Chord
+): string | null {
+  if (seventh) return null
+  const root = noteToString(chord.root)
+  const tonicName = noteToString(tonic)
+  // The subdominant chord's root (degree 3 in either mode) — the spoke that ii
+  // (major) / VI (minor) share as a relative pair.
+  const subdominantRoot = () => noteToString(romanToChord(tonic, mode, 3, false).root)
+  if (mode === 'major') {
+    switch (degree) {
+      case 1: // ii
+        return `Memory aid: the ii (${root}) is the relative minor of the IV (${subdominantRoot()}) — they share the subdominant spoke, one step counterclockwise from ${tonicName} on the circle of fifths.`
+      case 3: // IV
+        return `Memory aid: the IV (${root}) is one step counterclockwise on the circle of fifths — the key of ${root} major, your flat-side neighbour (the subdominant).`
+      case 4: // V
+        return `Memory aid: the V (${root}) is one step clockwise on the circle of fifths — the key of ${root} major, your sharp-side neighbour (the dominant).`
+      case 5: // vi
+        return `Memory aid: the vi (${root}) is your relative minor — it shares the tonic's own spoke on the circle of fifths (the same key signature as ${tonicName} major, read as ${root} minor).`
+      default:
+        return null // I (tonic) and vii° (diminished)
+    }
+  }
+  switch (degree) {
+    case 3: // iv
+      return `Memory aid: the iv (${root}) is one step counterclockwise on the circle of fifths — the key of ${root} minor, your flat-side neighbour (the subdominant).`
+    case 4: // V (borrows the raised 7th to turn major)
+      return `Memory aid: the V (${root}) is one step clockwise on the circle of fifths — a fifth above ${tonicName}, your dominant.`
+    case 5: // VI
+      return `Memory aid: the VI (${root}) is the relative major of the iv (${subdominantRoot()}) — they share the subdominant spoke, one step counterclockwise from ${tonicName} on the circle of fifths.`
+    default:
+      return null // i (tonic), ii° and vii° (diminished)
+  }
+}
+
 /**
  * 4. Diatonic chords by Roman-numeral degree, for both modes of every key.
  * Trimmed triad set plus the V7. Distractors lead with the same degree in
@@ -512,12 +575,19 @@ function chordDegreeQuestions(): Question[] {
             chordExplanation(name, mode, degree, seventh, correctChord)
           )
           q.level = level
-          // V and vii° in minor borrow the harmonic minor's raised 7th, which
-          // isn't in the natural minor scale — clarify that on the reveal.
+          // Reveal caption: a memory-aid identity (this chord = the tonic of a
+          // related key), plus — for V/vii° in minor — a note that they borrow
+          // the harmonic minor's raised 7th (not in the natural minor scale).
+          const captionParts: string[] = []
           if (mode === 'minor' && (degree === 4 || degree === 6)) {
             const leadingTone = noteToString(minorScale(tonic, 'harmonic')[6])
-            q.caption = `${leadingTone} is the harmonic minor's raised 7th — the leading tone, not in the natural minor scale. Minor keys borrow it so V is major and vii° diminished; natural minor alone gives a minor v and a major VII.`
+            captionParts.push(
+              `${leadingTone} is the harmonic minor's raised 7th — the leading tone, not in the natural minor scale. Minor keys borrow it so V is major and vii° diminished; natural minor alone gives a minor v and a major VII.`
+            )
           }
+          const identity = chordCircleIdentity(mode, degree, seventh, tonic, correctChord)
+          if (identity) captionParts.push(identity)
+          if (captionParts.length) q.caption = captionParts.join(' ')
           // Reveal lights up the answer chord (root position) on the keyboard,
           // each key labelled with both fingerings (RH over LH).
           const voiced = voiceChordRootPosition(correctChord)
@@ -831,19 +901,6 @@ const accidentalCount = (majorTonic: Note): number => {
  * well-mixed. Minor uses harmonic forms at III/V/vii° (so the augmented III+,
  * dominant V, and diminished vii° all appear).
  */
-// The traditional name of each scale degree's harmonic function (degree 0..6).
-// The degree-6 chord here is vii° (raised leading tone in minor too), so
-// "leading tone" fits both modes.
-const FUNCTION_NAMES = [
-  'tonic',
-  'supertonic',
-  'mediant',
-  'subdominant',
-  'dominant',
-  'submediant',
-  'leading tone',
-]
-
 function chordRecognitionQuestions(): Question[] {
   const modes: Mode[] = ['major', 'minor']
   const questions: Question[] = []
