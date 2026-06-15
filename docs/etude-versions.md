@@ -278,7 +278,7 @@ untimed.
 
 ---
 
-## No. 9 — Intervals by Ear (`intervals-ear`) — current version: 2
+## No. 9 — Intervals by Ear (`intervals-ear`) — current version: 3
 
 ### v1
 
@@ -303,6 +303,26 @@ untimed.
   - **Expert (L4):** adds **compound intervals** (m9, M9, m10, M10, P11, P12, M13) — 6 choices. Realized
     octave-aware by `spellAbove`; explained as "an octave plus a simple interval".
 - Per-level v1 progress resets (Easy pool changed; `L4` is new).
+
+### v3 — 2026-06-15: heard in key; varied register/direction; mixed distractors
+
+Driven by perceptual-learning research (categorical perception, training-condition specificity): abstract,
+context-free interval naming transfers poorly and rewards magnitude-counting. Changes (all presentation/
+distractor — the stored `q.ear` relationship is unchanged):
+
+- **Tonal context:** the root's **major tonic triad plays first** (`realizeEar` interval branch now returns
+  the triad as `reference`), so the lower note is heard as *do*. `QuestionCard` no longer suppresses the
+  reference for intervals; "Together" also sounds the triad first. "hear lower note" → "hear tonic".
+- **Varied register:** the root octave is randomized over {3,4,5} per presentation (was fixed octave 4),
+  to fight the training-condition specificity behind brittle accuracy swings.
+- **Varied direction:** each presentation is randomly ascending or descending (target notes reversed for
+  playback + reveal staff); the interval name is direction-agnostic, so choices/answer are unchanged.
+- **Distractors:** keep the single nearest neighbour (the hard categorical-boundary discrimination) but
+  fill the rest by rotating the remaining pool with a stable per-interval offset, instead of always the N
+  nearest. Choice counts (4/5/6/6) unchanged.
+
+Presentation-only changes (audio/register/direction) don't reset SRS progress; the distractor reshuffle
+changes the rendered options but keeps the same `q.ear` and ids, so scheduling is preserved.
 
 ---
 

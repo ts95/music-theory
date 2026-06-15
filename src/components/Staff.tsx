@@ -12,8 +12,8 @@ const ACC: Record<number, string> = { [-2]: 'bb', [-1]: 'b', 0: '', 1: '#', 2: '
 const INK = '#211c15'
 const ACCENT = '#7a2540' // claret — used to mark highlighted notes
 
-const vexKey = (v: Voiced): string =>
-  `${v.note.letter.toLowerCase()}${ACC[v.note.accidental] ?? ''}/${v.octave}`
+const vexKey = (v: Voiced, octaveShift = 0): string =>
+  `${v.note.letter.toLowerCase()}${ACC[v.note.accidental] ?? ''}/${v.octave + octaveShift}`
 
 interface StaffProps {
   /** Each group is one stave note: 1 note, or several for a chord. */
@@ -27,8 +27,12 @@ interface StaffProps {
    * centred on each gap — the melodic interval from one note to the next.
    */
   interLabels?: string[]
-  /** Clef to render in (default treble). */
-  clef?: 'treble' | 'bass'
+  /**
+   * Clef to render in (default treble). 'treble-8va' draws a treble clef with an
+   * "8" above and notates an octave lower, for very high notes that would
+   * otherwise pile up on ledger lines above the staff.
+   */
+  clef?: 'treble' | 'bass' | 'treble-8va'
   /**
    * VexFlow key-signature spec (e.g. "Eb", "F#m"). When set, the signature is
    * drawn and accidentals are computed relative to it (so in-key notes don't
@@ -66,6 +70,11 @@ export default function Staff({
         await ensureMusicFont()
         if (cancelled || !ref.current) return
         const { Renderer, Stave, StaveNote, Accidental, Voice, Formatter } = vexflow
+        // 'treble-8va': a treble clef glyph with an "8" annotation, with notes
+        // written an octave below their real pitch (VexFlow's annotation is
+        // cosmetic, so we shift the keys ourselves).
+        const vexClef = clef === 'treble-8va' ? 'treble' : clef
+        const octaveShift = clef === 'treble-8va' ? -1 : 0
         ref.current.innerHTML = ''
         const renderer = new Renderer(ref.current, Renderer.Backends.SVG)
         renderer.resize(width, 130)
@@ -73,11 +82,15 @@ export default function Staff({
         ctx.setFillStyle(INK)
         ctx.setStrokeStyle(INK)
         const stave = new Stave(0, 12, width)
-        stave.addClef(clef)
+        stave.addClef(vexClef, 'default', clef === 'treble-8va' ? '8va' : undefined)
         if (keySignature) stave.addKeySignature(keySignature)
         stave.setContext(ctx).draw()
         const notes = groups.map((group, gi) => {
-          const note = new StaveNote({ keys: group.map(vexKey), duration: 'q', clef })
+          const note = new StaveNote({
+            keys: group.map((v) => vexKey(v, octaveShift)),
+            duration: 'q',
+            clef: vexClef,
+          })
           // With a key signature, let VexFlow add only the accidentals that
           // deviate from it; otherwise spell every alteration explicitly.
           if (!keySignature) {

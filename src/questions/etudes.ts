@@ -77,9 +77,9 @@ export const ETUDES: Etude[] = [
     section: 'Ear Training',
     number: 9,
     title: 'Intervals by Ear',
-    subtitle: 'Hear an interval and name it — relative-pitch training',
+    subtitle: 'Hear an interval in key and name it',
     levels: ['Easy', 'Medium', 'Hard', 'Expert'],
-    version: 2,
+    version: 3,
   },
   {
     id: 'progressions-ear',

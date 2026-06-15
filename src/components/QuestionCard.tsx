@@ -95,6 +95,36 @@ function badgeClasses(state: ChoiceState): string {
   }
 }
 
+/**
+ * Clef that best fits a set of MIDI pitches, by their midpoint: bass for low
+ * registers, treble-8va for high ones, plain treble in between — so interval
+ * reveals (root octaves 3–5) sit on or near the staff instead of clipping.
+ */
+// Major-scale semitone offset of each scale degree (do=0, re=2, …, ti=11).
+const MAJOR_DEGREE_SEMIS = [0, 2, 4, 5, 7, 9, 11]
+const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII']
+
+/**
+ * The upper note of an interval as a scale degree (Roman numeral) relative to
+ * the lower note (taken as the tonic): the 1-based letter distance with a ♭/♯
+ * where it deviates from the major scale — e.g. m3 → "♭III", TT → "♯IV",
+ * 8ve → "VIII".
+ */
+function intervalDegree(letterSteps: number, semitones: number): string {
+  const number = letterSteps + 1
+  const major = MAJOR_DEGREE_SEMIS[letterSteps % 7] + 12 * Math.floor(letterSteps / 7)
+  const alt = semitones - major
+  const mark = alt === 0 ? '' : alt < 0 ? '♭'.repeat(-alt) : '♯'.repeat(alt)
+  return `${mark}${ROMAN[number]}`
+}
+
+function clefForMidis(midis: number[]): 'treble' | 'bass' | 'treble-8va' {
+  if (Math.max(...midis) > 84) return 'treble-8va' // any note above C6 (2nd ledger above treble)
+  const avg = midis.reduce((sum, m) => sum + m, 0) / midis.length
+  if (avg <= 60) return 'bass' // ~middle C and below
+  return 'treble'
+}
+
 export default function QuestionCard({
   question,
   selected,
@@ -159,13 +189,28 @@ export default function QuestionCard({
     if (!ear || ear.kind === 'rhythm') return null
     const pool =
       ear.kind === 'interval' ? INTERVAL_ROOTS : progressionTonics(ear.mode)
-    return pool[Math.floor(Math.random() * pool.length)]
+    const root = pool[Math.floor(Math.random() * pool.length)]
+    // Intervals: vary the register so practice isn't locked to one octave (the
+    // perceptual-learning specificity that produces brittle accuracy swings).
+    // ponytail: octaves {3,4,5}; compound intervals from oct 5 sit high but play fine.
+    if (ear.kind === 'interval') {
+      return { ...root, octave: 3 + Math.floor(Math.random() * 3) }
+    }
+    return root
   })
+  // Intervals: vary direction too (ascending vs descending), stable per mount.
+  const [earDescending] = useState(() => ear?.kind === 'interval' && Math.random() < 0.5)
   const realized = useMemo(
     () =>
       ear && ear.kind !== 'rhythm' && earRoot ? realizeEar(ear, earRoot) : null,
     [ear, earRoot],
   )
+  // The interval's two notes in playback/notation order: upper-first when this
+  // presentation is descending. (Other ear kinds use realized.target as-is.)
+  const earTarget =
+    realized && earIsInterval && earDescending
+      ? [...realized.target].reverse()
+      : realized?.target
   // The melody's scale (tonic..octave) as MIDI, for the "hear scale" hint and
   // its per-note hover playback.
   const scaleMidis = useMemo(() => {
@@ -214,11 +259,40 @@ export default function QuestionCard({
       melodyMidis: realized.target.map((ev) => ev.map(voicedMidi)),
     }
   }, [ear, earRoot, realized])
-  // Key signature for the reveal staff — melody/progression are in a key (drawn
-  // under its signature); intervals are relative-pitch, so no signature.
-  const revealKeySignature =
-    earRoot && (ear?.kind === 'melody' || ear?.kind === 'progression')
-      ? keySignatureSpec(earRoot.note, ear.mode)
+  // Key signature for the reveal staff. Melody/progression are in their key;
+  // intervals are anchored to the root's *major* tonic (so the signature matches
+  // the "Key: X major" prompt — out-of-key interval notes get explicit naturals
+  // from VexFlow's accidental pass).
+  const revealKeySignature = !earRoot
+    ? undefined
+    : ear?.kind === 'interval'
+      ? keySignatureSpec(earRoot.note, 'major')
+      : ear?.kind === 'melody' || ear?.kind === 'progression'
+        ? keySignatureSpec(earRoot.note, ear.mode)
+        : undefined
+  // Clef for the interval reveal: pick by register so low/high intervals don't
+  // pile onto ledger lines (or clip) far from a treble staff.
+  const revealClef =
+    earIsInterval && earTarget ? clefForMidis(earTarget.flat().map(voicedMidi)) : undefined
+  // Interval reveal labels: the two notes' scale degrees (Roman numerals)
+  // relative to the tonic (the lower note), ordered to match earTarget.
+  const intervalDegreeLabels =
+    ear?.kind === 'interval'
+      ? earDescending
+        ? [intervalDegree(ear.letterSteps, ear.semitones), 'I']
+        : ['I', intervalDegree(ear.letterSteps, ear.semitones)]
+      : undefined
+  // A plain-English hint shown below the staff, e.g. "A perfect 5th spans 7
+  // semitones." ("An" before a vowel — only the octave here.)
+  const intervalHint =
+    ear?.kind === 'interval'
+      ? (() => {
+          const name = question.choices[question.answerIndex]
+          const article = /^[aeiou]/i.test(name) ? 'An' : 'A'
+          return `${article} ${name.toLowerCase()} spans ${ear.semitones} semitone${
+            ear.semitones === 1 ? '' : 's'
+          }.`
+        })()
       : undefined
   // Progression-by-ear reveal: the concrete chord symbols in the chosen key,
   // shown under the Roman numerals — with slash notation when the voice leading
@@ -263,11 +337,9 @@ export default function QuestionCard({
       playRhythm(ear.pattern, ear.meter, ear.tempo)
       return
     }
-    if (!realized) return
-    const reference = earIsInterval
-      ? []
-      : realized.reference.map((ev) => ev.map(voicedMidi))
-    const target = realized.target.map((ev) => ev.map(voicedMidi))
+    if (!realized || !earTarget) return
+    const reference = realized.reference.map((ev) => ev.map(voicedMidi))
+    const target = earTarget.map((ev) => ev.map(voicedMidi))
     playEar(reference, target, realized.style)
   }
   function playReference() {
@@ -312,8 +384,9 @@ export default function QuestionCard({
   // Intervals only: sound both notes at once (one block event).
   function playHarmonic() {
     if (!realized) return
+    const reference = realized.reference.map((ev) => ev.map(voicedMidi))
     const both = realized.target.flat().map(voicedMidi)
-    playEar([], [both], 'block')
+    playEar(reference, [both], 'block')
   }
   // Hint: walk up one semitone at a time from the lower note to the target, so
   // you can count the distance instead of guessing.
@@ -485,7 +558,7 @@ export default function QuestionCard({
                 onClick={playReference}
                 className="marking text-ink-3 transition-colors hover:text-ink"
               >
-                {earIsInterval ? 'hear lower note' : 'hear tonic'}
+                hear tonic
               </button>
             )}
             {ear?.kind === 'melody' && earRoot && (
@@ -527,8 +600,10 @@ export default function QuestionCard({
           )}
           {earIsInterval && earRoot && (
             <p className="mt-3 text-ink-2">
-              The lower note is{' '}
-              <span className="font-mono text-ink">{noteToString(earRoot.note)}</span>.
+              Key:{' '}
+              <span className="font-mono text-ink">{noteToString(earRoot.note)} major</span>{' '}
+              — the lower note is the tonic. Played{' '}
+              {earDescending ? 'descending' : 'ascending'}.
             </p>
           )}
           {earIsInterval && !answered && (
@@ -783,13 +858,14 @@ export default function QuestionCard({
               </div>
             </div>
           )}
-          {ear && realized && (
+          {ear && realized && earTarget && (
             <Staff
-              groups={realized.target}
+              groups={earTarget}
+              clef={revealClef}
               keySignature={revealKeySignature}
               labels={
                 earIsInterval
-                  ? undefined
+                  ? intervalDegreeLabels
                   : earIsMelody
                     ? question.choices[question.answerIndex]
                         .split('–')
@@ -819,6 +895,9 @@ export default function QuestionCard({
               }
               sublabels={progressionSymbols}
             />
+          )}
+          {earIsInterval && intervalHint && (
+            <p className="mt-2 text-center text-sm text-ink-2">{intervalHint}</p>
           )}
           {question.caption && (
             <p className="mt-3 text-sm leading-relaxed text-ink-2">

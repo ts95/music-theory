@@ -268,8 +268,10 @@ const REFERENCES: Record<string, EtudeReference> = {
           <IntervalRow items={DISSONANT} />
         </div>
         <p className="text-ink-3">
-          The tritone (TT) is the sharpest dissonance. The lower note plays first
-          — count up from it.
+          The tritone (TT) is the sharpest dissonance. A tonic triad plays first
+          to set the key — hear each interval's <em>quality</em> against it (bright
+          vs. dark, stable vs. tense), not its distance. Register and direction
+          vary, so don't lean on a single reference octave.
         </p>
       </div>
     ),

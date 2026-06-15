@@ -152,7 +152,10 @@ export interface RealizedEar {
 export function realizeEar(spec: EarSpec, root: Voiced): RealizedEar {
   if (spec.kind === 'interval') {
     const upper = spellAbove(root, spec.letterSteps, spec.semitones)
-    return { reference: [[root]], target: [[root], [upper]], style: 'melodic' }
+    // Anchor the interval in a key: the root's major tonic triad plays first, so
+    // the lower note is heard as do (functional context, not bare relative pitch).
+    const tonicTriad = voiceChord(diatonicTriads(root.note, 'major')[0], root)
+    return { reference: [tonicTriad], target: [[root], [upper]], style: 'melodic' }
   }
   if (spec.kind === 'rhythm') {
     throw new Error('realizeEar: rhythm prompts have no pitch realization')

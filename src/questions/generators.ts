@@ -714,15 +714,24 @@ function intervalEarQuestions(): Question[] {
     const level = levelIndex + 1
     const pool = INTERVALS.filter((iv) => def.semitones.includes(iv.semitones))
     for (const iv of pool) {
-      // Distractors: the nearest intervals by semitone within this level's pool.
-      const distractors = pool
+      // Distractors: keep the single nearest neighbour (the hard, categorical-
+      // boundary discrimination) but fill the rest by rotating through the
+      // remaining pool with a stable per-interval offset, so the options aren't
+      // always just the N closest — that variability is what the perceptual-
+      // learning research says fights brittle, magnitude-counting recognition.
+      const byDistance = pool
         .filter((x) => x.name !== iv.name)
         .sort(
           (a, b) =>
             Math.abs(a.semitones - iv.semitones) -
             Math.abs(b.semitones - iv.semitones)
         )
-        .map((x) => x.name)
+      const rest = byDistance.slice(1)
+      const rot = rest.length ? iv.semitones % rest.length : 0
+      const distractors = [
+        ...byDistance.slice(0, 1),
+        ...rest.map((_, k) => rest[(rot + k) % rest.length]),
+      ].map((x) => x.name)
       const q = buildQuestion(
         'intervals-ear',
         `interval-ear:L${level}:${iv.semitones}`,
