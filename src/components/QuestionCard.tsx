@@ -102,20 +102,26 @@ function badgeClasses(state: ChoiceState): string {
  */
 // Major-scale semitone offset of each scale degree (do=0, re=2, …, ti=11).
 const MAJOR_DEGREE_SEMIS = [0, 2, 4, 5, 7, 9, 11]
-const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII']
+// Movable-do solfège by pitch class above the tonic: diatonic, plus the
+// chromatic raised (di/ri/fi/si/li) and lowered (ra/me/se/le/te) syllables.
+const SOLFEGE_DIATONIC: Record<number, string> = { 0: 'do', 2: 're', 4: 'mi', 5: 'fa', 7: 'sol', 9: 'la', 11: 'ti' }
+const SOLFEGE_LOWERED: Record<number, string> = { 1: 'ra', 3: 'me', 6: 'se', 8: 'le', 10: 'te' }
+const SOLFEGE_RAISED: Record<number, string> = { 1: 'di', 3: 'ri', 6: 'fi', 8: 'si', 10: 'li' }
 
 /**
- * The upper note of an interval as a scale degree (Roman numeral) relative to
- * the lower note (taken as the tonic): the 1-based letter distance with a ♭/♯
- * where it deviates from the major scale — e.g. m3 → "♭III", TT → "♯IV",
- * 8ve → "VIII".
+ * A note as a scale degree relative to the tonic, for the interval reveal: a
+ * caret Arabic scale-degree number (the convention for single degrees, vs Roman
+ * numerals which mean chords) with any ♭/♯, plus the movable-do solfège syllable
+ * in parentheses — e.g. unison → "1̂ (do)", m3 → "♭3̂ (me)", TT → "♯4̂ (fi)".
  */
 function intervalDegree(letterSteps: number, semitones: number): string {
   const number = letterSteps + 1
   const major = MAJOR_DEGREE_SEMIS[letterSteps % 7] + 12 * Math.floor(letterSteps / 7)
   const alt = semitones - major
   const mark = alt === 0 ? '' : alt < 0 ? '♭'.repeat(-alt) : '♯'.repeat(alt)
-  return `${mark}${ROMAN[number]}`
+  const pc = ((semitones % 12) + 12) % 12
+  const solfege = alt === 0 ? SOLFEGE_DIATONIC[pc] : alt < 0 ? SOLFEGE_LOWERED[pc] : SOLFEGE_RAISED[pc]
+  return `${mark}${number}̂ (${solfege})` // ̂ = combining circumflex (the degree caret)
 }
 
 function clefForMidis(midis: number[]): 'treble' | 'bass' | 'treble-8va' {
@@ -274,13 +280,13 @@ export default function QuestionCard({
   // pile onto ledger lines (or clip) far from a treble staff.
   const revealClef =
     earIsInterval && earTarget ? clefForMidis(earTarget.flat().map(voicedMidi)) : undefined
-  // Interval reveal labels: the two notes' scale degrees (Roman numerals)
-  // relative to the tonic (the lower note), ordered to match earTarget.
+  // Interval reveal labels: the two notes' scale degrees relative to the tonic
+  // (the lower note = 1̂), ordered to match earTarget.
   const intervalDegreeLabels =
     ear?.kind === 'interval'
       ? earDescending
-        ? [intervalDegree(ear.letterSteps, ear.semitones), 'I']
-        : ['I', intervalDegree(ear.letterSteps, ear.semitones)]
+        ? [intervalDegree(ear.letterSteps, ear.semitones), intervalDegree(0, 0)]
+        : [intervalDegree(0, 0), intervalDegree(ear.letterSteps, ear.semitones)]
       : undefined
   // A plain-English hint shown below the staff, e.g. "A perfect 5th spans 7
   // semitones." ("An" before a vowel — only the octave here.)
